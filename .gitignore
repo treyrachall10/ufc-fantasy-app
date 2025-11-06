@@ -1,0 +1,36 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.db
+*.log
+
+# Virtual environments
+venv/
+env/
+
+# Django static/media
+media/
+staticfiles/
+
+# Environment files
+.env
+.env.dev
+.env.prod
+
+# Docker
+.docker/
+docker-data/
+postgres_data/
+*.pid
+*.seed
+*.log
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+
+# IDE / Editor
+.vscode/
+.idea/
