@@ -18,31 +18,42 @@ Make sure you have the following installed before running:
 
 ## **Local Development Setup**
 
-# 1. Clone the Repository
+### 1. Clone the Repository
+```bash
 git clone https://github.com/<your-username>/ufc-fantasy-app.git
 cd ufc-fantasy-app
+```
 
-# 2. Build and Run Containers
+### 2. Build and Run Containers
+```bash
 docker compose up --build
+```
 
-# The app will run at:
-http://localhost:8000
+- The app will run at:  
+  ```bash
+  http://localhost:8000
+  ```
 
-# 3. Verify the Setup
-You should see this in the terminal:
-"Django version 5.x, using settings 'ufc_fantasy.settings'
-Starting development server at http://0.0.0.0:8000/"
-
-Open your browser and go to:
-http://localhost:8000
+### 3. Verify the Setup
+- You should see this in the terminal:  
+  ```bash
+  Django version 5.x, using settings 'ufc_fantasy.settings'
+  Starting development server at http://0.0.0.0:8000/
+  ```
+- Open your browser and go to:  
+  ```bash
+  http://localhost:8000
+  ```
 
 ---
 
 ## **Stopping Containers**
 
-# Stop and clean up containers
+### Stop and clean up containers
+```bash
 Ctrl + C
 docker compose down
+```
 
 This stops the containers and removes them while keeping your database data in the persisted volume.
 
@@ -52,25 +63,30 @@ This stops the containers and removes them while keeping your database data in t
 
 If you’re using the VS Code Docker extension, you can work directly inside the running container without rebuilding each time.
 
-# 1. Install the VS Code Docker Extension
-Open VS Code → Extensions → Search "Docker" → Install (by Microsoft)
+### 1. Install the VS Code Docker Extension
+- Open VS Code → Extensions → search **“Docker”** → install (by Microsoft).
 
-# 2. Start the Containers
+### 2. Start the Containers
+```bash
 docker compose up
-# or, in Docker Desktop:
-Open Docker Desktop → Containers → select "ufc-fantasy-app" → click "Start"
+```
 
-# 3. Attach to the Running Container
-In VS Code:
-- Open the Docker extension panel
-- Expand Containers → select the "web" container (e.g., ufc-fantasy-app_web_1)
-- Right-click → Attach Visual Studio Code
+- Or, in Docker Desktop:  
+  ```bash
+  Open Docker Desktop → Containers → select "ufc-fantasy-app" → click "Start"
+  ```
+
+### 3. Attach to the Running Container
+- In VS Code:
+  - Open the Docker extension panel  
+  - Expand **Containers → select the "web" container** (e.g., `ufc-fantasy-app_web_1`)  
+  - Right-click → **Attach Visual Studio Code**
 
 VS Code will open a new window directly inside the container’s environment.
 
 Once attached:
-- Edit Django code directly
-- Run migrations or management commands inside the built-in terminal
+- Edit Django code directly  
+- Run migrations or management commands in the built-in terminal  
 - See code changes instantly (Django auto-reloads with StatReloader)
 
 You do **not** have to rebuild after every change.
