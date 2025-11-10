@@ -300,15 +300,21 @@ def parse_career_stats():
         -   Parses fight results and stores into 'career_stats_clean.csv'
     """
     try:
-        df = pd.read_csv(f'{DATACLEANPATH}/total_fight_stats_clean.csv')
-    except FileNotFoundError:
-        print("ERROR: Could not find file 'total_fight_stats_clean.csv'.")
+        total_fight_stats_df = pd.read_csv(f'{DATACLEANPATH}/total_fight_stats_clean.csv')
+        fight_results_clean_df = pd.read_csv(f'{DATACLEANPATH}/fight_results_clean.csv')
+    except FileNotFoundError as e:
+        print(f"ERROR: Missing file - {e}")
         return
 
-    df = df.drop(['event', 'bout'], axis=1)
+    total_fight_stats_df = total_fight_stats_df.drop(['event', 'bout'], axis=1)
+
+    # Creates smaller df containing each fighter and their methods of victory summed
+    summed_methods_df = pd.crosstab(fight_results_clean_df['winner'], fight_results_clean_df['method'])
+    summed_methods_df = summed_methods_df.rename_axis('fighter').reset_index() # Renames row axis to fighter from winner and resets index to a column
+    summed_methods_df['fighter'] = summed_methods_df['fighter'].apply(normalize_text)
 
     # Builds the main_df
-    main_df = df.groupby('fighter').sum().reset_index()  # Sums all columns for a fighter
+    main_df = total_fight_stats_df.groupby('fighter').sum().reset_index()  # Sums all columns for a fighter
     # Counts total number of wins, losses, and draws
     main_df['wins'] = main_df['result'].apply(count_total_outcomes, args=('W',))
     main_df['losses'] = main_df['result'].apply(count_total_outcomes, args=('L',))
@@ -316,13 +322,16 @@ def parse_career_stats():
     main_df['total_fights'] = main_df.apply(lambda x: x['wins'] + x['losses'] + x['draws'], axis=1)
     main_df = main_df.drop(['result'], axis=1)
 
+    # Merges main_df and summed_methods to add method of victories to each fighter
+    main_df = main_df.merge(summed_methods_df, on='fighter', how='left')
+    main_df = main_df.fillna(0)
+
     if main_df is not None and not main_df.empty:
         try:
             main_df.to_csv(f"{DATACLEANPATH}/career_stats_clean.csv", index=False)
             print(f"Successfully saved career stats data to {DATACLEANPATH}")
         except Exception as e:
             print(f"ERROR: Failed to save file due to unexpected error: {e}")
-
 
 def parse_all_data():
     """
