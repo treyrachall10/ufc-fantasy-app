@@ -325,6 +325,15 @@ def parse_career_stats():
     # Merges main_df and summed_methods to add method of victories to each fighter
     main_df = main_df.merge(summed_methods_df, on='fighter', how='left')
     main_df = main_df.fillna(0)
+    main_df.rename(columns={
+        "Decision - Majority ": "majority_decisions",
+        "Decision - Split ": "split_decisions",
+        "Decision - Unanimous ": "unanimous_decisions",
+        "Submission ": "submissions",
+        "KO/TKO ": "ko_tko",
+        "TKO - Doctor's Stoppage ": "tko_doctor_stoppages",
+        "DQ ": "dq"
+    }, inplace=True) 
 
     if main_df is not None and not main_df.empty:
         try:
