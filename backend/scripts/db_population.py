@@ -3,8 +3,9 @@
 """
 import csv
 from django.db import models
-from fantasy.models import Fighters, Events, Fights, FightStats
+from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore
 from config import DATACLEANPATH, MODEL_MAP
+from scripts.scoring import score_knockdowns, score_td_landed, score_sub_att, score_ctrl_time
 
 def populate_fighter_stats_tables():
     """
@@ -96,3 +97,43 @@ def populate_fighter_stats_tables():
             print(f"Populated {key} ({entry_counter} records)")
         except FileNotFoundError:
             print(f"ERROR: Could not find file '{value['file']}'")
+
+def populate_round_score():
+    """
+        -   Iterates through rows in RoundStats model and calculates fantasy scores
+        -   RETURNS: Nothing; populates the RoundScore table 
+    """
+    entry_counter = 0
+    round_stats = RoundStats.objects.filter(roundscore__isnull=True) # Filters every row that needs scoring
+    objs = [] # Holds round score objects to bulk create
+    # Iterate through round_stats; determine if scoring has already been done; score if not
+    for row in round_stats:
+        # Skip row if stats are incompleted
+        if (row.fight_stats is None
+            or row.fight_stats.fighter is None
+            or row.fight_stats.fight is None
+        ):
+            continue
+        # Score points for each action
+        obj = RoundScore(
+            round_stats=row,
+            points_knockdowns=score_knockdowns(row.kd),
+            points_sig_str_landed=row.sig_str_landed,
+            points_td_landed=score_td_landed(row.td_landed),
+            points_sub_att=score_sub_att(row.sub_att),
+            points_ctrl_time=score_ctrl_time(row.ctrl_time),
+            points_reversals=row.reversals,
+            round_total_points=(
+                score_knockdowns(row.kd)
+                + row.sig_str_landed
+                + score_td_landed(row.td_landed)
+                + score_sub_att(row.sub_att)
+                + score_ctrl_time(row.ctrl_time)
+                + row.reversals
+            )
+        )
+        objs.append(obj)
+        entry_counter += 1
+
+    RoundScore.objects.bulk_create(objs=objs)
+    print(f"Created {entry_counter} new RoundScore rows.")

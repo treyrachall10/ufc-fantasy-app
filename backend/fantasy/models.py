@@ -134,13 +134,18 @@ class RoundScore(models.Model):
     round_stats=models.ForeignKey(RoundStats, on_delete=models.CASCADE, null=True, blank=True)
     points_knockdowns=models.FloatField(default=0,null=True, blank=True)
     points_sig_str_landed=models.FloatField(default=0,null=True, blank=True)
-    points_sig_str_attempted=models.FloatField(default=0,null=True, blank=True)
     points_td_landed=models.FloatField(default=0,null=True, blank=True)
-    points_td_attempted=models.FloatField(default=0,null=True, blank=True)
     points_sub_att=models.FloatField(default=0,null=True, blank=True)
     points_ctrl_time=models.FloatField(default=0,null=True, blank=True)
     points_reversals=models.FloatField(default=0,null=True, blank=True)
     round_total_points=models.FloatField(default=0, null=True, blank=True)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['round_stats'],
+                name='unique_roundscore_per_round'
+            )
+        ]
 
 class FightScore(models.Model):
     fighter=models.ForeignKey(Fighters, on_delete=models.CASCADE, null=True, blank=True)
@@ -149,3 +154,10 @@ class FightScore(models.Model):
     points_round=models.FloatField(default=0, null=True, blank=True)
     points_time=models.FloatField(default=0, null=True, blank=True)
     fight_total_points=models.FloatField(default=0, null=True, blank=True)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['fight', 'fighter'],
+                name='unique_fight_fighter_per_fight'
+            )
+        ]

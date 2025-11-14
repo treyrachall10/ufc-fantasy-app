@@ -29,12 +29,12 @@ def convert_time_to_seconds(time_to_conv):
         -   RETURNS: time in seconds 
     """
     if not time_to_conv or pd.isna(time_to_conv) or time_to_conv == '--':
-        return None
+        return 0
     try:
         minutes, seconds = map(int, str(time_to_conv).split(':'))
         return minutes * 60 + seconds
     except (ValueError, AttributeError):
-        return None
+        return 0
 
 
 def format_date(date_to_format):
