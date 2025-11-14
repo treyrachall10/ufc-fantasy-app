@@ -129,3 +129,23 @@ class FighterCareerStats(models.Model):
     clinch_str_attempted = models.IntegerField(default=0)
     ground_str_landed = models.IntegerField(default=0)
     ground_str_attempted = models.IntegerField(default=0)
+
+class RoundScore(models.Model):
+    round_stats=models.ForeignKey(RoundStats, on_delete=models.CASCADE, null=True, blank=True)
+    points_knockdowns=models.FloatField(default=0,null=True, blank=True)
+    points_sig_str_landed=models.FloatField(default=0,null=True, blank=True)
+    points_sig_str_attempted=models.FloatField(default=0,null=True, blank=True)
+    points_td_landed=models.FloatField(default=0,null=True, blank=True)
+    points_td_attempted=models.FloatField(default=0,null=True, blank=True)
+    points_sub_att=models.FloatField(default=0,null=True, blank=True)
+    points_ctrl_time=models.FloatField(default=0,null=True, blank=True)
+    points_reversals=models.FloatField(default=0,null=True, blank=True)
+    round_total_points=models.FloatField(default=0, null=True, blank=True)
+
+class FightScore(models.Model):
+    fighter=models.ForeignKey(Fighters, on_delete=models.CASCADE, null=True, blank=True)
+    fight=models.ForeignKey(Fights, on_delete=models.CASCADE, null=True, blank=True)
+    points_win=models.FloatField(default=0, null=True, blank=True)
+    points_round=models.FloatField(default=0, null=True, blank=True)
+    points_time=models.FloatField(default=0, null=True, blank=True)
+    fight_total_points=models.FloatField(default=0, null=True, blank=True)
