@@ -6,10 +6,11 @@ from django.db import models
 from fantasy.models import Fighters, Events, Fights, FightStats
 from config import DATACLEANPATH, MODEL_MAP
 
-def populate_database():
+def populate_fighter_stats_tables():
     """
         -   Populates database dynamically by reading the files in the MODEL_FILE_MAP
         -   RETURNS: Nothing; it just builds the database
+        -   THIS ONLY POPULATES THE FIGHTERS IN FIGHT STATS, THIS HAS NOTHING TO DO WITH FANTASY SCORING TABLES
     """
     # Iterate through every model in MODEL_FILE_MAP
     for key, value in MODEL_MAP.items():
@@ -95,5 +96,3 @@ def populate_database():
             print(f"Populated {key} ({entry_counter} records)")
         except FileNotFoundError:
             print(f"ERROR: Could not find file '{value['file']}'")
-
-populate_database()
