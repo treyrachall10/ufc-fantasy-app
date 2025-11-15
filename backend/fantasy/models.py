@@ -38,7 +38,7 @@ class Fights(models.Model):
     method = models.CharField(max_length=50, null=True, blank=True)
     round = models.IntegerField(null=True, blank=True)
     round_format = models.CharField(max_length=50, null=True, blank=True)
-    time = models.CharField(max_length=50, null=True, blank=True)
+    time = models.IntegerField(default=0, null=True, blank=True)
     winner = models.ForeignKey(Fighters, on_delete=models.SET_NULL, null=True, blank=True)
 
 class FightStats(models.Model):

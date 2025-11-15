@@ -3,9 +3,9 @@
 """
 import csv
 from django.db import models
-from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore
+from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore, FightScore
 from config import DATACLEANPATH, MODEL_MAP
-from scripts.scoring import score_knockdowns, score_td_landed, score_sub_att, score_ctrl_time
+from scripts.scoring import score_knockdowns, score_td_landed, score_sub_att, score_ctrl_time, score_win, score_round_finish, score_time
 
 def populate_fighter_stats_tables():
     """
@@ -106,7 +106,7 @@ def populate_round_score():
     entry_counter = 0
     round_stats = RoundStats.objects.filter(roundscore__isnull=True) # Filters every row that needs scoring
     objs = [] # Holds round score objects to bulk create
-    # Iterate through round_stats; determine if scoring has already been done; score if not
+    # Iterate through round_stats; score round; append to objs list
     for row in round_stats:
         # Skip row if stats are incompleted
         if (row.fight_stats is None
@@ -136,4 +136,62 @@ def populate_round_score():
         entry_counter += 1
 
     RoundScore.objects.bulk_create(objs=objs)
+    print(f"Created {entry_counter} new RoundScore rows.")
+
+def populate_fight_score():
+    """
+        -   Populates the FightScore table
+        -   RETURNS: Nothing; populates the FightScore table 
+    """
+    entry_counter = 0
+    fights = Fights.objects.filter(fightscore__isnull=True) # Filters every fight that needs scoring
+    objs = [] # Holds fight objects to bulk create
+    # Iterate through fights; score fight; append to objs list
+    for fight in fights:
+        # Skip fights with no winner ONLY if it's not a draw
+        if fight.winner is None and fight.method not in ("Decision - Split", "Decision - Majority", "Draw"):
+            continue
+        fight_stats = FightStats.objects.filter(fight=fight) # Filter FightStats rows for fight(should contain 2 rows. 1 for each fighter.)
+        # Skip incomplete fight data
+        if fight_stats.count() != 2:
+            continue
+        # Iterate through fight_stats rows (fight stat for each fighter)
+        for fight_stat in fight_stats:
+            # Skip incomplete fight data
+            if fight_stat.fighter is None:
+                continue
+            total_rounds_score = 0
+            round_stats = RoundStats.objects.filter(fight_stats=fight_stat) # Filter every round for the fighter in the fight
+            # Iterate through every round in round_stats; add all round totals; create FightScore object
+            for round in round_stats:
+                round_score = RoundScore.objects.get(round_stats=round)
+                total_rounds_score += round_score.round_total_points
+            is_winner = (fight.winner is not None and fight_stat.fighter.full_name == fight.winner.full_name) # Determines if fighter is winner
+            # LOSER
+            if not is_winner:
+                obj = FightScore(
+                fighter = fight_stat.fighter,
+                fight = fight,
+                points_win = 0,
+                points_round = 0,
+                points_time = 0,
+                fight_total_points = total_rounds_score,
+            )
+            # WINNER
+            else:
+                points_round = score_round_finish(round=fight.round, time=fight.time,)
+                points_time = score_time(fight.time)
+                points_win = 20
+                obj = FightScore(
+                    fighter = fight_stat.fighter,
+                    fight = fight,
+                    points_win = points_win,
+                    points_round = points_round,
+                    points_time = points_time,
+                    fight_total_points =  total_rounds_score + points_win + points_round + points_time,
+                )
+            objs.append(obj)
+            entry_counter += 1
+
+    FightScore.objects.bulk_create(objs=objs)
     print(f"Created {entry_counter} new RoundScore rows.")

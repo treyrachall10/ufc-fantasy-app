@@ -255,7 +255,7 @@ def parse_fight_data():
     main_df['method'] = df['METHOD']
     main_df['round'] = df['ROUND']
     main_df['round_format'] = df['TIME FORMAT']
-    main_df['time'] = df['TIME']
+    main_df['time'] = df['TIME'].apply(convert_time_to_seconds)
     main_df['winner'] = df.apply(get_winner, axis=1)
 
     if main_df is not None and not main_df.empty:
