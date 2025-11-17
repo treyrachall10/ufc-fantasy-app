@@ -59,4 +59,4 @@ def score_time(time):
         -   Scores based on how much time was left in round when finished
         -   RETURNS: Float containing time finish bonus
     """
-    return time * .03
+    return (300 - time) * .03
