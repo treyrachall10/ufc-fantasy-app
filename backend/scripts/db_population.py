@@ -194,8 +194,9 @@ def populate_fight_score():
             entry_counter += 1
 
     FightScore.objects.bulk_create(objs=objs)
-    print(f"Created {entry_counter} new RoundScore rows.")
+    print(f"Created {entry_counter} new FightScore rows.")
 
-populate_fighter_stats_tables()
-populate_round_score()
-populate_fight_score()
+def populate_database():
+    populate_fighter_stats_tables()
+    populate_round_score()
+    populate_fight_score()
