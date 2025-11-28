@@ -1,6 +1,6 @@
-import ListPageLayout from "../components/ListPageLayout";
+import ListPageLayout from "../components/layout/ListPageLayout";
 import ListHeader from "../components/ListHeader";
-import FightersList from "../components/FightersList"
+import FightersList from "../components/lists/FightersList"
 
 export default function FightersListPage() {
     return (

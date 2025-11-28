@@ -1,6 +1,6 @@
-import ListPageLayout from "../components/ListPageLayout";
+import ListPageLayout from "../components/layout/ListPageLayout";
 import ListHeader from "../components/ListHeader";
-import EventsList from "../components/EventsList"
+import EventsList from "../components/lists/EventsList"
 
 export default function EventsListPage() {
     return (
