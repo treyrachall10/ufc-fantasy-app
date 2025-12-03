@@ -63,7 +63,7 @@ export default function AthleteStatsPage({fighter}: {fighter: Fighter}){
     const STR_DEF = 0;
 
     return (
-        <Container>
+        <Container maxWidth="xl">
             <Grid container spacing={2}>
 
                 {/* Sidebar */}

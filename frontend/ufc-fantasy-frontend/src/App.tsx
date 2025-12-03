@@ -62,7 +62,7 @@ function App() {
       <CssBaseline/>
 
       <Navbar/>
-      <Container maxWidth="lg" sx={{py: 3}}>
+      <Container maxWidth='xl' sx={{py: 3}}>
           <FightStatsPage fightId={10}/>
       </Container>
 

@@ -7,7 +7,7 @@ const pages = ['Dashboard', 'Fighters', 'Fights', 'Events']
 export default function Navbar(){
     return (
         <AppBar position='static'>
-            <Container maxWidth='lg'>
+            <Container maxWidth='xl'>
                 <Toolbar disableGutters sx={{justifyContent: "space-between"}}>
                     <Box sx={{display: "flex"}}>
                         {pages.map((page) => (

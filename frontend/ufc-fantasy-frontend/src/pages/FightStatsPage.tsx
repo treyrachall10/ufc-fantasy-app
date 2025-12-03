@@ -1,12 +1,14 @@
-import { Container, Grid } from "@mui/material";
+import { Container, Grid, Box} from "@mui/material";
 import Sidebar from "../components/layout/Sidebar";
+import DivergingProgressBar from "../components/statHolders/DivergingProgressBar";
+import HeadToHeadStatCard from "../components/statHolders/HeadToHeadStatCard";
 
 interface FightStatsPageProps {
     fightId: number;
 }
 
 export default function FightStatsPage({fightId}: FightStatsPageProps) {
-    const FIGHTERONE = {
+    const fighterOne = {
         name: "Alex Pereira",
         nickname: "Poatan",
         age: 36,
@@ -19,7 +21,7 @@ export default function FightStatsPage({fightId}: FightStatsPageProps) {
         d: 0
     };
 
-    const FIGHTERTWO = {
+    const fighterTwo = {
         name: "Jamal Hill",
         nickname: "Sweet Dreams",
         age: 32,
@@ -32,43 +34,51 @@ export default function FightStatsPage({fightId}: FightStatsPageProps) {
         d: 0
     };
     return (
-        <Container>
+        <Container maxWidth='xl'>
             <Grid container spacing={2}>
                 {/* Fighter 1 Sidebar */}
                 <Grid size={{ xs: 4, md: 2}}>
                     <Sidebar 
-                        name={FIGHTERONE.name}
-                        nickname={FIGHTERONE.nickname}
-                        age={FIGHTERONE.age}
-                        height={FIGHTERONE.height}
-                        weight={FIGHTERONE.weight}
-                        reach={FIGHTERONE.reach}
-                        stance={FIGHTERONE.stance}
-                        w={FIGHTERONE.w}
-                        l={FIGHTERONE.l}
-                        d={FIGHTERONE.d}
+                        name={fighterOne.name}
+                        nickname={fighterOne.nickname}
+                        age={fighterOne.age}
+                        height={fighterOne.height}
+                        weight={fighterOne.weight}
+                        reach={fighterOne.reach}
+                        stance={fighterOne.stance}
+                        w={fighterOne.w}
+                        l={fighterOne.l}
+                        d={fighterOne.d}
                     />
                 </Grid>
                 {/* Head to Head Stats */}
-                <Grid size={{xs: 4, md: 8}}>
-                    
+                <Grid size={{xs: 4, md: 8}} spacing={2}>
+                    <Box sx={{
+                        display:'flex',
+                        flexDirection: 'column',
+                        gap: 1
+                        }}>
+                    <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.w} rightValue={fighterTwo.w}/>
+                    <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.w} rightValue={fighterTwo.w}/>
+                    <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.w} rightValue={fighterTwo.w}/>
+                    <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.w} rightValue={fighterTwo.w}/>
+                    </Box>
                 </Grid>
                 {/* Fighter 2 Sidebar */}
                 <Grid size={{ xs: 4, md: 2}}>
                     <Sidebar 
-                        name={FIGHTERTWO.name}
-                        nickname={FIGHTERTWO.nickname}
-                        age={FIGHTERTWO.age}
-                        height={FIGHTERTWO.height}
-                        weight={FIGHTERTWO.weight}
-                        reach={FIGHTERTWO.reach}
-                        stance={FIGHTERTWO.stance}
-                        w={FIGHTERTWO.w}
-                        l={FIGHTERTWO.l}
-                        d={FIGHTERTWO.d}
+                        name={fighterTwo.name}
+                        nickname={fighterTwo.nickname}
+                        age={fighterTwo.age}
+                        height={fighterTwo.height}
+                        weight={fighterTwo.weight}
+                        reach={fighterTwo.reach}
+                        stance={fighterTwo.stance}
+                        w={fighterTwo.w}
+                        l={fighterTwo.l}
+                        d={fighterTwo.d}
                     />
                 </Grid>
-
 
 
             </Grid>
