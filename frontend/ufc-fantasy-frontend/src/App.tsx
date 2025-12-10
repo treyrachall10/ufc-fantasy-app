@@ -68,6 +68,7 @@ function App() {
                 <Route path="/fights" element={<FightsListPage/>} />
                 <Route path="/fighters" element={<FightersListPage/>} />
                 <Route path="/events" element={<EventsListPage/>} />
+                <Route path="/fighter" element={<AthleteStatsPage fighter={fakeFighter}/>} />
             </Routes> 
           </Container>
 
