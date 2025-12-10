@@ -8,6 +8,7 @@ import AthleteStatsPage from './pages/AthleteStatsPage';
 import Navbar from './components/layout/Navbar';
 import { Container, CssBaseline } from '@mui/material';
 import FightStatsPage from './pages/FightStatsPage';
+import { BrowserRouter, Routes, Route} from 'react-router-dom';
 
 function App() {
   const fakeFighter = {
@@ -59,13 +60,19 @@ function App() {
    
   return (
     <>
-      <CssBaseline/>
+      <BrowserRouter>
+        <CssBaseline/>
+          <Navbar/>
+          <Container maxWidth='xl' sx={{py: 3}}>
+              <Routes>
+                <Route path="/fights" element={<FightsListPage/>} />
+                <Route path="/fighters" element={<FightersListPage/>} />
+                <Route path="/events" element={<EventsListPage/>} />
+            </Routes> 
+          </Container>
 
-      <Navbar/>
-      <Container maxWidth='xl' sx={{py: 3}}>
-          <FightStatsPage fightId={10}/>
-      </Container>
 
+      </BrowserRouter>
     </>
   );
 }

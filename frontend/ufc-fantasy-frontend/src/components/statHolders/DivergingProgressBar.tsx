@@ -36,7 +36,7 @@ export default function DivergingProgressBar({
             backgroundColor: rightColor,
 
             "& .MuiLinearProgress-bar": {
-                backgroundColor: leftColor
+                backgroundColor: leftColor,
         },
         ...sx
         }}
