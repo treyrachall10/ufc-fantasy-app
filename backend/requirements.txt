@@ -10,3 +10,4 @@ beautifulsoup4
 tqdm
 pyyaml
 django-cors-headers
+djangorestframework
