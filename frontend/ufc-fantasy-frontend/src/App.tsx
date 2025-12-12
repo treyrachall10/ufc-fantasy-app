@@ -9,6 +9,15 @@ import Navbar from './components/layout/Navbar';
 import { Container, CssBaseline } from '@mui/material';
 import FightStatsPage from './pages/FightStatsPage';
 import { BrowserRouter, Routes, Route} from 'react-router-dom';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query'
+
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 function App() {
   const fakeFighter = {
@@ -57,9 +66,11 @@ function App() {
     submissions: 3,
     tko_doctor_stoppages: 1,
   };
-   
+  
+  const queryClient = new QueryClient()
+
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <CssBaseline/>
           <Navbar/>
@@ -71,10 +82,9 @@ function App() {
                 <Route path="/fighter" element={<AthleteStatsPage fighter={fakeFighter}/>} />
             </Routes> 
           </Container>
-
-
       </BrowserRouter>
-    </>
+      <ReactQueryDevtools initialIsOpen={false} />
+  </QueryClientProvider>
   );
 }
 
