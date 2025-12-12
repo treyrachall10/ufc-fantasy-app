@@ -19,3 +19,10 @@ export interface Fighter {
         draws: number
     } | null,
 }
+
+export interface Event {
+    event_id: number,
+    event: string,
+    date: string | null,
+    location: string | null,
+}

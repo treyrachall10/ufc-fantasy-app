@@ -1,17 +1,32 @@
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Event } from '../../types/types';
 
 export default function FightersList() {
+    {/* API fetching*/}
+    const { data, isPending, error } = useQuery<Event[]>({
+            queryKey: ['eventListData'],
+            queryFn: () => fetch('http://localhost:8000/events').then(r => r.json()),
+        })
+    
+    if (isPending) return <span>Loading...</span>
+    if (error) return <span>Oops!</span>
+
     const columns: GridColDef[] = [
-    { field: 'event', headerName: 'Event' },
+    { field: 'event', headerName: 'Event', renderCell: (params) => (
+        <Link to="/" style={{color: "black"}}>{params.value}</Link>
+    )},
     { field: 'date', headerName: 'Date' },
     { field: 'location', headerName: 'Location'}
     ];
 
-    const rows = [
-    { id: 1, event: "UFC 322", date: "11/15/2025", location: "Location"},
-    { id: 2, event: "UFC FightNight Qatar: Tsarukyan vs. Hooker", date: "11/22/2025", location: "Qatar"},
-    { id: 3, event: "UFC FightNight Qatar: Tsarukyan vs. Hooker", date: "11/22/2025", location: "Qatar"},
-    ];
+    const rows = data.map((event) => ({
+        id: event.event_id,
+        event: event.event,
+        location: event.location,
+        date: event.date,
+    }));
 
     return(
         <DataGrid columns={columns} rows={rows}/>
