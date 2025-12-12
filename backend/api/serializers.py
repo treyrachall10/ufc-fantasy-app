@@ -1,5 +1,8 @@
+'''
+    Contains serializers for django views
+'''
 from rest_framework import serializers
-from fantasy.models import Fighters, FighterCareerStats
+from fantasy.models import Fighters, FighterCareerStats, Events
 
 class RecordSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
@@ -23,4 +26,14 @@ class FighterSerializer(serializers.HyperlinkedModelSerializer):
             'reach',
             'dob',
             'record',
+        ]
+
+class EventSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Events
+        fields = [
+            'event_id',
+            'event',
+            'date',
+            'location',
         ]

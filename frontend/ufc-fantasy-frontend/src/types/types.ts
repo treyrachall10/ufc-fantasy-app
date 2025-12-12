@@ -1,3 +1,7 @@
+/*
+    Contains all interfaces for objects
+*/
+
 export interface Fighter {
     fighter_id: number,
     first_name: string,
