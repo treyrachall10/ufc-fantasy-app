@@ -1,20 +1,42 @@
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { Link } from 'react-router-dom';
+import { Fight } from '../../types/types';
+import { useQuery } from '@tanstack/react-query';
 
 export default function FightsList() {
+    {/* API fetching*/}    
+    const { data, isPending, error } = useQuery<Fight[]>({
+            queryKey: ['fightListData'],
+            queryFn: () => fetch('http://localhost:8000/fights').then(r => r.json()),
+        })
+    
+    if (isPending) return <span>Loading...</span>
+    if (error) return <span>Oops!</span>
+
     const columns: GridColDef[] = [
-    { field: 'bout', headerName: 'Bout' },
+    { field: 'bout', headerName: 'Bout', renderCell: (params) => (
+        <Link to={`/fighter/${params.id}`} style={{color: "black"}}>{params.value}</Link>
+    )},
     { field: 'event', headerName: 'Event' },
-    { field: 'date', headerName: 'Date' },
+    { field: 'weight_class', headerName: 'Weight Class' },
+    { field: 'method', headerName: 'Method' },
+    { field: 'round', headerName: 'Round' },
+    { field: 'round_format', headerName: 'Round Format' },
+    { field: 'time', headerName: 'Time' },
     { field: 'winner', headerName: 'Winner' },
     ];
 
-    const rows = [
-    { id: 1, event: "UFC 322", date: "11/15/2025", bout: "Della Madalena vs. Makachev", winner: "Islam Makachev"},
-    { id: 2, event: "UFC 322", date: "11/15/2025", bout: "Edwards vs. Prates", winner: "Carlos Prates"},
-    { id: 3, event: "UFC 323", date: "12/07/2025", bout: "Holloway vs. Topuria", winner: "Ilia Topuria"},
-    { id: 4, event: "UFC 323", date: "12/07/2025", bout: "Whittaker vs. Cannonier", winner: "Robert Whittaker"},
-    { id: 5, event: "UFC 324", date: "01/18/2026", bout: "O’Malley vs. Vera", winner: "Sean O’Malley"},
-    ];
+    const rows = data.map((fight) => ({
+        id: fight.fight_id,
+        bout: fight.bout,
+        event: fight.event?.event,
+        weight_class: fight.weight_class,
+        method: fight.method,
+        round: fight.round,
+        round_format: fight.round_format,
+        time: fight.time,
+        winner: fight.winner,
+    }))
 
     return(
         <DataGrid columns={columns} rows={rows}/>

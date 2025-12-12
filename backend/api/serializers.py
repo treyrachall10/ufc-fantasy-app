@@ -2,7 +2,7 @@
     Contains serializers for django views
 '''
 from rest_framework import serializers
-from fantasy.models import Fighters, FighterCareerStats, Events
+from fantasy.models import Fighters, FighterCareerStats, Events, Fights
 
 class RecordSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
@@ -36,4 +36,22 @@ class EventSerializer(serializers.HyperlinkedModelSerializer):
             'event',
             'date',
             'location',
+        ]
+
+class FightSerializer(serializers.HyperlinkedModelSerializer):
+    event = EventSerializer(many=False, read_only=True)
+    winner = serializers.CharField(source='winner.full_name', read_only=True)
+
+    class Meta:
+        model = Fights
+        fields = [
+            'fight_id',
+            'event',
+            'bout',
+            'weight_class',
+            'method',
+            'round',
+            'round_format',
+            'time',
+            'winner',
         ]
