@@ -21,6 +21,5 @@ from fantasy.views import get_fighter
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('fighters/<int:fighter_id>/', get_fighter),
     path('', include('api.urls')),
 ]

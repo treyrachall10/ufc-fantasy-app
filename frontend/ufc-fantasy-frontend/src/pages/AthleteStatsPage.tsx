@@ -4,64 +4,22 @@ import QuickStatCard from "../components/statHolders/QuickStatCard";
 import FightsList from "../components/lists/FightsList";
 import WinLossChart from "../components/charts/WinLossChart";
 import FantasyTrendLineChart from "../components/charts/FantasyTrendLineChart";
+import { FighterWithCareerStats } from "../types/types";
+import { useQuery } from "@tanstack/react-query";
+import { useParams } from "react-router";
 
-interface Fighter {
-    name: string;
-    nickname?: string;
-  
-    // Bio / Profile
-    stance?: string;
-    age: number;
-    height: number;
-    weight: number;
-    reach: number;
-  
-    // Record
-    w: number;
-    l: number;
-    d: number;
-  
-    // Stats
-    kd: number;
-    sig_str_landed: number;
-    sig_str_attempted: number;
-    total_str_landed: number;
-    total_str_attempted: number;
-    td_landed: number;
-    td_attempted: number;
-    sub_att: number;
-    ctrl_time: number;
-    reversals: number;
-    head_str_landed: number;
-    head_str_attempted: number;
-    body_str_landed: number;
-    body_str_attempted: number;
-    leg_str_landed: number;
-    leg_str_attempted: number;
-    distance_str_landed: number;
-    distance_str_attempted: number;
-    clinch_str_landed: number;
-    clinch_str_attempted: number;
-    ground_str_landed: number;
-    ground_str_attempted: number;
-    total_fights: number;
-    dq: number;
-    majority_decisions: number;
-    split_decisions: number;
-    unanimous_decisions: number;
-    ko_tko: number;
-    submissions: number;
-    tko_doctor_stoppages: number;
-  }
-  
-
-export default function AthleteStatsPage({fighter}: {fighter: Fighter}){
-    const SLPM = 0;
-    const TD_DEF = 0;
-    const STR_ACC = 0;
-    const TD_ACC = 0;
-    const STR_DEF = 0;
-
+export default function AthleteStatsPage(){
+    const  params = useParams()
+    const id = params.id;
+    {/* API fetching*/}    
+    const { data, isPending, error } = useQuery<FighterWithCareerStats>({
+            queryKey: ['fighterStatsData', id],
+            queryFn: () => fetch(`http://localhost:8000/fighter/${id}`).then(r => r.json()),
+        })
+    
+    if (isPending) return <span>Loading...</span>
+    if (error) return <span>Oops!</span>
+    console.log(data)
     return (
         <Container maxWidth="xl">
             <Grid container spacing={2}>
@@ -69,16 +27,16 @@ export default function AthleteStatsPage({fighter}: {fighter: Fighter}){
                 {/* Sidebar */}
                 <Grid size={{ xs: 12, md: 2}}>
                     <Sidebar 
-                        name={fighter.name}
-                        nickname={fighter.nickname}
-                        age={fighter.age}
-                        height={fighter.height}
-                        weight={fighter.weight}
-                        reach={fighter.reach}
-                        stance={fighter.stance}
-                        w={fighter.w}
-                        l={fighter.l}
-                        d={fighter.d}
+                        name={data.fighter.full_name}
+                        nickname={data.fighter.nick_name}
+                        age={30}
+                        height={data.fighter.height}
+                        weight={data.fighter.weight}
+                        reach={data.fighter.reach}
+                        stance={data.fighter.stance}
+                        w={data.fighter.record?.wins}
+                        l={data.fighter.record?.losses}
+                        d={data.fighter.record?.draws}
                     />
                 </Grid>
                 {/* Body */}
@@ -93,19 +51,19 @@ export default function AthleteStatsPage({fighter}: {fighter: Fighter}){
                             justifyContent: "space-between",
                         }}>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="SLPM" stat={SLPM}/>
+                                <QuickStatCard title="SLPM" stat={0}/>
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="TD%" stat={TD_DEF} />
+                                <QuickStatCard title="TD%" stat={0} />
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="STR ACC" stat={STR_ACC} />
+                                <QuickStatCard title="STR ACC" stat={0} />
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="TD ACC" stat={TD_ACC} />
+                                <QuickStatCard title="TD ACC" stat={0} />
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="STR DEF" stat={STR_DEF} />
+                                <QuickStatCard title="STR DEF" stat={0} />
                             </Grid>
                         </Grid>
                         {/* Fantsy Chart and W/L Chart */}
