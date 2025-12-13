@@ -96,17 +96,31 @@ class RoundStats(models.Model):
 
 class FighterCareerStats(models.Model):
     fighter = models.OneToOneField(Fighters, on_delete=models.CASCADE, null=True, blank=True)
+
     total_fights = models.IntegerField(default=0)
     wins = models.IntegerField(default=0)
     losses = models.IntegerField(default=0)
     draws = models.IntegerField(default=0)
-    ko_tko = models.IntegerField(default=0)
-    tko_doctor_stoppages = models.IntegerField(default=0)
-    submissions = models.IntegerField(default=0)
-    unanimous_decisions = models.IntegerField(default=0)
-    split_decisions = models.IntegerField(default=0)
-    majority_decisions = models.IntegerField(default=0)
-    dq = models.IntegerField(default=0)
+
+    # Wins by method
+    ko_tko_wins = models.IntegerField(default=0)
+    tko_doctor_stoppage_wins = models.IntegerField(default=0)
+    submission_wins = models.IntegerField(default=0)
+    unanimous_decision_wins = models.IntegerField(default=0)
+    split_decision_wins = models.IntegerField(default=0)
+    majority_decision_wins = models.IntegerField(default=0)
+    dq_wins = models.IntegerField(default=0)
+
+    # Losses by method
+    ko_tko_losses = models.IntegerField(default=0)
+    tko_doctor_stoppage_losses = models.IntegerField(default=0)
+    submission_losses = models.IntegerField(default=0)
+    unanimous_decision_losses = models.IntegerField(default=0)
+    split_decision_losses = models.IntegerField(default=0)
+    majority_decision_losses = models.IntegerField(default=0)
+    dq_losses = models.IntegerField(default=0)
+
+    # Striking / grappling stats
     sig_str_landed = models.IntegerField(default=0)
     sig_str_attempted = models.IntegerField(default=0)
     total_str_landed = models.IntegerField(default=0)
@@ -116,18 +130,21 @@ class FighterCareerStats(models.Model):
     sub_att = models.IntegerField(default=0)
     ctrl_time = models.IntegerField(default=0)
     reversals = models.IntegerField(default=0)
+
     head_str_landed = models.IntegerField(default=0)
     head_str_attempted = models.IntegerField(default=0)
     body_str_landed = models.IntegerField(default=0)
     body_str_attempted = models.IntegerField(default=0)
     leg_str_landed = models.IntegerField(default=0)
     leg_str_attempted = models.IntegerField(default=0)
+
     distance_str_landed = models.IntegerField(default=0)
     distance_str_attempted = models.IntegerField(default=0)
     clinch_str_landed = models.IntegerField(default=0)
     clinch_str_attempted = models.IntegerField(default=0)
     ground_str_landed = models.IntegerField(default=0)
     ground_str_attempted = models.IntegerField(default=0)
+
 
 class RoundScore(models.Model):
     round_stats=models.ForeignKey(RoundStats, on_delete=models.CASCADE, null=True, blank=True)
