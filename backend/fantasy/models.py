@@ -68,7 +68,6 @@ class FightStats(models.Model):
     ground_str_landed = models.IntegerField(default=0, null=True, blank=True)
     ground_str_attempted = models.IntegerField(default=0, null=True, blank=True)
 
-
 class RoundStats(models.Model):
     fight_stats = models.ForeignKey(FightStats, on_delete=models.CASCADE, null=True, blank=True)
     round_number = models.IntegerField(null=True, blank=True)

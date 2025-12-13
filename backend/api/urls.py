@@ -5,5 +5,6 @@ urlpatterns = [
     path('fighters', views.GetFighterProfileViewSet),
     path('events', views.GetEventViewSet),
     path('fights', views.getFightViewSet),
-    path('fighter/<int:id>', views.getCareerStatsViewSet)
+    path('fighter/<int:id>', views.getCareerStatsViewSet),
+    path('fights/<int:id>', views.getFighterFightsViewSet),
 ]

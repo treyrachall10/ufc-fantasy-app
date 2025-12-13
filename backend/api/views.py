@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from .serializers import *
-from fantasy.models import Fighters, Events, Fights, FighterCareerStats
+from fantasy.models import Fighters, Events, Fights, FighterCareerStats, FightStats
 
 @api_view(['GET'])
 def GetFighterProfileViewSet(request):
@@ -30,3 +30,10 @@ def getCareerStatsViewSet(request, id):
     stats = FighterCareerStats.objects.get(fighter_id=id)
     serializer = FighterCareerStatsSerializer(stats)
     return Response(serializer.data)
+
+@api_view(['GET'])
+def getFighterFightsViewSet(request, id):
+    fights = Fights.objects.filter(fightstats__fighter_id=id).distinct()
+    serializer = FightSerializer(fights, many=True)
+    return Response(serializer.data)
+    

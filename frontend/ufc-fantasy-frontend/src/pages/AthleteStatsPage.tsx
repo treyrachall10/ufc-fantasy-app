@@ -19,7 +19,9 @@ export default function AthleteStatsPage(){
     
     if (isPending) return <span>Loading...</span>
     if (error) return <span>Oops!</span>
-    console.log(data)
+    
+    const strAcc = (data.sig_str_landed/data.sig_str_attempted) * 100;
+    const tdAcc = (data.td_landed/data.td_attempted) * 100;
     return (
         <Container maxWidth="xl">
             <Grid container spacing={2}>
@@ -51,19 +53,19 @@ export default function AthleteStatsPage(){
                             justifyContent: "space-between",
                         }}>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="SLPM" stat={0}/>
+                                <QuickStatCard title="SLPM" stat={'0'}/>
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="TD%" stat={0} />
+                                <QuickStatCard title="TD%" stat={'0'} />
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="STR ACC" stat={0} />
+                                <QuickStatCard title="STR ACC" stat={strAcc.toFixed(2)} />
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="TD ACC" stat={0} />
+                                <QuickStatCard title="TD ACC" stat={tdAcc.toFixed(2)} />
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="STR DEF" stat={0} />
+                                <QuickStatCard title="STR DEF" stat={'0'} />
                             </Grid>
                         </Grid>
                         {/* Fantsy Chart and W/L Chart */}
@@ -81,7 +83,7 @@ export default function AthleteStatsPage(){
                                 <FightsList/>
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 6, lg: 6}}>
-                                <QuickStatCard title="Control %" stat={32} />
+                                <QuickStatCard title="Control %" stat={'32'} />
                             </Grid>
                         </Grid>
                     </Box>

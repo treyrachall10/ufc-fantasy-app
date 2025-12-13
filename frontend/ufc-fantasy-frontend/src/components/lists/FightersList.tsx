@@ -15,7 +15,7 @@ export default function FightersList() {
 
     const columns: GridColDef[] = [
     { field: 'name', headerName: 'Name', renderCell: (params) => (
-        <Link to="/fighter" style={{color: "black"}}>{params.value}</Link>
+        <Link to={`/fighter/${params.id}`} style={{color: "black"}}>{params.value}</Link>
     )},
     { field: 'nickName', headerName: 'Nick Name' },
     { field: 'stance', headerName: 'stance' },

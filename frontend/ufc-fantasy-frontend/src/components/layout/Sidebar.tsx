@@ -3,15 +3,15 @@ import StatRow from "../statHolders/StatRow";
 
 interface Props {
     name: string,
-    nickname?: string,
-    w: number,
-    l: number,
-    d: number,
-    stance?: string,
+    nickname?: string | null,
+    w?: number | null,
+    l?: number | null,
+    d?: number | null,
+    stance?: string | null,
     age: number,
-    height: number,
-    weight: number,
-    reach: number,
+    height: number | null,
+    weight: number | null,
+    reach: number | null,
 }
 
 export default function Sidebar({name, nickname, w, l, d, stance, age, height, weight, reach}: Props) {

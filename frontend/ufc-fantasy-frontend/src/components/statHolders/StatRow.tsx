@@ -2,7 +2,7 @@ import { Box, Typography } from "@mui/material"
 
 interface Props {
     title: string,
-    stat: string | number
+    stat: string | number | null
 }
 export default function StatRow({title, stat}: Props) {
     return (

@@ -1,13 +1,26 @@
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Link } from 'react-router-dom';
 import { Fight } from '../../types/types';
-import { useQuery } from '@tanstack/react-query';
+import { QueryKey, useQuery } from '@tanstack/react-query';
+import { useParams } from "react-router";
 
 export default function FightsList() {
+    const params = useParams()
+    let queryKey: QueryKey;
+    let url: string;
+
+    if (params.id) {
+        queryKey = ['fightListData', params.id];
+        url = `http://localhost:8000/fights/${params.id}`;
+    } else {
+        queryKey = ['fightListData'];
+        url = 'http://localhost:8000/fights';
+    }
+
     {/* API fetching*/}    
     const { data, isPending, error } = useQuery<Fight[]>({
-            queryKey: ['fightListData'],
-            queryFn: () => fetch('http://localhost:8000/fights').then(r => r.json()),
+            queryKey: queryKey,
+            queryFn: () => fetch(url).then(r => r.json()),
         })
     
     if (isPending) return <span>Loading...</span>
