@@ -112,6 +112,7 @@ class FighterCareerStats(models.Model):
     dq_wins = models.IntegerField(default=0)
 
     # Losses by method
+    could_not_continue = models.IntegerField(default=0)
     ko_tko_losses = models.IntegerField(default=0)
     tko_doctor_stoppage_losses = models.IntegerField(default=0)
     submission_losses = models.IntegerField(default=0)
@@ -130,6 +131,7 @@ class FighterCareerStats(models.Model):
     sub_att = models.IntegerField(default=0)
     ctrl_time = models.IntegerField(default=0)
     reversals = models.IntegerField(default=0)
+    total_fight_time = models.IntegerField(default=0)
 
     head_str_landed = models.IntegerField(default=0)
     head_str_attempted = models.IntegerField(default=0)

@@ -317,7 +317,7 @@ def parse_career_stats():
     # Builds df for losses and method of losses
     summed_losses_df = pd.merge(left=total_fight_stats_df, right=fight_results_clean_df, how='inner', on=['event', 'bout'])
     summed_losses_df['lost'] = summed_losses_df['winner'] != summed_losses_df['fighter']
-    summed_losses_df = pd.crosstab(summed_losses_df.loc[summed_losses_df['lost'], 'fighter'], summed_losses_df.loc[summed_losses_df['lost'], 'method'])
+    summed_losses_df = pd.crosstab(summed_losses_df.loc[summed_losses_df['lost'], 'fighter'], summed_losses_df.loc[summed_losses_df['lost'], 'method']) # Get fighters summed methods of losses
     summed_losses_df = summed_losses_df.reset_index()
     summed_losses_df.rename(columns={
         "KO/TKO ": "ko_tko_losses",
@@ -328,9 +328,15 @@ def parse_career_stats():
         "Decision - Majority ": "majority_decision_losses",
         "DQ ": "dq_losses"
     }, inplace=True)
-    print("5. ", summed_losses_df.head(5))
-        
-    total_fight_stats_df = total_fight_stats_df.drop(['event', 'bout'], axis=1)
+    
+    # Merge to get total time in fight
+    total_fight_stats_df = total_fight_stats_df.merge(
+        fight_results_clean_df[['event', 'bout','round', 'time']],
+        on=['event', 'bout'],
+        how='left'
+        ) 
+    total_fight_stats_df['time'] = ((total_fight_stats_df['round'] - 1) * 300 + total_fight_stats_df['time']) # Calculate total time in fight (before it only took into account the final round time)
+    total_fight_stats_df = total_fight_stats_df.drop(['event', 'bout', 'round'], axis=1)
 
     # Creates smaller df containing each fighter and their methods of victory summed
     summed_methods_wins_df = pd.crosstab(fight_results_clean_df['winner'], fight_results_clean_df['method'])
@@ -357,7 +363,8 @@ def parse_career_stats():
         "Submission ": "submissions",
         "KO/TKO ": "ko_tko",
         "TKO - Doctor's Stoppage ": "tko_doctor_stoppages",
-        "DQ ": "dq"
+        "DQ ": "dq",
+        "time": "total_fight_time"
     }, inplace=True) 
 
     if main_df is not None and not main_df.empty:
