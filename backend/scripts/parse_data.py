@@ -305,16 +305,40 @@ def parse_career_stats():
     except FileNotFoundError as e:
         print(f"ERROR: Missing file - {e}")
         return
+    
+    # Normalizing text
+    total_fight_stats_cols = ['fighter', 'event', 'bout']
+    fight_results_cols = ['winner', 'event', 'bout']
+    for col in total_fight_stats_cols:
+        total_fight_stats_df[col] = total_fight_stats_df[col].apply(normalize_text)
+    for col in fight_results_cols:
+        fight_results_clean_df[col] = fight_results_clean_df[col].apply(normalize_text)
 
+    # Builds df for losses and method of losses
+    summed_losses_df = pd.merge(left=total_fight_stats_df, right=fight_results_clean_df, how='inner', on=['event', 'bout'])
+    summed_losses_df['lost'] = summed_losses_df['winner'] != summed_losses_df['fighter']
+    summed_losses_df = pd.crosstab(summed_losses_df.loc[summed_losses_df['lost'], 'fighter'], summed_losses_df.loc[summed_losses_df['lost'], 'method'])
+    summed_losses_df = summed_losses_df.reset_index()
+    summed_losses_df.rename(columns={
+        "KO/TKO ": "ko_tko_losses",
+        "TKO - Doctor's Stoppage ": "tko_doctor_stoppage_losses",
+        "Submission ": "submission_losses",
+        "Decision - Unanimous ": "unanimous_decision_losses",
+        "Decision - Split ": "split_decision_losses",
+        "Decision - Majority ": "majority_decision_losses",
+        "DQ ": "dq_losses"
+    }, inplace=True)
+    print("5. ", summed_losses_df.head(5))
+        
     total_fight_stats_df = total_fight_stats_df.drop(['event', 'bout'], axis=1)
 
     # Creates smaller df containing each fighter and their methods of victory summed
-    summed_methods_df = pd.crosstab(fight_results_clean_df['winner'], fight_results_clean_df['method'])
-    summed_methods_df = summed_methods_df.rename_axis('fighter').reset_index() # Renames row axis to fighter from winner and resets index to a column
-    summed_methods_df['fighter'] = summed_methods_df['fighter'].apply(normalize_text)
+    summed_methods_wins_df = pd.crosstab(fight_results_clean_df['winner'], fight_results_clean_df['method'])
+    summed_methods_wins_df = summed_methods_wins_df.rename_axis('fighter').reset_index() # Renames row axis to fighter from winner and resets index to a column
+    summed_methods_wins_df['fighter'] = summed_methods_wins_df['fighter'].apply(normalize_text)
 
     # Builds the main_df
-    main_df = total_fight_stats_df.groupby('fighter').sum().reset_index()  # Sums all columns for a fighter
+    main_df = total_fight_stats_df.groupby('fighter').sum().reset_index()  # Sums all columns for a fighter (sig str, takedowns...)
     # Counts total number of wins, losses, and draws
     main_df['wins'] = main_df['result'].apply(count_total_outcomes, args=('W',))
     main_df['losses'] = main_df['result'].apply(count_total_outcomes, args=('L',))
@@ -323,7 +347,8 @@ def parse_career_stats():
     main_df = main_df.drop(['result'], axis=1)
 
     # Merges main_df and summed_methods to add method of victories to each fighter
-    main_df = main_df.merge(summed_methods_df, on='fighter', how='left')
+    main_df = main_df.merge(summed_methods_wins_df, on='fighter', how='left')
+    main_df = main_df.merge(summed_losses_df, on='fighter', how='left')
     main_df = main_df.fillna(0)
     main_df.rename(columns={
         "Decision - Majority ": "majority_decisions",
@@ -347,9 +372,11 @@ def parse_all_data():
         -   Calls all parsing functions to modify original CSVs into fully usable
                 and clean files for DB population
     """
-    parse_fighters()
-    parse_events()
-    parse_fight_round_stats()
-    parse_fight_data()
-    parse_total_fight_stats()
+    #parse_fighters()
+    #parse_events()
+    #parse_fight_round_stats()
+    #parse_fight_data()
+    #parse_total_fight_stats()
     parse_career_stats()
+
+parse_all_data()
