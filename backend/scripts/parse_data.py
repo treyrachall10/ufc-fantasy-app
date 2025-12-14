@@ -270,6 +270,28 @@ def parse_total_fight_stats():
     """
         -   Parses fight results and stores into 'total_fight_stats_clean.csv'
     """
+
+    drop_cols = [
+        'fighter_opp',
+        'kd_opp',
+        'total_str_landed_opp',
+        'total_str_attempted_opp',
+        'sub_att_opp',
+        'reversals_opp',
+        'head_str_landed_opp',
+        'head_str_attempted_opp',
+        'body_str_landed_opp',
+        'body_str_attempted_opp',
+        'leg_str_landed_opp',
+        'leg_str_attempted_opp',
+        'distance_str_landed_opp',
+        'distance_str_attempted_opp',
+        'clinch_str_landed_opp',
+        'clinch_str_attempted_opp',
+        'ground_str_landed_opp',
+        'ground_str_attempted_opp'
+    ]
+
     try:
         df = pd.read_csv(f'{DATACLEANPATH}/round_stats_clean.csv')
         fight_results_df = pd.read_csv(f'{DATARAWPATH}/ufc_fight_results.csv')
@@ -282,6 +304,16 @@ def parse_total_fight_stats():
     fight_results_df['event'] = fight_results_df['event'].apply(normalize_text)
     fight_results_df['bout'] = fight_results_df['bout'].apply(normalize_text)
 
+    # Self merge to create df containing fighter and fighters opponents stats for that fight and round
+    df = df.merge(
+        df,
+        on=('event', 'bout', 'round_number'),
+        suffixes=('', '_opp')
+    )
+    df = df[df['fighter'] != df['fighter_opp']] # Removes rows where a fighter was merged with self
+    df = df.drop(columns=drop_cols)
+    
+    
     # Builds the main_df
     df = df.drop(['round_number'], axis=1)
     main_df = df.groupby(['event', 'bout', 'fighter']).sum().reset_index()  # Sums round data to get total fight data
@@ -383,7 +415,7 @@ def parse_all_data():
     #parse_events()
     #parse_fight_round_stats()
     #parse_fight_data()
-    #parse_total_fight_stats()
+    parse_total_fight_stats()
     parse_career_stats()
 
 parse_all_data()
