@@ -15,6 +15,7 @@ class Fighters(models.Model):
     first_name = models.CharField(max_length=50, null=True, blank=True)
     last_name = models.CharField(max_length=50, null=True, blank=True)
     full_name = models.CharField(max_length=100, null=True, blank=True, unique=True)
+    normalized_name = models.CharField(max_length=100, null=True, blank=True, unique=True)
     nick_name = models.CharField(max_length=50, null=True, blank=True)
     stance = models.CharField(max_length=50, null=True, blank=True)
     weight = models.IntegerField(null=True, blank=True)
@@ -68,6 +69,13 @@ class FightStats(models.Model):
     ground_str_landed = models.IntegerField(default=0, null=True, blank=True)
     ground_str_attempted = models.IntegerField(default=0, null=True, blank=True)
 
+    # Opponent stats
+    sig_str_landed_opp = models.IntegerField(default=0, null=True, blank=True)
+    sig_str_attempted_opp = models.IntegerField(default=0, null=True, blank=True)
+    td_landed_opp = models.IntegerField(default=0, null=True, blank=True)
+    td_attempted_opp = models.IntegerField(default=0, null=True, blank=True)
+    ctrl_time_opp = models.IntegerField(default=0, null=True, blank=True)
+
 class RoundStats(models.Model):
     fight_stats = models.ForeignKey(FightStats, on_delete=models.CASCADE, null=True, blank=True)
     round_number = models.IntegerField(null=True, blank=True)
@@ -112,7 +120,6 @@ class FighterCareerStats(models.Model):
     dq_wins = models.IntegerField(default=0)
 
     # Losses by method
-    could_not_continue = models.IntegerField(default=0)
     ko_tko_losses = models.IntegerField(default=0)
     tko_doctor_stoppage_losses = models.IntegerField(default=0)
     submission_losses = models.IntegerField(default=0)
@@ -147,6 +154,12 @@ class FighterCareerStats(models.Model):
     ground_str_landed = models.IntegerField(default=0)
     ground_str_attempted = models.IntegerField(default=0)
 
+    # Opponent stats
+    sig_str_landed_opp = models.IntegerField(default=0, null=True, blank=True)
+    sig_str_attempted_opp = models.IntegerField(default=0, null=True, blank=True)
+    td_landed_opp = models.IntegerField(default=0, null=True, blank=True)
+    td_attempted_opp = models.IntegerField(default=0, null=True, blank=True)
+    ctrl_time_opp = models.IntegerField(default=0, null=True, blank=True)
 
 class RoundScore(models.Model):
     round_stats=models.ForeignKey(RoundStats, on_delete=models.CASCADE, null=True, blank=True)
