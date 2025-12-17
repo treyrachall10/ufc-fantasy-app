@@ -43,7 +43,7 @@ MODEL_MAP = {
         "foreign_keys": {
             "fight_stats": FightStats
         },
-        "unique_fields": ["fight","fighter", "round_number"]
+        "unique_fields": ["fight_stats", "round_number"]
     },
     "fighter_career_stats": {
         "file": "career_stats_clean.csv",

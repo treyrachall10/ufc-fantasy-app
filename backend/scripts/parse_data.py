@@ -4,14 +4,19 @@
     -   Converts to usable types for database
 """
 import pandas as pd
+import re
+import unicodedata
 from config import DATARAWPATH, DATACLEANPATH
-
+from scripts.utils import normalize_name
 
 def convert_to_inches(value_to_conv):
     """
         -   Converts passed object to inches
         -   RETURNS: total inches
     """
+    if not isinstance(value_to_conv, str):
+        return None
+
     if value_to_conv != '--':
         stripped_str = value_to_conv.replace("'", '').replace('"', '')  # Removes ' and " from string
         split_str = stripped_str.split(' ')
@@ -133,20 +138,45 @@ def parse_fighters():
         print(f"ERROR: Missing file - {e}")
         return
 
-    main_df = pd.DataFrame()
+    
+
+    # Build full + normalized names for joining
+    df1["full_name"] = (df1["FIRST"].fillna("") + " " + df1["LAST"].fillna("")).str.strip()
+    df1["normalized_name"] = df1["full_name"].apply(normalize_name)
+
+    df2["full_name"] = df2["FIGHTER"]
+    df2["normalized_name"] = df2["full_name"].apply(normalize_name)
+
+    # Merge on normalized name
+    main_df = df1.merge(
+        df2,
+        on="normalized_name",
+        how="left",
+        suffixes=("", "_df2")
+    )
 
     # Adds names to main_df
-    main_df['first_name'] = df1['FIRST']
-    main_df['last_name'] = df1['LAST']
-    main_df["full_name"] = (main_df["first_name"].fillna("") + " " + main_df["last_name"].fillna("")).str.strip() # Constructs a full name field; replaces NaN with an empty string
-    main_df['nick_name'] = df1['NICKNAME'].apply(lambda x: x.replace(',', '') if isinstance(x, str) else x) # Removes commas from nicknames
+    main_df["first_name"] = main_df["FIRST"]
+    main_df["last_name"] = main_df["LAST"]
+    main_df["full_name"] = (main_df["first_name"].fillna("") + " " + main_df["last_name"].fillna("")).str.strip()  # Constructs a full name field; replaces NaN with an empty string
+    main_df["nick_name"] = main_df["NICKNAME"].apply(lambda x: x.replace(',', '') if isinstance(x, str) else x)  # Removes commas from nicknames
 
     # Adds height, weight, reach, stance, dob to main_df
-    main_df['height'] = df2['HEIGHT'].apply(convert_to_inches)
-    main_df['weight'] = df2['WEIGHT'].apply(lambda x: int(x.split(" ")[0]) if x != '--' else None)
-    main_df['reach'] = df2['REACH'].apply(lambda x: int(x.replace('"', '')) if x != '--' else None)
-    main_df['stance'] = df2['STANCE']
-    main_df['dob'] = df2['DOB'].apply(format_date)  # Converts date string to datetime so Django can handle db population later
+    main_df["height"] = main_df["HEIGHT"].apply(convert_to_inches)
+    main_df["weight"] = main_df["WEIGHT"].apply(lambda x: int(x.split(" ")[0]) if isinstance(x,str) and x != '--' else None)
+    main_df["reach"] = main_df["REACH"].apply(lambda x: int(x.replace('"', '')) if isinstance(x,str) and x != '--' else None)
+    main_df["stance"] = main_df["STANCE"]
+    main_df["dob"] = main_df["DOB"].apply(format_date)  # Converts date string to datetime so Django can handle db population later
+
+    # Drop raw source columns
+    main_df = main_df.drop(
+        columns=[
+            "FIRST", "LAST", "NICKNAME",
+            "HEIGHT", "WEIGHT", "REACH", "STANCE", "DOB",
+            "FIGHTER", "URL", "URL_df2", "full_name_df2"
+        ],
+        errors="ignore"
+    )
 
     if main_df is not None and not main_df.empty:
         try:
@@ -358,7 +388,10 @@ def parse_career_stats():
         "Decision - Unanimous ": "unanimous_decision_losses",
         "Decision - Split ": "split_decision_losses",
         "Decision - Majority ": "majority_decision_losses",
-        "DQ ": "dq_losses"
+        "DQ ": "dq_losses",
+        "Could Not Continue": "could_not_continue",
+        "Other ": "other",
+        "Overturned ": "overturned",
     }, inplace=True)
     
     # Merge to get total time in fight
@@ -411,10 +444,10 @@ def parse_all_data():
         -   Calls all parsing functions to modify original CSVs into fully usable
                 and clean files for DB population
     """
-    #parse_fighters()
-    #parse_events()
-    #parse_fight_round_stats()
-    #parse_fight_data()
+    parse_fighters()
+    parse_events()
+    parse_fight_round_stats()
+    parse_fight_data()
     parse_total_fight_stats()
     parse_career_stats()
 

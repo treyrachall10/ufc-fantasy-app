@@ -21,6 +21,9 @@ def normalize_name(name):
     ALIASES = {
         "zachary reese": "zach reese",
         "montserrat rendon": "montse rendon",
+        "rafael cerqueira": "rafael cerquiera",
+        "michael aswell": "michael aswell jr",
+        "jose medina": "jose daniel medina"
     }
 
     return ALIASES.get(name, name)

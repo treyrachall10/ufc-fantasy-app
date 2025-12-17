@@ -1,6 +1,40 @@
 import { BarChart, Legend, XAxis, YAxis, CartesianGrid, Tooltip, Bar, ResponsiveContainer} from 'recharts';
 
-export default function WinLossChart() {
+interface WinLossChartProps {
+    koTko: {
+        W: number;
+        L: number;
+    };
+    submission: {
+        W: number;
+        L: number;
+    };
+    doctorStop: {
+        W: number;
+        L: number;
+    };
+    unanimousDecision: {
+        W: number;
+        L: number;
+    };
+    splitDecision: {
+        W: number;
+        L: number;
+    };
+    majorityDecision: {
+        W: number;
+        L: number;
+    };
+}
+
+export default function WinLossChart({
+   koTko,
+   submission,
+   doctorStop,
+   unanimousDecision,
+   splitDecision,
+   majorityDecision,
+}: WinLossChartProps) {
     const data = [
         { category: "KO/TKO", W: 10, L: 2 },
         { category: "Submission", W: 2, L: 1 },
