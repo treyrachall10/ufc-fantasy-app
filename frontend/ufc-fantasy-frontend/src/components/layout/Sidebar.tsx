@@ -4,9 +4,28 @@ import StatRow from "../statHolders/StatRow";
 interface Props {
     name: string,
     nickname?: string | null,
-    w?: number | null,
-    l?: number | null,
-    d?: number | null,
+    record?: {
+        wins: {
+        total: number,
+        ko_tko_wins: number,
+        tko_doctor_stoppage_wins: number,
+        submission_wins: number,
+        unanimous_decision_wins: number,
+        split_decision_wins: number,
+        majority_decision_wins: number,
+        dq_wins: number,
+    },
+    losses: {
+        total: number,
+        ko_tko_losses: number,
+        tko_doctor_stoppage_losses: number,
+        submission_losses: number,
+        unanimous_decision_losses: number,
+        split_decision_losses: number,
+        majority_decision_losses: number,
+        dq_losses: number,
+    },
+    draws: number} | null,
     stance?: string | null,
     age: number,
     height: number | null,
@@ -14,7 +33,7 @@ interface Props {
     reach: number | null,
 }
 
-export default function Sidebar({name, nickname, w, l, d, stance, age, height, weight, reach}: Props) {
+export default function Sidebar({name, nickname, record, stance, age, height, weight, reach}: Props) {
     return (
         <Box p={2} sx={{
         width: "100%",
@@ -34,7 +53,7 @@ export default function Sidebar({name, nickname, w, l, d, stance, age, height, w
                 <Avatar>AP</Avatar>
                 <Typography variant="h6" textAlign={"center"}>{name}</Typography>
                 <Typography variant="subtitle2">{nickname}</Typography>
-                <Typography variant="subtitle1">{w}-{l}-{d}</Typography>
+                <Typography variant="subtitle1">{record?.wins.total}-{record?.losses.total}-{record?.draws}</Typography>
             </Box>
             {/* Stats Section */}
             <Box sx={{

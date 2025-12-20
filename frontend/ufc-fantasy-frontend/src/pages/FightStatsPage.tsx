@@ -15,26 +15,66 @@ export default function FightStatsPage({fightId}: FightStatsPageProps) {
         nickname: "Poatan",
         age: 36,
         height: 193, // cm
-        weight: 93, // kg
-        reach: 203, // cm
+        weight: 93,  // kg
+        reach: 203,  // cm
         stance: "Orthodox",
-        w: 10,
-        l: 2,
-        d: 0
-    };
+        record: {
+          wins: {
+            total: 10,
+            ko_tko_wins: 8,
+            tko_doctor_stoppage_wins: 0,
+            submission_wins: 0,
+            unanimous_decision_wins: 2,
+            split_decision_wins: 0,
+            majority_decision_wins: 0,
+            dq_wins: 0,
+          },
+          losses: {
+            total: 2,
+            ko_tko_losses: 1,
+            tko_doctor_stoppage_losses: 0,
+            submission_losses: 0,
+            unanimous_decision_losses: 1,
+            split_decision_losses: 0,
+            majority_decision_losses: 0,
+            dq_losses: 0,
+          },
+          draws: 0,
+        },
+      };
 
-    const fighterTwo = {
+      const fighterTwo = {
         name: "Jamal Hill",
         nickname: "Sweet Dreams",
         age: 32,
         height: 193, // cm
-        weight: 93, // kg
-        reach: 201, // cm
+        weight: 93,  // kg
+        reach: 201,  // cm
         stance: "Southpaw",
-        w: 12,
-        l: 2,
-        d: 0
-    };
+        record: {
+          wins: {
+            total: 12,
+            ko_tko_wins: 6,
+            tko_doctor_stoppage_wins: 0,
+            submission_wins: 1,
+            unanimous_decision_wins: 5,
+            split_decision_wins: 0,
+            majority_decision_wins: 0,
+            dq_wins: 0,
+          },
+          losses: {
+            total: 2,
+            ko_tko_losses: 1,
+            tko_doctor_stoppage_losses: 0,
+            submission_losses: 1,
+            unanimous_decision_losses: 0,
+            split_decision_losses: 0,
+            majority_decision_losses: 0,
+            dq_losses: 0,
+          },
+          draws: 0,
+        },
+      };      
 
         const data = [
         {
@@ -90,10 +130,9 @@ export default function FightStatsPage({fightId}: FightStatsPageProps) {
                         weight={fighterOne.weight}
                         reach={fighterOne.reach}
                         stance={fighterOne.stance}
-                        w={fighterOne.w}
-                        l={fighterOne.l}
-                        d={fighterOne.d}
+                        record={fighterOne.record}
                     />
+
                 </Grid>
                 {/* Middle Section*/}
                 <Grid size={{xs: 4, md: 8}} spacing={2}>
@@ -112,26 +151,24 @@ export default function FightStatsPage({fightId}: FightStatsPageProps) {
                                 }}>VS</Avatar>
                             </Box>
                         {/* MAAAAAAAAAP TOOOOOO A FUNNNNNCCCTIIIIOOOOOON*/}
-                        <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.w} rightValue={fighterTwo.w}/>
-                        <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.w} rightValue={fighterTwo.w}/>
-                        <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.w} rightValue={fighterTwo.w}/>
-                        <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.w} rightValue={fighterTwo.w}/>
+                        <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.record.wins.total} rightValue={fighterTwo.record.wins.total}/>
+                        <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.record.wins.total} rightValue={fighterTwo.record.wins.total}/>
+                        <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.record.wins.total} rightValue={fighterTwo.record.wins.total}/>
+                        <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.record.wins.total} rightValue={fighterTwo.record.wins.total}/>
                     </Box>
                 </Grid>
                 {/* Fighter 2 Sidebar */}
                 <Grid size={{ xs: 4, md: 2}}>
-                    <Sidebar 
-                        name={fighterTwo.name}
-                        nickname={fighterTwo.nickname}
-                        age={fighterTwo.age}
-                        height={fighterTwo.height}
-                        weight={fighterTwo.weight}
-                        reach={fighterTwo.reach}
-                        stance={fighterTwo.stance}
-                        w={fighterTwo.w}
-                        l={fighterTwo.l}
-                        d={fighterTwo.d}
-                    />
+                <Sidebar 
+                    name={fighterTwo.name}
+                    nickname={fighterTwo.nickname}
+                    age={fighterTwo.age}
+                    height={fighterTwo.height}
+                    weight={fighterTwo.weight}
+                    reach={fighterTwo.reach}
+                    stance={fighterTwo.stance}
+                    record={fighterTwo.record}
+                />
                 </Grid>
             </Grid>
             <FantasyScoreBreakdown/>

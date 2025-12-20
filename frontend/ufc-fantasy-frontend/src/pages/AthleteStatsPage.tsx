@@ -36,9 +36,7 @@ export default function AthleteStatsPage(){
                         weight={data.fighter.weight}
                         reach={data.fighter.reach}
                         stance={data.fighter.stance}
-                        w={data.fighter.record?.wins}
-                        l={data.fighter.record?.losses}
-                        d={data.fighter.record?.draws}
+                        record={data.fighter.record}
                     />
                 </Grid>
                 {/* Body */}
@@ -74,7 +72,9 @@ export default function AthleteStatsPage(){
                                 <FantasyTrendLineChart/>
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 6, lg: 6}}>
-                                <WinLossChart/>
+                                <WinLossChart
+                                record={data.fighter.record}
+                                />
                             </Grid>
                         </Grid>
                         {/* FightList and Interesting Stats */}
