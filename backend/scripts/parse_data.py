@@ -422,13 +422,13 @@ def parse_career_stats():
     main_df = main_df.merge(summed_losses_df, on='fighter', how='left')
     main_df = main_df.fillna(0)
     main_df.rename(columns={
-        "Decision - Majority ": "majority_decisions",
-        "Decision - Split ": "split_decisions",
-        "Decision - Unanimous ": "unanimous_decisions",
-        "Submission ": "submissions",
-        "KO/TKO ": "ko_tko",
-        "TKO - Doctor's Stoppage ": "tko_doctor_stoppages",
-        "DQ ": "dq",
+        "Decision - Majority ": "majority_decision_wins",
+        "Decision - Split ": "split_decision_wins",
+        "Decision - Unanimous ": "unanimous_decision_wins",
+        "Submission ": "submission_wins",
+        "KO/TKO ": "ko_tko_wins",
+        "TKO - Doctor's Stoppage ": "tko_doctor_stoppage_wins",
+        "DQ ": "dq_wins",
         "time": "total_fight_time"
     }, inplace=True) 
 
