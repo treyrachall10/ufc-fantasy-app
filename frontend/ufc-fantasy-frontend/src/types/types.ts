@@ -40,44 +40,70 @@ export interface Fighter {
 
 export interface FighterWithCareerStats {
     fighter: Fighter;
-  
     total_fights: number;
     total_fight_time: number;
   
-    // Fighter striking
-    sig_str_landed: number;
-    sig_str_attempted: number;
-    total_str_landed: number;
-    total_str_attempted: number;
+    striking: {
+      total: {
+        landed: number;
+        attempted: number;
+      };
+      significant: {
+        landed: number;
+        attempted: number;
+      };
+      distance: {
+        landed: number;
+        attempted: number;
+      };
+      head: {
+        landed: number;
+        attempted: number;
+      };
+      body: {
+        landed: number;
+        attempted: number;
+      };
+      leg: {
+        landed: number;
+        attempted: number;
+      };
+      clinch: {
+        landed: number;
+        attempted: number;
+      };
+      ground: {
+        landed: number;
+        attempted: number;
+      };
+    };
   
-    distance_str_landed: number;
-    distance_str_attempted: number;
-    head_str_landed: number;
-    head_str_attempted: number;
-    body_str_landed: number;
-    body_str_attempted: number;
-    leg_str_landed: number;
-    leg_str_attempted: number;
-    clinch_str_landed: number;
-    clinch_str_attempted: number;
-    ground_str_landed: number;
-    ground_str_attempted: number;
+    grappling: {
+      takedowns: {
+        landed: number;
+        attempted: number;
+      };
+      sub_att: number;
+      reversals: number;
+      ctrl_time: number;
+    };
   
-    // Fighter grappling
-    td_landed: number;
-    td_attempted: number;
-    sub_att: number;
-    reversals: number;
-    ctrl_time: number;
-  
-    // Opponent
-    opp_sig_str_landed: number;
-    opp_sig_str_attempted: number;
-  
-    opp_td_landed: number;
-    opp_td_attempted: number;
-    opp_ctrl_time: number;
-  }
+    opponent: {
+      striking: {
+        significant: {
+          landed: number;
+          attempted: number;
+        };
+      };
+      grappling: {
+        takedowns: {
+          landed: number;
+          attempted: number;
+        };
+        ctrl_time: number;
+      };
+    };
+  }  
 
 export interface Event {
     event_id: number,
