@@ -20,8 +20,36 @@ export default function AthleteStatsPage(){
     if (isPending) return <span>Loading...</span>
     if (error) return <span>Oops!</span>
     
-    const strAcc = (data.sig_str_landed/data.sig_str_attempted) * 100;
-    const tdAcc = (data.td_landed/data.td_attempted) * 100;
+    // Strikes landed per minute (fight time is in seconds)
+    const slpm =
+    data.total_fight_time > 0
+        ? data.striking.total.landed / (data.total_fight_time / 60)
+        : 0;
+
+    // Striking accuracy
+    const strAcc =
+    data.striking.significant.attempted > 0
+        ? (data.striking.significant.landed / data.striking.significant.attempted) * 100
+        : 0;
+
+    // Striking defense
+    const strDef =
+    data.opponent.striking.significant.attempted > 0
+        ? (1 - data.opponent.striking.significant.landed / data.opponent.striking.significant.attempted) * 100
+        : 100;
+
+    // Takedown accuracy
+    const tdAcc =
+    data.grappling.takedowns.attempted > 0
+        ? (data.grappling.takedowns.landed / data.grappling.takedowns.attempted) * 100
+        : 0;
+
+    // Takedown defense
+    const tdDef =
+    data.opponent.grappling.takedowns.attempted > 0
+        ? (1 - data.opponent.grappling.takedowns.landed / data.opponent.grappling.takedowns.attempted) * 100
+        : 100;
+
     return (
         <Container maxWidth="xl">
             <Grid container spacing={2}>
@@ -51,10 +79,10 @@ export default function AthleteStatsPage(){
                             justifyContent: "space-between",
                         }}>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="SLPM" stat={'0'}/>
+                                <QuickStatCard title="SLPM" stat={slpm.toFixed(2)}/>
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="TD%" stat={'0'} />
+                                <QuickStatCard title="TD%" stat={tdDef.toFixed(2)} />
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
                                 <QuickStatCard title="STR ACC" stat={strAcc.toFixed(2)} />
@@ -63,7 +91,7 @@ export default function AthleteStatsPage(){
                                 <QuickStatCard title="TD ACC" stat={tdAcc.toFixed(2)} />
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="STR DEF" stat={'0'} />
+                                <QuickStatCard title="STR DEF" stat={strDef.toFixed(2)} />
                             </Grid>
                         </Grid>
                         {/* Fantsy Chart and W/L Chart */}

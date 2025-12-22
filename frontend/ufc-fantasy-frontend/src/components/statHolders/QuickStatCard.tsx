@@ -2,7 +2,7 @@ import { Box, Typography } from "@mui/material"
 
 interface Props {
     title: string,
-    stat: string
+    stat: string,
 } 
 
 export default function QuickStatCard({title, stat}: Props) {
