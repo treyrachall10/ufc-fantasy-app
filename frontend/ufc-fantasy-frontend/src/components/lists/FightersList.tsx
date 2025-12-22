@@ -37,8 +37,8 @@ export default function FightersList() {
         height: fighter.height,
         reach: fighter.reach,
         dob: fighter.dob,
-        w: fighter.record?.wins,
-        l: fighter.record?.losses,
+        w: fighter.record?.wins.total,
+        l: fighter.record?.losses.total,
         d: fighter.record?.draws,
     }));
 
