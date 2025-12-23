@@ -98,17 +98,19 @@ export default function AthleteStatsPage(){
                                 <QuickStatCard title="SLPM" stat={slpm.toFixed(2)}/>
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="TD%" stat={tdDef.toFixed(2)} />
+                                <QuickStatCard title="STR DEF" stat={strDef.toFixed(2)} />
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
                                 <QuickStatCard title="STR ACC" stat={strAcc.toFixed(2)} />
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
+                                <QuickStatCard title="TD%" stat={tdDef.toFixed(2)} />
+                            </Grid>
+                            
+                            <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
                                 <QuickStatCard title="TD ACC" stat={tdAcc.toFixed(2)} />
                             </Grid>
-                            <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="STR DEF" stat={strDef.toFixed(2)} />
-                            </Grid>
+                            
                         </Grid>
                         {/* Fantsy Chart and W/L Chart */}
                         <Grid container spacing={2}>

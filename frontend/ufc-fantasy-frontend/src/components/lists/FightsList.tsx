@@ -11,12 +11,22 @@ export default function FightsList() {
     let queryKey: QueryKey;
     let url: string;
 
-    if (params.id) {
+    const isFighterPage = location.pathname.startsWith("/fighter");
+    const isEventPage = location.pathname.startsWith("/events");
+    const isFightsPage = location.pathname.startsWith("/fights");
+
+    if (isFighterPage && params.id) {
         queryKey = ['fightListData', params.id];
         url = `http://localhost:8000/fights/${params.id}`;
-    } else {
+    } else if (isFightsPage) {
         queryKey = ['fightListData'];
         url = 'http://localhost:8000/fights';
+    } else if (isEventPage) {
+        queryKey = ['eventFightsListdata', params.id];
+        url = `http://localhost:8000/events/${params.id}`;
+    } else {
+        queryKey = ["/"];
+        url = ""
     }
 
     {/* API fetching*/}    

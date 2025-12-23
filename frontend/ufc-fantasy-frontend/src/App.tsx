@@ -34,6 +34,7 @@ function App() {
                 <Route path="/fights/:id" element={<FightsListPage/>} />
                 <Route path="/fighters" element={<FightersListPage/>} />
                 <Route path="/events" element={<EventsListPage/>} />
+                <Route path="/events/:id" element={<FightsListPage/>}/>
                 <Route path="/fighter/:id" element={<AthleteStatsPage/>} />
             </Routes> 
           </Container>

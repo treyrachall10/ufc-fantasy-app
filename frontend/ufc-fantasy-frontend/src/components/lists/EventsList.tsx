@@ -15,7 +15,7 @@ export default function FightersList() {
 
     const columns: GridColDef[] = [
     { field: 'event', headerName: 'Event', renderCell: (params) => (
-        <Link to="/" style={{color: "black"}}>{params.value}</Link>
+        <Link to={`/events/${params.id}`} style={{color: "black"}}>{params.value}</Link>
     )},
     { field: 'date', headerName: 'Date' },
     { field: 'location', headerName: 'Location'}

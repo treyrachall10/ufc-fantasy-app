@@ -20,26 +20,32 @@ def GetEventViewSet(request):
     return Response(serializer.data)
 
 @api_view(['GET'])
-def getFightViewSet(request):
+def GetFightViewSet(request):
     fights = Fights.objects.all()
     serializer = FightSerializer(fights, many=True)
     return Response(serializer.data)
 
 @api_view(['GET'])
-def getCareerStatsViewSet(request, id):
+def GetCareerStatsViewSet(request, id):
     stats = FighterCareerStats.objects.get(fighter_id=id)
     serializer = FighterCareerStatsSerializer(stats)
     return Response(serializer.data)
 
 @api_view(['GET'])
-def getFighterFightsViewSet(request, id):
+def GetFighterFightsViewSet(request, id):
     fights = Fights.objects.filter(fightstats__fighter_id=id).distinct()
     serializer = FightSerializer(fights, many=True)
     return Response(serializer.data)
 
 @api_view(['GET'])
-def getLastThreeFantasyScoresViewSet(request, id):
+def GetLastThreeFantasyScoresViewSet(request, id):
     fighter = Fighters.objects.get(fighter_id=id)
     fightScore = FightScore.objects.filter(fighter=fighter).order_by('-fight__event__date')[:3]
     serializer = FantasyFightScoreSerializer(fightScore, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def GetFightsFromEventViewSet(request, id):
+    fights = Fights.objects.filter(event__event_id=id)
+    serializer = FightSerializer(fights, many=True)
     return Response(serializer.data)
