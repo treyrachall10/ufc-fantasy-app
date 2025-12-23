@@ -2,10 +2,12 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Link } from 'react-router-dom';
 import { Fight } from '../../types/types';
 import { QueryKey, useQuery } from '@tanstack/react-query';
-import { useParams } from "react-router";
+import { useParams, useLocation } from "react-router";
 
 export default function FightsList() {
     const params = useParams()
+    const location = useLocation()
+    
     let queryKey: QueryKey;
     let url: string;
 
@@ -50,8 +52,27 @@ export default function FightsList() {
         time: fight.time,
         winner: fight.winner,
     }))
-
-    return(
-        <DataGrid columns={columns} rows={rows}/>
-    )
+    
+    const compactInitialState = {
+        pagination: {
+          paginationModel: {
+            pageSize: 5,
+          },
+        },
+      };
+    
+    if (location.pathname.includes("fighter")) {
+       return(
+            <DataGrid 
+                columns={columns} 
+                rows={rows} 
+                initialState={compactInitialState}
+            />
+        );
+    } else { 
+        return (
+            <DataGrid columns={columns} rows={rows} />
+        );
+    }
+    
 }

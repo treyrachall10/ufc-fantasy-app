@@ -10,7 +10,7 @@ import { useParams } from "react-router";
 
 export default function AthleteStatsPage(){
     const  params = useParams()
-    const id = params.id;
+    const id = params.id; 
     {/* API fetching*/}    
     const { data: fighterData,
             isPending: fighterPending,
