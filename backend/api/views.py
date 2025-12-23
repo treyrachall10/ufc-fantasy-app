@@ -36,4 +36,10 @@ def getFighterFightsViewSet(request, id):
     fights = Fights.objects.filter(fightstats__fighter_id=id).distinct()
     serializer = FightSerializer(fights, many=True)
     return Response(serializer.data)
-    
+
+@api_view(['GET'])
+def getLastThreeFantasyScoresViewSet(request, id):
+    fighter = Fighters.objects.get(fighter_id=id)
+    fightScore = FightScore.objects.filter(fighter=fighter).order_by('-fight__event__date')[:3]
+    serializer = FantasyFightScoreSerializer(fightScore, many=True)
+    return Response(serializer.data)
