@@ -123,3 +123,9 @@ export interface Fight {
     time: number,
     winner: string,
 }
+
+export interface FantasyFightScore {
+    bout: string,
+    date: string,
+    fight_total_points: number
+}

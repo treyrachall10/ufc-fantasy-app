@@ -4,7 +4,7 @@ import QuickStatCard from "../components/statHolders/QuickStatCard";
 import FightsList from "../components/lists/FightsList";
 import WinLossChart from "../components/charts/WinLossChart";
 import FantasyTrendLineChart from "../components/charts/FantasyTrendLineChart";
-import { FighterWithCareerStats } from "../types/types";
+import { FantasyFightScore, FighterWithCareerStats } from "../types/types";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router";
 
@@ -12,43 +12,59 @@ export default function AthleteStatsPage(){
     const  params = useParams()
     const id = params.id;
     {/* API fetching*/}    
-    const { data, isPending, error } = useQuery<FighterWithCareerStats>({
+    const { data: fighterData,
+            isPending: fighterPending,
+            error: fighterError } = useQuery<FighterWithCareerStats>({
             queryKey: ['fighterStatsData', id],
             queryFn: () => fetch(`http://localhost:8000/fighter/${id}`).then(r => r.json()),
         })
+
+    const { data: fantasyScoresData,
+            isPending: fantasyPending,
+            error: fantasyError } = useQuery<FantasyFightScore[]>({
+            queryKey: ['fighterFantasyTrend', id],
+            queryFn: () => fetch(`http://localhost:8000/fights/${id}/fantasy-scores/recent`).then(r => r.json()),
+        })
     
-    if (isPending) return <span>Loading...</span>
-    if (error) return <span>Oops!</span>
-    
+    if (fighterPending || fantasyPending) return <span>Loading...</span>
+    if (fighterError || fantasyError) return <span>Oops!</span>
+
     // Strikes landed per minute (fight time is in seconds)
     const slpm =
-    data.total_fight_time > 0
-        ? data.striking.total.landed / (data.total_fight_time / 60)
+    fighterData.total_fight_time > 0
+        ? fighterData.striking.total.landed / (fighterData.total_fight_time / 60)
         : 0;
 
     // Striking accuracy
     const strAcc =
-    data.striking.significant.attempted > 0
-        ? (data.striking.significant.landed / data.striking.significant.attempted) * 100
+    fighterData.striking.significant.attempted > 0
+        ? (fighterData.striking.significant.landed / fighterData.striking.significant.attempted) * 100
         : 0;
 
     // Striking defense
     const strDef =
-    data.opponent.striking.significant.attempted > 0
-        ? (1 - data.opponent.striking.significant.landed / data.opponent.striking.significant.attempted) * 100
+    fighterData.opponent.striking.significant.attempted > 0
+        ? (1 - fighterData.opponent.striking.significant.landed / fighterData.opponent.striking.significant.attempted) * 100
         : 100;
 
     // Takedown accuracy
     const tdAcc =
-    data.grappling.takedowns.attempted > 0
-        ? (data.grappling.takedowns.landed / data.grappling.takedowns.attempted) * 100
+    fighterData.grappling.takedowns.attempted > 0
+        ? (fighterData.grappling.takedowns.landed / fighterData.grappling.takedowns.attempted) * 100
         : 0;
 
     // Takedown defense
     const tdDef =
-    data.opponent.grappling.takedowns.attempted > 0
-        ? (1 - data.opponent.grappling.takedowns.landed / data.opponent.grappling.takedowns.attempted) * 100
+    fighterData.opponent.grappling.takedowns.attempted > 0
+        ? (1 - fighterData.opponent.grappling.takedowns.landed / fighterData.opponent.grappling.takedowns.attempted) * 100
         : 100;
+
+    // Fantasy Trend Points
+    const fantasyTrendData = fantasyScoresData.map(fantasyData => ({
+        bout: fantasyData.bout,
+        points: fantasyData.fight_total_points,
+        date: fantasyData.date
+    }))
 
     return (
         <Container maxWidth="xl">
@@ -57,14 +73,14 @@ export default function AthleteStatsPage(){
                 {/* Sidebar */}
                 <Grid size={{ xs: 12, md: 2}}>
                     <Sidebar 
-                        name={data.fighter.full_name}
-                        nickname={data.fighter.nick_name}
+                        name={fighterData.fighter.full_name}
+                        nickname={fighterData.fighter.nick_name}
                         age={30}
-                        height={data.fighter.height}
-                        weight={data.fighter.weight}
-                        reach={data.fighter.reach}
-                        stance={data.fighter.stance}
-                        record={data.fighter.record}
+                        height={fighterData.fighter.height}
+                        weight={fighterData.fighter.weight}
+                        reach={fighterData.fighter.reach}
+                        stance={fighterData.fighter.stance}
+                        record={fighterData.fighter.record}
                     />
                 </Grid>
                 {/* Body */}
@@ -97,11 +113,11 @@ export default function AthleteStatsPage(){
                         {/* Fantsy Chart and W/L Chart */}
                         <Grid container spacing={2}>
                             <Grid size={{xs: 12, sm: 6, md: 6, lg: 6}}>
-                                <FantasyTrendLineChart/>
+                                <FantasyTrendLineChart data={fantasyTrendData}/>
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 6, lg: 6}}>
                                 <WinLossChart
-                                record={data.fighter.record}
+                                record={fighterData.fighter.record}
                                 />
                             </Grid>
                         </Grid>
