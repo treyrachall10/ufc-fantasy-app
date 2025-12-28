@@ -1,113 +1,64 @@
-import { Container, Grid, Box, Avatar, Typography} from "@mui/material";
+import { Container, Grid, Box, Avatar, Typography } from "@mui/material";
 import Sidebar from "../components/layout/Sidebar";
 import DivergingProgressBar from "../components/statHolders/DivergingProgressBar";
 import HeadToHeadStatCard from "../components/statHolders/HeadToHeadStatCard";
 import FantasyScoreBreakdown from "../components/statHolders/FantasyScoreBreakdown";
 import { RadarChart, Radar, PolarAngleAxis, PolarRadiusAxis, Legend, PolarGrid } from 'recharts';
+import { HeadToHeadStats } from "../types/types";
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
-interface FightStatsPageProps {
-    fightId: number;
-}
+export default function FightStatsPage() { 
+    const params = useParams()
+    const id = params.id
 
-export default function FightStatsPage({fightId}: FightStatsPageProps) {
-    const fighterOne = {
-        name: "Alex Pereira",
-        nickname: "Poatan",
-        age: 36,
-        height: 193, // cm
-        weight: 93,  // kg
-        reach: 203,  // cm
-        stance: "Orthodox",
-        record: {
-          wins: {
-            total: 10,
-            ko_tko_wins: 8,
-            tko_doctor_stoppage_wins: 0,
-            submission_wins: 0,
-            unanimous_decision_wins: 2,
-            split_decision_wins: 0,
-            majority_decision_wins: 0,
-            dq_wins: 0,
-          },
-          losses: {
-            total: 2,
-            ko_tko_losses: 1,
-            tko_doctor_stoppage_losses: 0,
-            submission_losses: 0,
-            unanimous_decision_losses: 1,
-            split_decision_losses: 0,
-            majority_decision_losses: 0,
-            dq_losses: 0,
-          },
-          draws: 0,
-        },
-      };
+    {/* API fetching*/}    
+    const { data, isPending, error } = useQuery<HeadToHeadStats>({
+        queryKey: ["HeadToHeadData", id],
+        queryFn: () =>
+            fetch(`http://localhost:8000/fight/${id}`)
+                .then(r => r.json()),
+    })
 
-      const fighterTwo = {
-        name: "Jamal Hill",
-        nickname: "Sweet Dreams",
-        age: 32,
-        height: 193, // cm
-        weight: 93,  // kg
-        reach: 201,  // cm
-        stance: "Southpaw",
-        record: {
-          wins: {
-            total: 12,
-            ko_tko_wins: 6,
-            tko_doctor_stoppage_wins: 0,
-            submission_wins: 1,
-            unanimous_decision_wins: 5,
-            split_decision_wins: 0,
-            majority_decision_wins: 0,
-            dq_wins: 0,
-          },
-          losses: {
-            total: 2,
-            ko_tko_losses: 1,
-            tko_doctor_stoppage_losses: 0,
-            submission_losses: 1,
-            unanimous_decision_losses: 0,
-            split_decision_losses: 0,
-            majority_decision_losses: 0,
-            dq_losses: 0,
-          },
-          draws: 0,
-        },
-      };      
+    if (isPending) return <span>Loading...</span>
+    if (error || !data) return <span>Oops!</span>
 
-        const data = [
+    const fighterOne = data.fighterA
+    const fighterTwo = data.fighterB
+
+    const chartData = [
         {
             subject: 'Sig. Str',
-            A: 30,
-            B: 65,
+            A: data.fighterAFightStats.striking.significant.landed,
+            B: data.fighterBFightStats.striking.significant.landed,
             fullmark: 150
         },
-                {
+        {
             subject: 'Takedowns',
-            A: 3,
-            B: 0,
+            A: data.fighterAFightStats.grappling.takedowns.landed,
+            B: data.fighterBFightStats.grappling.takedowns.landed,
             fullmark: 150
         },
-                {
+        {
             subject: 'Knockdowns',
-            A: 0,
-            B: 2,
+            A: data.fighterAFightStats.kd,
+            B: data.fighterBFightStats.kd,
             fullmark: 150
         },
-                {
+        {
             subject: 'Sub Att',
-            A: 2,
-            B: 0,
+            A: data.fighterAFightStats.grappling.sub_att,
+            B: data.fighterBFightStats.grappling.sub_att,
             fullmark: 150
         },
-                {
+        {
             subject: 'Ctrl Time',
-            A: 30,
-            B: 65,
+            A: data.fighterAFightStats.grappling.ctrl_time,
+            B: data.fighterBFightStats.grappling.ctrl_time,
             fullmark: 150
         },
-]
+    ]
+
     return (
         <Container maxWidth='xl' sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
             {/* Bout Information */}
@@ -116,24 +67,25 @@ export default function FightStatsPage({fightId}: FightStatsPageProps) {
                 flexDirection: "column",
                 alignItems: "center",
             }}>
-                <Typography>UFC 300: LIGHT HEAVYWEIGHT CHAMPIONSHIP</Typography>
-                <Typography>T-Mobile Arena, Las Vegas - April 2024</Typography>
+                <Typography>{data.bout}</Typography>
+                <Typography>{data.event.event}</Typography>
             </Box>
+
             <Grid container spacing={2}>
                 {/* Fighter 1 Sidebar */}
                 <Grid size={{ xs: 4, md: 2}}>
                     <Sidebar 
-                        name={fighterOne.name}
-                        nickname={fighterOne.nickname}
-                        age={fighterOne.age}
+                        name={fighterOne.full_name}
+                        nickname={fighterOne.nick_name}
+                        age={30}
                         height={fighterOne.height}
                         weight={fighterOne.weight}
                         reach={fighterOne.reach}
                         stance={fighterOne.stance}
                         record={fighterOne.record}
                     />
-
                 </Grid>
+
                 {/* Middle Section*/}
                 <Grid size={{xs: 4, md: 8}} spacing={2}>
                     <Box sx={{
@@ -142,58 +94,80 @@ export default function FightStatsPage({fightId}: FightStatsPageProps) {
                         justifyContent: "center",
                         width: '100%',
                         gap: 1
-                        }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                                <Avatar sx={{
-                                    width: { xs: 48, sm: 56, md: 64, lg: 72 },
-                                    height: { xs: 48, sm: 56, md: 64, lg: 72 },
-                                    fontSize: { xs: 18, sm: 20, md: 22, lg: 24 },
-                                }}>VS</Avatar>
-                            </Box>
+                    }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                            <Avatar sx={{
+                                width: { xs: 48, sm: 56, md: 64, lg: 72 },
+                                height: { xs: 48, sm: 56, md: 64, lg: 72 },
+                                fontSize: { xs: 18, sm: 20, md: 22, lg: 24 },
+                            }}>
+                                VS
+                            </Avatar>
+                        </Box>
+
                         {/* MAAAAAAAAAP TOOOOOO A FUNNNNNCCCTIIIIOOOOOON*/}
-                        <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.record.wins.total} rightValue={fighterTwo.record.wins.total}/>
-                        <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.record.wins.total} rightValue={fighterTwo.record.wins.total}/>
-                        <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.record.wins.total} rightValue={fighterTwo.record.wins.total}/>
-                        <HeadToHeadStatCard title={"Strike Accuracy"} leftValue={fighterOne.record.wins.total} rightValue={fighterTwo.record.wins.total}/>
+                        <HeadToHeadStatCard
+                            title={"Significant Strikes Landed"}
+                            leftValue={data.fighterAFightStats.striking.significant.landed}
+                            rightValue={data.fighterBFightStats.striking.significant.landed}
+                        />
+                        <HeadToHeadStatCard
+                            title={"Takedowns"}
+                            leftValue={data.fighterAFightStats.grappling.takedowns.landed}
+                            rightValue={data.fighterBFightStats.grappling.takedowns.landed}
+                        />
+                        <HeadToHeadStatCard
+                            title={"Ctrl. Time"}
+                            leftValue={data.fighterAFightStats.grappling.ctrl_time}
+                            rightValue={data.fighterBFightStats.grappling.ctrl_time}
+                        />
+                        <HeadToHeadStatCard
+                            title={"Sub Attempts"}
+                            leftValue={data.fighterAFightStats.grappling.sub_att}
+                            rightValue={data.fighterBFightStats.grappling.sub_att}
+                        />
                     </Box>
                 </Grid>
+
                 {/* Fighter 2 Sidebar */}
                 <Grid size={{ xs: 4, md: 2}}>
-                <Sidebar 
-                    name={fighterTwo.name}
-                    nickname={fighterTwo.nickname}
-                    age={fighterTwo.age}
-                    height={fighterTwo.height}
-                    weight={fighterTwo.weight}
-                    reach={fighterTwo.reach}
-                    stance={fighterTwo.stance}
-                    record={fighterTwo.record}
-                />
+                    <Sidebar 
+                        name={fighterTwo.full_name}
+                        nickname={fighterTwo.nick_name}
+                        age={30}
+                        height={fighterTwo.height}
+                        weight={fighterTwo.weight}
+                        reach={fighterTwo.reach}
+                        stance={fighterTwo.stance}
+                        record={fighterTwo.record}
+                    />
                 </Grid>
             </Grid>
-            <FantasyScoreBreakdown/>
+
+            <FantasyScoreBreakdown names={[data.fighterA.full_name, data.fighterB.full_name]}/>
+
             {/* Radar Chart Section*/}
             <Box sx={{ display: 'flex', justifyContent: 'center', border: 1}}>
-                <RadarChart style={{width: '100%', height: '500px', aspectRatio: 1}} responsive data={data}>
+                <RadarChart style={{width: '100%', height: '500px', aspectRatio: 1}} data={chartData}>
                     <PolarGrid/>
                     <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                        <Radar
-                            name="Mike"
-                            dataKey="A"
-                            stroke="#8884d8"
-                            fill="#8884d8"
-                            fillOpacity={0.6}
-                            isAnimationActive={true}
-                            />
-                            <Radar
-                            name="Lily"
-                            dataKey="B"
-                            stroke="#82ca9d"
-                            fill="#82ca9d"
-                            fillOpacity={0.6}
-                            isAnimationActive={true}
-                            />
-                            <Legend />
+                    <Radar
+                        name={fighterOne.full_name}
+                        dataKey="A"
+                        stroke="#8884d8"
+                        fill="#8884d8"
+                        fillOpacity={0.6}
+                        isAnimationActive={true}
+                    />
+                    <Radar
+                        name={fighterTwo.full_name}
+                        dataKey="B"
+                        stroke="#82ca9d"
+                        fill="#82ca9d"
+                        fillOpacity={0.6}
+                        isAnimationActive={true}
+                    />
+                    <Legend />
                 </RadarChart>
             </Box>
         </Container>

@@ -2,7 +2,7 @@
     Contains serializers for django views
 '''
 from rest_framework import serializers
-from fantasy.models import Fighters, FighterCareerStats, Events, Fights, FightScore
+from fantasy.models import Fighters, FighterCareerStats, Events, Fights, FightScore, FightStats
 
 class WinSerializer(serializers.HyperlinkedModelSerializer):
     total = serializers.IntegerField(source='wins', read_only=True)
@@ -273,3 +273,69 @@ class FantasyFightScoreSerializer(serializers.HyperlinkedModelSerializer):
             'date',
             'fight_total_points',
         ]
+
+class SignificantStrikesFightStatsSerializer(serializers.Serializer):
+    landed = serializers.IntegerField(source='sig_str_landed', read_only=True)
+    attempted = serializers.IntegerField(source='sig_str_attempted', read_only=True)
+
+class DistanceStrikesFightStatsSerializer(serializers.Serializer):
+    landed = serializers.IntegerField(source='distance_str_landed', read_only=True)
+    attempted = serializers.IntegerField(source='distance_str_attempted', read_only=True)
+
+class HeadStrikesFightStatsSerializer(serializers.Serializer):
+    landed = serializers.IntegerField(source='head_str_landed', read_only=True)
+    attempted = serializers.IntegerField(source='head_str_attempted', read_only=True)
+
+class BodyStrikesFightStatsSerializer(serializers.Serializer):
+    landed = serializers.IntegerField(source='body_str_landed', read_only=True)
+    attempted = serializers.IntegerField(source='body_str_attempted', read_only=True)
+
+class LegStrikesFightStatsSerializer(serializers.Serializer):
+    landed = serializers.IntegerField(source='leg_str_landed', read_only=True)
+    attempted = serializers.IntegerField(source='leg_str_attempted', read_only=True)
+
+class ClinchStrikesFightStatsSerializer(serializers.Serializer):
+    landed = serializers.IntegerField(source='clinch_str_landed', read_only=True)
+    attempted = serializers.IntegerField(source='clinch_str_attempted', read_only=True)
+
+class GroundStrikesFightStatsSerializer(serializers.Serializer):
+    landed = serializers.IntegerField(source='ground_str_landed', read_only=True)
+    attempted = serializers.IntegerField(source='ground_str_attempted', read_only=True)
+
+class TotalStrikesFightStatsSerializer(serializers.Serializer):
+    landed = serializers.IntegerField(source='total_str_landed', read_only=True)
+    attempted = serializers.IntegerField(source='total_str_attempted', read_only=True)
+
+class FightStatsStrikingSerializer(serializers.Serializer):
+    total = TotalStrikesFightStatsSerializer(source='*', read_only=True)
+    significant = SignificantStrikesFightStatsSerializer(source='*', read_only=True)
+    distance = DistanceStrikesFightStatsSerializer(source='*', read_only=True)
+    head = HeadStrikesFightStatsSerializer(source='*', read_only=True)
+    body = BodyStrikesFightStatsSerializer(source='*', read_only=True)
+    leg = LegStrikesFightStatsSerializer(source='*', read_only=True)
+    clinch = ClinchStrikesFightStatsSerializer(source='*', read_only=True)
+    ground = GroundStrikesFightStatsSerializer(source='*', read_only=True)
+    
+class TakedownFightStatsSerializer(serializers.Serializer):
+    landed = serializers.IntegerField(source='td_landed', read_only=True)
+    attempted = serializers.IntegerField(source='td_attempted', read_only=True)
+
+class FightStatsGrapplingSerializer(serializers.Serializer):
+    takedowns = TakedownFightStatsSerializer(source='*', read_only=True)
+    sub_att = serializers.IntegerField(read_only=True)
+    reversals = serializers.IntegerField(read_only=True)
+    ctrl_time = serializers.IntegerField(read_only=True)
+
+class FightStatsSerializer(serializers.Serializer):
+    striking = FightStatsStrikingSerializer(source="*", read_only=True)
+    grappling = FightStatsGrapplingSerializer(source="*", read_only=True)
+    kd = serializers.IntegerField(read_only=True)
+
+class HeadToHeadStatsSerializer(serializers.Serializer):
+    fighterA = FighterSerializer(read_only=True)
+    fighterB = FighterSerializer(read_only=True)
+    fighterAFightStats = FightStatsSerializer(read_only=True)
+    fighterBFightStats = FightStatsSerializer(read_only=True)
+    event = EventSerializer(read_only=True)
+    winner = serializers.CharField(source="fight.winner.full_name", read_only=True)
+    bout = serializers.CharField(source='fight.bout', read_only=True)

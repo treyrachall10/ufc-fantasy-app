@@ -36,6 +36,7 @@ function App() {
                 <Route path="/events" element={<EventsListPage/>} />
                 <Route path="/events/:id" element={<FightsListPage/>}/>
                 <Route path="/fighter/:id" element={<AthleteStatsPage/>} />
+                <Route path="/fight/:id" element={<FightStatsPage/>} />
             </Routes> 
           </Container>
       </BrowserRouter>

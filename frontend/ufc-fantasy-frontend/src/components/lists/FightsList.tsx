@@ -16,7 +16,7 @@ export default function FightsList() {
     const isFightsPage = location.pathname.startsWith("/fights");
 
     if (isFighterPage && params.id) {
-        queryKey = ['fightListData', params.id];
+        queryKey = ['fightListDataWithId', params.id];
         url = `http://localhost:8000/fights/${params.id}`;
     } else if (isFightsPage) {
         queryKey = ['fightListData'];
@@ -40,7 +40,7 @@ export default function FightsList() {
 
     const columns: GridColDef[] = [
     { field: 'bout', headerName: 'Bout', renderCell: (params) => (
-        <Link to={`/fighter/${params.id}`} style={{color: "black"}}>{params.value}</Link>
+        <Link to={`/fight/${params.id}`} style={{color: "black"}}>{params.value}</Link>
     )},
     { field: 'event', headerName: 'Event' },
     { field: 'weight_class', headerName: 'Weight Class' },

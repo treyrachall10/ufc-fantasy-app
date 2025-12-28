@@ -4,8 +4,11 @@ import StatToggler from "../Controls/StatToggler";
 import { useState } from "react";
 import { RadarChart, Radar, PolarAngleAxis, PolarRadiusAxis, Legend, PolarGrid } from 'recharts';
 
+interface FantasyScoreBreakdownProps {
+    names: string[],
+}
 
-export default function FantasyScoreBreakdown() {
+export default function FantasyScoreBreakdown({names}: FantasyScoreBreakdownProps) {
     
     const fighterOneStats = [
         { icon: <Box/>, title: "Win", points: +20, value: 70 },
@@ -57,7 +60,7 @@ export default function FantasyScoreBreakdown() {
                 <StatToggler 
                     handler={handleFantasyToggle}
                     selectedValue={selectedFighter}
-                    buttonText={["Alex Pereira", "Jamal Hill"]}
+                    buttonText={[names[0], names[1]]}
                     buttonValue={["Fighter 1", "Fighter 2"]}
                     />
             </Box>

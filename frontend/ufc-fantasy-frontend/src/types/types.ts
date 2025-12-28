@@ -35,7 +35,7 @@ export interface Fighter {
             dq_losses: number,
         },
         draws: number
-    } | null,
+    },
 }
 
 export interface FighterWithCareerStats {
@@ -129,3 +129,65 @@ export interface FantasyFightScore {
     date: string,
     fight_total_points: number
 }
+
+export interface FightStats {
+    kd: number;
+  
+    striking: {
+      significant: {
+        landed: number;
+        attempted: number;
+      };
+      total: {
+        landed: number;
+        attempted: number;
+      };
+      distance: {
+        landed: number;
+        attempted: number;
+      };
+      head: {
+        landed: number;
+        attempted: number;
+      };
+      body: {
+        landed: number;
+        attempted: number;
+      };
+      leg: {
+        landed: number;
+        attempted: number;
+      };
+      clinch: {
+        landed: number;
+        attempted: number;
+      };
+      ground: {
+        landed: number;
+        attempted: number;
+      };
+    };
+  
+    grappling: {
+      takedowns: {
+        landed: number;
+        attempted: number;
+      };
+      sub_att: number;
+      reversals: number;
+      ctrl_time: number;
+    };
+  }
+  
+  export interface HeadToHeadStats {
+    fighterA: Fighter;
+    fighterB: Fighter;
+  
+    fighterAFightStats: FightStats;
+    fighterBFightStats: FightStats;
+    event: Event;
+
+    bout: string;
+    winner: string;
+  }
+  

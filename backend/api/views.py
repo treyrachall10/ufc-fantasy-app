@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from .serializers import *
-from fantasy.models import Fighters, Events, Fights, FighterCareerStats, FightStats
+from fantasy.models import Fighters, Events, Fights, FighterCareerStats, FightStats, RoundStats, RoundScore
 
 @api_view(['GET'])
 def GetFighterProfileViewSet(request):
@@ -48,4 +48,29 @@ def GetLastThreeFantasyScoresViewSet(request, id):
 def GetFightsFromEventViewSet(request, id):
     fights = Fights.objects.filter(event__event_id=id)
     serializer = FightSerializer(fights, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def GetHeadToHeadStatsViewSet(request, id):
+    fight = Fights.objects.get(fight_id=id)
+    fightStats = FightStats.objects.filter(fight=fight)
+    fighterAFightStats, fighterBFightStats = [stat for stat in fightStats]
+    fighterA = fighterAFightStats.fighter
+    fighterB = fighterBFightStats.fighter
+    fighterARoundStats = RoundStats.objects.filter(fight_stats=fighterAFightStats)
+    fighterBRoundStats = RoundStats.objects.filter(fight_stats=fighterBFightStats)
+    fighterARoundScores = {}
+    for round in fighterARoundStats:
+        fighterARoundScores[round.round_number] = RoundScore.objects.get(round_stats=fighterARoundStats)
+    print("Round Scores: ")
+    event = fight.event
+    object = {
+        'fight': fight,
+        'fighterAFightStats': fighterAFightStats,
+        'fighterBFightStats': fighterBFightStats,
+        'fighterA': fighterA,
+        'fighterB': fighterB,
+        'event': event
+    }
+    serializer = HeadToHeadStatsSerializer(object, many=False)
     return Response(serializer.data)
