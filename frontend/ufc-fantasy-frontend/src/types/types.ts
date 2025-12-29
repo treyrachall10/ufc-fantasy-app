@@ -176,7 +176,7 @@ export interface FightStats {
   }
 
   export interface RoundFantasyBreakdown {
-    points_knockdown: number,
+    points_knockdowns: number,
     points_sig_str_landed: number,
     points_td_landed: number,
     points_sub_att: number,

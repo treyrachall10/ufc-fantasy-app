@@ -144,7 +144,10 @@ export default function FightStatsPage() {
                 </Grid>
             </Grid>
 
-            <FantasyScoreBreakdown names={[data.fighterA.full_name, data.fighterB.full_name]}/>
+            <FantasyScoreBreakdown 
+                names={[data.fighterA.full_name, data.fighterB.full_name]}
+                fantasyScores={[data.fighterAFantasy, data.fighterBFantasy]}
+                />
 
             {/* Radar Chart Section*/}
             <Box sx={{ display: 'flex', justifyContent: 'center', border: 1}}>
