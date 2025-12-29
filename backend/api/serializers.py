@@ -2,7 +2,7 @@
     Contains serializers for django views
 '''
 from rest_framework import serializers
-from fantasy.models import Fighters, FighterCareerStats, Events, Fights, FightScore, FightStats
+from fantasy.models import Fighters, FighterCareerStats, Events, Fights, FightScore, FightStats, RoundScore
 
 class WinSerializer(serializers.HyperlinkedModelSerializer):
     total = serializers.IntegerField(source='wins', read_only=True)
@@ -331,7 +331,60 @@ class FightStatsSerializer(serializers.Serializer):
     grappling = FightStatsGrapplingSerializer(source="*", read_only=True)
     kd = serializers.IntegerField(read_only=True)
 
+class FightScoreSerializer(serializers.HyperlinkedModelSerializer):
+    """
+        -   Fight level fantasy scores serializer
+    """
+    class Meta:
+        model = FightScore
+        fields = [
+            'points_win',
+            'points_round',
+            'points_time',
+            'fight_total_points'
+        ]
+
+class RoundScoreSerializer(serializers.HyperlinkedModelSerializer):
+    """
+        -   Individual rounds fantasy scores serializer
+    """
+    class Meta:
+        model = RoundScore
+        fields = [
+            "points_knockdowns",
+            "points_sig_str_landed",
+            "points_td_landed",
+            "points_sub_att",
+            "points_ctrl_time",
+            "points_reversals",
+            "round_total_points",
+        ]
+
+class FantasyBreakdownSerializer(serializers.Serializer):
+    """
+        -   Totals for all round stats serializer
+    """
+    points_knockdowns = serializers.FloatField()
+    points_sig_str_landed = serializers.FloatField()
+    points_td_landed = serializers.FloatField()
+    points_sub_att = serializers.FloatField()
+    points_ctrl_time = serializers.FloatField()
+    points_reversals = serializers.FloatField()
+    round_total_points = serializers.FloatField()
+
+class FantasyScoreSerializer(serializers.Serializer):
+    """
+        -   Serializes fantasy dicts
+    """
+    round = serializers.DictField(child=RoundScoreSerializer())
+    fight = FightScoreSerializer()
+    breakdown = FantasyBreakdownSerializer()
+    total = serializers.FloatField()
+
 class HeadToHeadStatsSerializer(serializers.Serializer):
+    """
+        -   Fight stats dashboard serializer
+    """
     fighterA = FighterSerializer(read_only=True)
     fighterB = FighterSerializer(read_only=True)
     fighterAFightStats = FightStatsSerializer(read_only=True)
@@ -339,3 +392,5 @@ class HeadToHeadStatsSerializer(serializers.Serializer):
     event = EventSerializer(read_only=True)
     winner = serializers.CharField(source="fight.winner.full_name", read_only=True)
     bout = serializers.CharField(source='fight.bout', read_only=True)
+    fighterAFantasy = FantasyScoreSerializer()
+    fighterBFantasy = FantasyScoreSerializer()

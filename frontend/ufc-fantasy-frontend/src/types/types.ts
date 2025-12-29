@@ -1,7 +1,3 @@
-/*
-    Contains all interfaces for objects
-*/
-
 export interface Fighter {
     fighter_id: number,
     first_name: string,
@@ -178,6 +174,38 @@ export interface FightStats {
       ctrl_time: number;
     };
   }
+
+  export interface RoundFantasyBreakdown {
+    points_knockdown: number,
+    points_sig_str_landed: number,
+    points_td_landed: number,
+    points_sub_att: number,
+    points_ctrl_time: number,
+    points_reversals: number,
+    round_total_points: number,
+  }
+
+  export interface RoundFantasy {
+    rd_1?: RoundFantasyBreakdown,
+    rd_2?: RoundFantasyBreakdown,
+    rd_3?: RoundFantasyBreakdown,
+    rd_4?: RoundFantasyBreakdown,
+    rd_5?: RoundFantasyBreakdown,
+  }
+
+  export interface FightLevelFantasyScore {
+    points_win: number,
+    points_round: number,
+    points_time: number,
+    fight_total_points: number,
+  }
+
+  export interface DetailedFantasyScore {
+    round: RoundFantasy,
+    fight: FightLevelFantasyScore,
+    breakdown: RoundFantasyBreakdown,
+    total: number,
+  }
   
   export interface HeadToHeadStats {
     fighterA: Fighter;
@@ -189,5 +217,8 @@ export interface FightStats {
 
     bout: string;
     winner: string;
+
+    fighterAFantasy: DetailedFantasyScore,
+    fighterBFantasy: DetailedFantasyScore
   }
   

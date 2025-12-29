@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from .serializers import *
 from fantasy.models import Fighters, Events, Fights, FighterCareerStats, FightStats, RoundStats, RoundScore
+from .utils import create_fantasy_for_fighter
 
 @api_view(['GET'])
 def GetFighterProfileViewSet(request):
@@ -50,19 +51,25 @@ def GetFightsFromEventViewSet(request, id):
     serializer = FightSerializer(fights, many=True)
     return Response(serializer.data)
 
+
+from django.forms.models import model_to_dict
+
 @api_view(['GET'])
-def GetHeadToHeadStatsViewSet(request, id):
+def GetHeadToHeadStatsViewSet(request, id):    
+
     fight = Fights.objects.get(fight_id=id)
     fightStats = FightStats.objects.filter(fight=fight)
     fighterAFightStats, fighterBFightStats = [stat for stat in fightStats]
+
     fighterA = fighterAFightStats.fighter
     fighterB = fighterBFightStats.fighter
+
     fighterARoundStats = RoundStats.objects.filter(fight_stats=fighterAFightStats)
     fighterBRoundStats = RoundStats.objects.filter(fight_stats=fighterBFightStats)
-    fighterARoundScores = {}
-    for round in fighterARoundStats:
-        fighterARoundScores[round.round_number] = RoundScore.objects.get(round_stats=fighterARoundStats)
-    print("Round Scores: ")
+    
+    fighterAFantasy = create_fantasy_for_fighter(fight=fight, fighter=fighterA, round_stats=fighterARoundStats)
+    fighterBFantasy = create_fantasy_for_fighter(fight=fight, fighter=fighterB, round_stats=fighterBRoundStats)
+
     event = fight.event
     object = {
         'fight': fight,
@@ -70,7 +77,9 @@ def GetHeadToHeadStatsViewSet(request, id):
         'fighterBFightStats': fighterBFightStats,
         'fighterA': fighterA,
         'fighterB': fighterB,
-        'event': event
+        'event': event,
+        'fighterAFantasy': fighterAFantasy,
+        'fighterBFantasy': fighterBFantasy
     }
     serializer = HeadToHeadStatsSerializer(object, many=False)
     return Response(serializer.data)
