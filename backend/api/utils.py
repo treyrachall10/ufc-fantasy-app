@@ -33,6 +33,6 @@ def create_fantasy_for_fighter(fight, fighter,  round_stats):
     }
 
     fantasy['fight'] = FightScore.objects.get(fighter=fighter, fight=fight)
-    fantasy['total'] = fantasy['breakdown']['round_total_points'] + fantasy['fight'].fight_total_points
+    fantasy['total'] = fantasy['fight'].fight_total_points
 
     return fantasy

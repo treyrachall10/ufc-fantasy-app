@@ -26,39 +26,6 @@ export default function FightStatsPage() {
     const fighterOne = data.fighterA
     const fighterTwo = data.fighterB
 
-    const chartData = [
-        {
-            subject: 'Sig. Str',
-            A: data.fighterAFightStats.striking.significant.landed,
-            B: data.fighterBFightStats.striking.significant.landed,
-            fullmark: 150
-        },
-        {
-            subject: 'Takedowns',
-            A: data.fighterAFightStats.grappling.takedowns.landed,
-            B: data.fighterBFightStats.grappling.takedowns.landed,
-            fullmark: 150
-        },
-        {
-            subject: 'Knockdowns',
-            A: data.fighterAFightStats.kd,
-            B: data.fighterBFightStats.kd,
-            fullmark: 150
-        },
-        {
-            subject: 'Sub Att',
-            A: data.fighterAFightStats.grappling.sub_att,
-            B: data.fighterBFightStats.grappling.sub_att,
-            fullmark: 150
-        },
-        {
-            subject: 'Ctrl Time',
-            A: data.fighterAFightStats.grappling.ctrl_time,
-            B: data.fighterBFightStats.grappling.ctrl_time,
-            fullmark: 150
-        },
-    ]
-
     return (
         <Container maxWidth='xl' sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
             {/* Bout Information */}
@@ -107,9 +74,29 @@ export default function FightStatsPage() {
 
                         {/* MAAAAAAAAAP TOOOOOO A FUNNNNNCCCTIIIIOOOOOON*/}
                         <HeadToHeadStatCard
+                            title={"Total Strikes Landed"}
+                            leftValue={data.fighterAFightStats.striking.total.landed}
+                            rightValue={data.fighterBFightStats.striking.total.landed}
+                        />
+                        <HeadToHeadStatCard
                             title={"Significant Strikes Landed"}
                             leftValue={data.fighterAFightStats.striking.significant.landed}
                             rightValue={data.fighterBFightStats.striking.significant.landed}
+                        />
+                        <HeadToHeadStatCard
+                            title={"Head Strikes Landed"}
+                            leftValue={data.fighterAFightStats.striking.head.landed}
+                            rightValue={data.fighterBFightStats.striking.head.landed}
+                        />
+                        <HeadToHeadStatCard
+                            title={"Body Strikes Landed"}
+                            leftValue={data.fighterAFightStats.striking.body.landed}
+                            rightValue={data.fighterBFightStats.striking.body.landed}
+                        />
+                        <HeadToHeadStatCard
+                            title={"Leg Strikes Landed"}
+                            leftValue={data.fighterAFightStats.striking.leg.landed}
+                            rightValue={data.fighterBFightStats.striking.leg.landed}
                         />
                         <HeadToHeadStatCard
                             title={"Takedowns"}
@@ -149,30 +136,7 @@ export default function FightStatsPage() {
                 fantasyScores={[data.fighterAFantasy, data.fighterBFantasy]}
                 />
 
-            {/* Radar Chart Section*/}
-            <Box sx={{ display: 'flex', justifyContent: 'center', border: 1}}>
-                <RadarChart style={{width: '100%', height: '500px', aspectRatio: 1}} data={chartData}>
-                    <PolarGrid/>
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                    <Radar
-                        name={fighterOne.full_name}
-                        dataKey="A"
-                        stroke="#8884d8"
-                        fill="#8884d8"
-                        fillOpacity={0.6}
-                        isAnimationActive={true}
-                    />
-                    <Radar
-                        name={fighterTwo.full_name}
-                        dataKey="B"
-                        stroke="#82ca9d"
-                        fill="#82ca9d"
-                        fillOpacity={0.6}
-                        isAnimationActive={true}
-                    />
-                    <Legend />
-                </RadarChart>
-            </Box>
+
         </Container>
     )
 }

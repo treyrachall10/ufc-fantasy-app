@@ -42,10 +42,21 @@ class RecordSerializer(serializers.HyperlinkedModelSerializer):
         fields = ['wins', 'losses', 'draws']
 
 class FighterSerializer(serializers.HyperlinkedModelSerializer):
-    record = RecordSerializer(source='fightercareerstats', many=False, read_only=True)
+    record = RecordSerializer(source='*', many=False, read_only=True)
+
+    fighter_id = serializers.IntegerField(source='fighter.fighter_id')
+    first_name = serializers.CharField(source='fighter.first_name')
+    last_name = serializers.CharField(source='fighter.last_name')
+    full_name = serializers.CharField(source='fighter.full_name')
+    nick_name = serializers.CharField(source='fighter.nick_name')
+    stance = serializers.CharField(source='fighter.stance')
+    weight = serializers.IntegerField(source='fighter.weight')
+    height = serializers.IntegerField(source='fighter.height')
+    reach = serializers.IntegerField(source='fighter.reach')
+    dob = serializers.DateField(source='fighter.dob')
 
     class Meta:
-        model = Fighters
+        model = FighterCareerStats
         fields = [
             'fighter_id',
             'first_name',
@@ -246,7 +257,7 @@ class OpponentStatsSerializer(serializers.HyperlinkedModelSerializer):
         ]
 
 class FighterCareerStatsSerializer(serializers.HyperlinkedModelSerializer):
-    fighter = FighterSerializer(many=False, read_only=True)
+    fighter = FighterSerializer(source='*', many=False, read_only=True)
     striking = StrikingSerializer(source='*', read_only=True)
     grappling = GrapplingSerializer(source='*', read_only=True)
     opponent = OpponentStatsSerializer(source='*', read_only=True)

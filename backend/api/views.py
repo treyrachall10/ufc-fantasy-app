@@ -10,7 +10,7 @@ from .utils import create_fantasy_for_fighter
 
 @api_view(['GET'])
 def GetFighterProfileViewSet(request):
-    fighters = Fighters.objects.all()
+    fighters = FighterCareerStats.objects.all()
     serializer = FighterSerializer(fighters, many=True)
     return Response(serializer.data)
 
@@ -64,6 +64,9 @@ def GetHeadToHeadStatsViewSet(request, id):
     fighterA = fighterAFightStats.fighter
     fighterB = fighterBFightStats.fighter
 
+    fighterACareerStats = FighterCareerStats.objects.get(fighter=fighterA)
+    fighterBCareerStats = FighterCareerStats.objects.get(fighter=fighterB)
+
     fighterARoundStats = RoundStats.objects.filter(fight_stats=fighterAFightStats)
     fighterBRoundStats = RoundStats.objects.filter(fight_stats=fighterBFightStats)
     
@@ -75,8 +78,8 @@ def GetHeadToHeadStatsViewSet(request, id):
         'fight': fight,
         'fighterAFightStats': fighterAFightStats,
         'fighterBFightStats': fighterBFightStats,
-        'fighterA': fighterA,
-        'fighterB': fighterB,
+        'fighterA': fighterACareerStats,
+        'fighterB': fighterBCareerStats,
         'event': event,
         'fighterAFantasy': fighterAFantasy,
         'fighterBFantasy': fighterBFantasy
