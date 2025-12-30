@@ -1,4 +1,4 @@
-import { Container, Grid, Box } from "@mui/material";
+import { Container, Grid, Box, Typography } from "@mui/material";
 import Sidebar from "../components/layout/Sidebar";
 import QuickStatCard from "../components/statHolders/QuickStatCard";
 import FightsList from "../components/lists/FightsList";
@@ -90,6 +90,7 @@ export default function AthleteStatsPage(){
                     gap: 1
                     }}>
                         {/* QuickStats */}
+                        <Typography variant="subtitle2">Career Stats:</Typography>
                         <Grid container spacing={2} sx={{
                             display: "flex",
                             justifyContent: "space-between",
