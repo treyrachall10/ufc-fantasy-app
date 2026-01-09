@@ -1,43 +1,167 @@
-import { AppBar, Box, Container, Button, Avatar } from '@mui/material';
+import { AppBar, 
+            Box, 
+            Container, 
+            Button, 
+            Typography, 
+            IconButton,
+            Menu,
+            MenuItem,
+        } from '@mui/material';
+import * as React from 'react';
+import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
-import { deepOrange, orange } from '@mui/material/colors';
 import { Link } from 'react-router-dom';
+import fistLogo from '../../images/fist-svgrepo-com.svg';
 
 const pages = [{
-        title: 'Dashboard',
-        route: ''
-                },
-                {
         title: 'Fighters',
         route: '/fighters'
-                },
+                }, 
                 {
-        title: 'Fights',
-        route: '/fights'
-                },
-                {
-        title: 'Events',
-        route: '/events'         
-                }]
+        title: 'Leagues',
+        route: '/fighters'
+                }
+        ]
 
 export default function Navbar(){
+    const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
+    const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
+
+    const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorElNav(event.currentTarget);
+    };
+
+    const handleCloseNavMenu = () => {
+        setAnchorElNav(null);
+    };
+
     return (
-        <AppBar position='static'>
-            <Container maxWidth='xl'>
-                <Toolbar disableGutters sx={{justifyContent: "space-between"}}>
-                    <Box sx={{display: "flex"}}>
+        <AppBar position='static' sx={{
+                                    bgcolor: 'background.default', 
+                                    }}>
+            <Container maxWidth="xl">
+                <Toolbar disableGutters>
+                    <IconButton
+                        component={Link}
+                        to="/"
+                        sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }}
+                        >
+                        <img
+                            src={fistLogo}
+                            alt="Home"
+                            style={{ height: 32 }}
+                        />
+                    </IconButton>
+                <Typography
+                    variant="h6"
+                    noWrap
+                    component="a"
+                    href="#app-bar-with-responsive-menu"
+                    sx={{
+                    mr: 2,
+                    display: { xs: 'none', md: 'flex' },
+                    fontFamily: 'monospace',
+                    fontWeight: 700,
+                    letterSpacing: '.3rem',
+                    color: 'inherit',
+                    textDecoration: 'none',
+                    }}
+                >
+                    FantasyUFC
+                </Typography>
+
+                    <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
+                        <IconButton
+                        size="large"
+                        aria-label="account of current user"
+                        aria-controls="menu-appbar"
+                        aria-haspopup="true"
+                        onClick={handleOpenNavMenu}
+                        color="inherit"
+                        >
+                        <MenuIcon />
+                        </IconButton>
+                        <Menu
+                        id="menu-appbar"
+                        anchorEl={anchorElNav}
+                        anchorOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'left',
+                        }}
+                        keepMounted
+                        transformOrigin={{
+                            vertical: 'top',
+                            horizontal: 'left',
+                        }}
+                        open={Boolean(anchorElNav)}
+                        onClose={handleCloseNavMenu}
+                        sx={{ display: { xs: 'block', md: 'none' } }}
+                        >
                         {pages.map((page) => (
-                            <Link to={page.route} style={{textDecoration: "None"}}>
-                                <Button
-                                key={page.title}
-                                variant="text"
-                                sx={{ my: 2, color: 'white', display: 'block' }}
-                                > {page.title}
-                                </Button>
-                            </Link>
+                            <MenuItem key={page.title} onClick={handleCloseNavMenu}>
+                            <Typography sx={{ textAlign: 'center' }}>{page.title}</Typography>
+                            </MenuItem>
+                        ))}
+                        </Menu>
+                    </Box>
+                    <IconButton
+                        component={Link}
+                        to="/"
+                        sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }}
+                        >
+                        <img
+                            src={fistLogo}
+                            alt="Home"
+                            style={{ height: 32 }}
+                        />
+                    </IconButton>
+                    <Typography
+                        variant="h5"
+                        noWrap
+                        component="a"
+                        href="#app-bar-with-responsive-menu"
+                        sx={{
+                        mr: 2,
+                        display: { xs: 'flex', md: 'none' },
+                        flexGrow: 1,
+                        fontFamily: 'monospace',
+                        fontWeight: 700,
+                        letterSpacing: '.3rem',
+                        color: 'inherit',
+                        textDecoration: 'none',
+                        }}
+                    >
+                        FantasyUFC
+                    </Typography>
+                    <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
+                        {pages.map((page) => (
+                        <Button
+                            key={page.title}
+                            onClick={handleCloseNavMenu}
+                            component={Link} to={page.route}
+                            sx={{ my: 2, color: 'white', display: 'block', fontWeight: 400}}
+                        >
+                            {page.title}
+                        </Button>
                         ))}
                     </Box>
-                        <Avatar sx={{bgcolor: deepOrange[500]}}>TR</Avatar>
+                    <Box sx={{ display: 'flex', flexGrow: 0, gap: 1}}>
+                        <Button 
+                            sx={{bgcolor: 'whiteAlpha20.main',
+                                border: 'solid',
+                                borderWidth: '.5px',
+                                borderColor: 'whiteAlpha20.main',
+                                }}
+                        >Sign In</Button>
+                        <Button 
+                            sx={{bgcolor: 'hsla(0, 91%, 43%, 0.5)',
+                                display: {xs: 'none', md: 'flex'},
+                                border: 'solid',
+                                borderWidth: '.5px',
+                                borderColor: 'brand.main',
+                            }}
+                        >Join League</Button>
+                    </Box>
                 </Toolbar>
             </Container>
         </AppBar>

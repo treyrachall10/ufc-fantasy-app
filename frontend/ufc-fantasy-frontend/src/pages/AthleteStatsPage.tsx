@@ -116,9 +116,11 @@ export default function AthleteStatsPage(){
                         {/* Fantsy Chart and W/L Chart */}
                         <Grid container spacing={2}>
                             <Grid size={{xs: 12, sm: 6, md: 6, lg: 6}}>
+                                <Typography variant="subtitle2">Fantasy Trend Chart (last 3 fights): </Typography>
                                 <FantasyTrendLineChart data={fantasyTrendData}/>
                             </Grid>
                             <Grid size={{xs: 12, sm: 6, md: 6, lg: 6}}>
+                                <Typography variant="subtitle2">Method of Victory/Loss: </Typography>
                                 <WinLossChart
                                 record={fighterData.fighter.record}
                                 />

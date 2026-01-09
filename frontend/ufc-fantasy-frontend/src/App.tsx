@@ -38,10 +38,12 @@ declare module '@mui/material/styles' {
   // Custon color variants //
   interface Palette {
     brand: PaletteOptions['primary'];
+    whiteAlpha20: PaletteOptions['primary'];
   }
 
   interface PaletteOptions {
     brand?: PaletteOptions['primary'];
+    whiteAlpha20?: PaletteOptions['primary'],
   }
 }
 
@@ -57,6 +59,12 @@ declare module '@mui/material/Typography' {
 
 declare module '@mui/material/Button' {
   interface ButtonPropsColorOverrides {
+    brand: true;
+  }
+}
+
+declare module '@mui/material/AppBar' {
+  interface AppBarPropsColorOverrides {
     brand: true;
   }
 }
@@ -143,10 +151,24 @@ const theme = createTheme({
       background: { // Defines the defualt background color
         default: 'hsla(135, 8%, 10%, 1)'
       },
-      text: {// Defines the text default color
+      text: { // Defines the text default color
         primary: 'hsl(0, 0%, 100%)',
         secondary: 'hsla(0, 0%, 100%, 0.50)',
+      },
+      whiteAlpha20: {
+        main: 'hsla(0, 0%, 21%, 0.20)'
       }
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: '.5rem',
+          textTransform: 'none',
+          color: 'white',
+        }
+      }
+    }
   }
 })
 
