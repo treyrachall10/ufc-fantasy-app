@@ -58,13 +58,13 @@ export default function Navbar(){
                     component="a"
                     href="#app-bar-with-responsive-menu"
                     sx={{
-                    mr: 2,
-                    display: { xs: 'none', md: 'flex' },
-                    fontFamily: 'monospace',
-                    fontWeight: 700,
-                    letterSpacing: '.3rem',
-                    color: 'inherit',
-                    textDecoration: 'none',
+                        mr: 2,
+                        display: { xs: 'none', md: 'flex' },
+                        fontFamily: 'monospace',
+                        fontWeight: 700,
+                        letterSpacing: '.3rem',
+                        color: 'inherit',
+                        textDecoration: 'none',
                     }}
                 >
                     FantasyUFC
@@ -145,22 +145,26 @@ export default function Navbar(){
                         </Button>
                         ))}
                     </Box>
-                    <Box sx={{ display: 'flex', flexGrow: 0, gap: 1}}>
-                        <Button 
-                            sx={{bgcolor: 'whiteAlpha20.main',
-                                border: 'solid',
-                                borderWidth: '.5px',
-                                borderColor: 'whiteAlpha20.main',
+                    <Box sx={{ display: 'flex', 
+                        flexGrow: 0, gap: 1}}>
+                        <Button variant='contained' color={"whiteAlpha20"}
+                            sx={{borderColor: 'gray900.main',
+                                '&:hover': {
+                                borderColor: 'gray800.main'
+                                    }
                                 }}
                         >Sign In</Button>
-                        <Button 
-                            sx={{bgcolor: 'hsla(0, 91%, 43%, 0.5)',
-                                display: {xs: 'none', md: 'flex'},
-                                border: 'solid',
-                                borderWidth: '.5px',
-                                borderColor: 'brand.main',
-                            }}
-                        >Join League</Button>
+                        <Button variant="contained" 
+                                color='brandAlpha50' 
+                                sx={{ 
+                                        borderColor: 'brand.light',
+                                        '&:hover': {
+                                            borderColor: 'brand.main'
+                                        }                        
+                                    }}
+                            >
+                            Join a League
+                        </Button>
                     </Box>
                 </Toolbar>
             </Container>
