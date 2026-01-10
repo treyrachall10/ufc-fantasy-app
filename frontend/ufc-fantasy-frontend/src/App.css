@@ -36,3 +36,16 @@
     transform: rotate(360deg);
   }
 }
+
+/* custom animations */
+@property --a {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes rotating {
+  to {
+    --a: 360deg;
+  }
+}
