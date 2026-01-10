@@ -5,6 +5,7 @@ import FightersListPage from './pages/FightersListPage'
 import EventsListPage from './pages/EventsListPage'
 import FightsListPage from './pages/FightsListPage';
 import AthleteStatsPage from './pages/AthleteStatsPage';
+import HomePage from './pages/Home';
 import Navbar from './components/layout/Navbar';
 import { Container, CssBaseline } from '@mui/material';
 import FightStatsPage from './pages/FightStatsPage';
@@ -39,11 +40,19 @@ declare module '@mui/material/styles' {
   interface Palette {
     brand: PaletteOptions['primary'];
     whiteAlpha20: PaletteOptions['primary'];
+    dashboardBlack: PaletteOptions['primary'];
+    brandAlpha50: PaletteOptions['primary'];
+    gray800?: PaletteOptions['primary'];
+    gray900?: PaletteOptions['primary'];
   }
 
   interface PaletteOptions {
     brand?: PaletteOptions['primary'];
-    whiteAlpha20?: PaletteOptions['primary'],
+    whiteAlpha20?: PaletteOptions['primary'];
+    dashboardBlack?: PaletteOptions['primary'];
+    brandAlpha50?: PaletteOptions['primary'];
+    gray800?: PaletteOptions['primary'];
+    gray900?: PaletteOptions['primary'];
   }
 }
 
@@ -60,6 +69,9 @@ declare module '@mui/material/Typography' {
 declare module '@mui/material/Button' {
   interface ButtonPropsColorOverrides {
     brand: true;
+    dashboardBlack: true;
+    brandAlpha50: true;
+    whiteAlpha20: true;
   }
 }
 
@@ -77,7 +89,7 @@ const theme = createTheme({
     body1: undefined,
     h1: { // Hero Title
       fontSize: "4rem",
-      lineHeight: "1rem",
+      lineHeight: "3.8rem",
       letterSpacing: "-.02em",
       fontWeight: 600,
     },
@@ -148,6 +160,9 @@ const theme = createTheme({
         light: 'hsla(0, 91%, 43%, 0.3)', // 30%
         dark: 'hsla(0, 91%, 43%, 0.05)', // 5%
       },
+      brandAlpha50: { // Defines the brand color 50% alpha channel
+        main: 'hsla(0, 91%, 43%, 0.5)',
+      },
       background: { // Defines the defualt background color
         default: 'hsla(135, 8%, 10%, 1)'
       },
@@ -157,7 +172,16 @@ const theme = createTheme({
       },
       whiteAlpha20: {
         main: 'hsla(0, 0%, 21%, 0.20)'
-      }
+      },
+      dashboardBlack: { // Dashbpoard component backgrounds
+        main: 'hsla(150, 8%, 5%, 1)'
+      },
+      gray800: { // Lighter gray for hover border on off buttons
+        main: 'hsla(0, 0%, 27%, 1)'
+      },
+      gray900: { // Darker gray for standard border on off buttons
+        main: 'hsla(0, 0%, 21%, 1)'
+      },
   },
   components: {
     MuiButton: {
@@ -166,6 +190,9 @@ const theme = createTheme({
           borderRadius: '.5rem',
           textTransform: 'none',
           color: 'white',
+        },
+        contained: {
+          border: '1px solid',
         }
       }
     }
@@ -182,8 +209,14 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <Navbar />
-          <Container maxWidth="xl" sx={{ py: 3 }}>
+          <Container maxWidth="xl" sx={{ display: 'flex', 
+                                          flexDirection: 'column',
+                                          justifyContent: 'center',
+                                          alignItems: 'center',
+                                          pt: '6rem',
+                                          }}>
             <Routes>
+              <Route path="/" element={<HomePage />} />
               <Route path="/fights" element={<FightsListPage />} />
               <Route path="/fights/:id" element={<FightsListPage />} />
               <Route path="/fighters" element={<FightersListPage />} />
