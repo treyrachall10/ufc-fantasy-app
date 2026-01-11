@@ -102,7 +102,6 @@ declare module '@mui/material/AppBar' {
 
 const theme = createTheme({
   typography: {
-    //Need to load Inter
     fontFamily: '"Inter", "Roboto"',
     fontSize: 16,
     body1: undefined,
