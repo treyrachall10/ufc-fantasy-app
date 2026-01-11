@@ -2,9 +2,6 @@ import ListPageLayout from "../components/layout/ListPageLayout";
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, Typography, Stack } from '@mui/material';
 
-// ADD "/team" at the end of url to see it. I didnt know if we wanted to make it its own tab yet 
-
-
 export default function UserTeamPage() {
     // Define the columns for the data grid
     // Each column needs: field (matches the data property name), headerName (what users see), and width
@@ -70,24 +67,6 @@ export default function UserTeamPage() {
                     
                     // STYLING
                     sx={(theme) => ({
-                       borderRadius: "12px",
-                       border: 0,
-                      
-                       //Makes borders invisible (if they were instead removed sizing would mess up)
-                       "--DataGrid-rowBorderColor": "transparent",
-                       "--DataGrid-borderColor": "transparent",
-                       "--DataGrid-columnSeparatorColor": "transparent",
-                       "& .MuiDataGrid-columnSeparator": { opacity: 0 },
-                        
-                       //Background colors (needed to use "as any" for it to actually run)
-                       backgroundColor: (theme.palette.dashboardBlack as any).main,
-                       "& .MuiDataGrid-columnHeaders":{
-                            backgroundColor: (theme.palette.dashboardBlack as any).main ,
-                        },
-                        "& .MuiDataGrid-columnHeader":{
-                            backgroundColor: (theme.palette.dashboardBlack as any).main ,
-                        },
-
                         //Alternating row colors
                         "& .MuiDataGrid-row.even-row":{
                             backgroundColor: (theme.palette.brand as any).dark,
@@ -96,13 +75,7 @@ export default function UserTeamPage() {
                             backgroundColor: "transparent",
                         },
 
-                        //Text Styling 
-                        //Column headers    
-                        "& .MuiDataGrid-columnHeaderTitle":{
-                            color: (theme.palette.text as any).secondary,
-                            fontWeight: theme.typography.fontWeightMedium,
-                        },
-                        
+                        //Text Styling     
                         // Hides Unwanted parts of the grid
                         // Sort Icons and Interactive elements from them
                         "& .MuiDataGrid-iconButtonContainer": {display: "none"},
