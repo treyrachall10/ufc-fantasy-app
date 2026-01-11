@@ -9,6 +9,7 @@ import HomePage from './pages/Home';
 import Navbar from './components/layout/Navbar';
 import { Container, CssBaseline } from '@mui/material';
 import FightStatsPage from './pages/FightStatsPage';
+import UserTeamPage from './pages/UserTeamPage';
 import { BrowserRouter, Routes, Route} from 'react-router-dom';
 import {
   useQuery,
@@ -224,6 +225,7 @@ function App() {
               <Route path="/events/:id" element={<FightsListPage />} />
               <Route path="/fighter/:id" element={<AthleteStatsPage />} />
               <Route path="/fight/:id" element={<FightStatsPage />} />
+              <Route path="/team" element={<UserTeamPage />} />
             </Routes>
           </Container>
         </BrowserRouter>
