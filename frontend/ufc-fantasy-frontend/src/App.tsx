@@ -7,7 +7,7 @@ import FightsListPage from './pages/FightsListPage';
 import AthleteStatsPage from './pages/AthleteStatsPage';
 import HomePage from './pages/Home';
 import Navbar from './components/layout/Navbar';
-import { Container, CssBaseline } from '@mui/material';
+import { Box, CssBaseline } from '@mui/material';
 import FightStatsPage from './pages/FightStatsPage';
 import UserTeamPage from './pages/UserTeamPage';
 import { BrowserRouter, Routes, Route} from 'react-router-dom';
@@ -27,6 +27,8 @@ declare module '@mui/material/styles' {
     bodySmall: React.CSSProperties;
     kpiValue: React.CSSProperties;
     dataLabel: React.CSSProperties;
+    metaText: React.CSSProperties;
+    metaLabel: React.CSSProperties;
   }
 
   // allow configuration using `createTheme()`
@@ -35,6 +37,8 @@ declare module '@mui/material/styles' {
     bodySmall?: React.CSSProperties;
     kpiValue?: React.CSSProperties;
     dataLabel?: React.CSSProperties;
+    metaText?: React.CSSProperties;
+    metaLabel?: React.CSSProperties;
   }
 
   // Custon color variants //
@@ -64,6 +68,20 @@ declare module '@mui/material/Typography' {
     bodySmall: true;
     kpiValue: true;
     dataLabel: true;
+    metaText: true;
+    metaLabel: true;
+  }
+}
+
+// Update the breakpoint prop options
+declare module '@mui/material/styles' {
+  interface BreakpointOverrides {
+    // Custom Breakpoints
+    laptop: true;
+    tablet: true;
+    mobile: true;
+    desktop: true;
+    // Remove default breakpoints
   }
 }
 
@@ -150,10 +168,22 @@ const theme = createTheme({
     },
     kpiValue: {
       fontSize: '3rem',
-      fontWeight: 400,
+      fontWeight: 300,
       lineHeight: '1.3',
-      letterSpacing: '-1em',
+      letterSpacing: '-0.03em',
     },
+    metaText: {
+      fontSize: "1.5rem",
+      lineHeight: "1.3rem",
+      letterSpacing: "-.02em",
+      fontWeight: 400,
+    },
+    metaLabel: {
+      fontSize: "1.5rem",
+      lineHeight: "1.3rem",
+      letterSpacing: "-.02em",
+      fontWeight: 300,
+    }
   },
   palette: {
       brand: { // Defines the main brand color
@@ -197,7 +227,20 @@ const theme = createTheme({
         }
       }
     }
-  }
+  },
+  breakpoints: {
+    values: {
+    xs: 0,
+    sm: 0,
+    md: 0,
+    lg: 0,
+    xl: 0,
+    mobile: 475,
+    tablet: 800,
+    laptop: 1200,
+    desktop: 1440,
+    },
+  },
 })
 
 function App() {
@@ -210,24 +253,19 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <Navbar />
-          <Container maxWidth="xl" sx={{ display: 'flex', 
-                                          flexDirection: 'column',
-                                          justifyContent: 'center',
-                                          alignItems: 'center',
-                                          pt: '6rem',
-                                          }}>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/fights" element={<FightsListPage />} />
-              <Route path="/fights/:id" element={<FightsListPage />} />
-              <Route path="/fighters" element={<FightersListPage />} />
-              <Route path="/events" element={<EventsListPage />} />
-              <Route path="/events/:id" element={<FightsListPage />} />
-              <Route path="/fighter/:id" element={<AthleteStatsPage />} />
-              <Route path="/fight/:id" element={<FightStatsPage />} />
-              <Route path="/team" element={<UserTeamPage />} />
-            </Routes>
-          </Container>
+          <Box sx={{pt: '6rem', alignItems: 'center'}}>
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/fights" element={<FightsListPage />} />
+                  <Route path="/fights/:id" element={<FightsListPage />} />
+                  <Route path="/fighters" element={<FightersListPage />} />
+                  <Route path="/events" element={<EventsListPage />} />
+                  <Route path="/events/:id" element={<FightsListPage />} />
+                  <Route path="/fighter/:id" element={<AthleteStatsPage />} />
+                  <Route path="/fight/:id" element={<FightStatsPage />} />
+                  <Route path="/fighter" element={<AthleteStatsPage />} />
+                </Routes>
+          </Box>
         </BrowserRouter>
 
         <ReactQueryDevtools initialIsOpen={false} />

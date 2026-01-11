@@ -5,7 +5,7 @@ import { ReactNode } from "react";
 export default function ListPageLayout (props: { children: ReactNode }) {
     return (
     <>
-        <Container maxWidth="lg">
+        <Container maxWidth="desktop">
             <Stack direction="column">
                 {props.children}
             </Stack>

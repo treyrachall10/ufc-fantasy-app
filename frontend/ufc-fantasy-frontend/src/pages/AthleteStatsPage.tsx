@@ -1,4 +1,4 @@
-import { Container, Grid, Box, Typography } from "@mui/material";
+import { Container, Grid, Box, Typography, Stack} from "@mui/material";
 import Sidebar from "../components/layout/Sidebar";
 import QuickStatCard from "../components/statHolders/QuickStatCard";
 import FightsList from "../components/lists/FightsList";
@@ -12,6 +12,7 @@ export default function AthleteStatsPage(){
     const  params = useParams()
     const id = params.id; 
     {/* API fetching*/}    
+    {/*
     const { data: fighterData,
             isPending: fighterPending,
             error: fighterError } = useQuery<FighterWithCareerStats>({
@@ -65,79 +66,112 @@ export default function AthleteStatsPage(){
         points: fantasyData.fight_total_points,
         date: fantasyData.date
     }))
+        */}
 
     return (
-        <Container maxWidth="xl">
-            <Grid container spacing={2}>
-
-                {/* Sidebar */}
-                <Grid size={{ xs: 12, md: 2}}>
-                    <Sidebar 
-                        name={fighterData.fighter.full_name}
-                        nickname={fighterData.fighter.nick_name}
-                        age={30}
-                        height={fighterData.fighter.height}
-                        weight={fighterData.fighter.weight}
-                        reach={fighterData.fighter.reach}
-                        stance={fighterData.fighter.stance}
-                        record={fighterData.fighter.record}
-                    />
-                </Grid>
-                {/* Body */}
-                <Grid size={{ xs: 12, md: 10 }}>
-                    <Box sx={{display: "flex",
-                    flexDirection: "column",
-                    gap: 1
-                    }}>
-                        {/* QuickStats */}
-                        <Typography variant="subtitle2">Career Stats:</Typography>
-                        <Grid container spacing={2} sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
+        <Container maxWidth="laptop">
+                <Stack direction={'column'} spacing={2}>
+                    {/*Header*/}
+                        <Stack sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: {mobile: 'center', laptop: 'flex-start'},
+                                alignItems: {mobile: 'center', laptop: 'flex-start'},
                         }}>
-                            <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="SLPM" stat={slpm.toFixed(2)}/>
+                            <Typography variant="h2">Alex Pereira</Typography>
+                            <Typography variant="body" color="text.secondary">"Poatan"</Typography>
+                            <Typography variant="h3">10-2-0</Typography>
+                        </Stack>
+                            <Grid container spacing={3} justifyContent={{ mobile: 'center', laptop: 'flex-start' }}>
+                                {/*Meta Data Box*/}
+                                <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
+                                        <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
+                                            <Typography variant="metaLabel" color="text.secondary">Height: </Typography>
+                                            <Typography variant="metaText">60"</Typography>
+                                        </Stack>
+                                </Grid>
+                                <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
+                                    <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
+                                        <Typography variant="metaLabel" color="text.secondary">Weight: </Typography>
+                                        <Typography variant="metaText">205lbs</Typography>
+                                    </Stack>
+                                </Grid>
+                                <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
+                                    <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
+                                        <Typography variant="metaLabel" color="text.secondary">Reach: </Typography>
+                                        <Typography variant="metaText">60"</Typography>
+                                    </Stack>
+                                </Grid>
+                                <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
+                                    <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
+                                        <Typography variant="metaLabel" color="text.secondary">Stance: </Typography>
+                                        <Typography variant="metaText">Orthodox</Typography>
+                                    </Stack>
+                                </Grid>
+                                <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
+                                    <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
+                                        <Typography variant="metaLabel" color="text.secondary">Dob: </Typography>
+                                        <Typography variant="metaText">12-02-2003</Typography>
+                                    </Stack>
+                                </Grid>
                             </Grid>
-                            <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="STR DEF" stat={strDef.toFixed(2)} />
+                            {/*Body Contents*/}
+                            <Grid container spacing={1}>
+                                {/*KPI Contents*/}
+                                <Grid container size={12} spacing={1} sx={{ bgcolor: 'dashboardBlack.main', borderRadius: 2, p: 1}}>
+                                    <Grid size={2.4} padding={1}>
+                                        <Stack direction="column">
+                                            <Typography variant="kpiValue">8.85</Typography>
+                                            <Typography variant="caption">SLPM</Typography>
+                                        </Stack>
+                                    </Grid>
+                                    <Grid size={2.4} padding={1}>
+                                        <Stack direction="column">
+                                            <Typography variant="kpiValue">58.95</Typography>
+                                            <Typography variant="caption">Str. Def.</Typography>
+                                        </Stack>
+                                    </Grid>
+                                    <Grid size={2.4} padding={1}>
+                                        <Stack direction="column">
+                                            <Typography variant="kpiValue">56.89</Typography>
+                                            <Typography variant="caption">Str. Acc.</Typography>
+                                        </Stack>
+                                    </Grid>
+                                    <Grid size={2.4} padding={1}>
+                                        <Stack direction="column">
+                                            <Typography variant="kpiValue">70%</Typography>
+                                            <Typography variant="caption">Td%</Typography>
+                                        </Stack>
+                                    </Grid>
+                                    <Grid size={2.4} padding={1}>
+                                        <Stack direction="column">
+                                            <Typography variant="kpiValue">34.44</Typography>
+                                            <Typography variant="caption">Td Acc.</Typography>
+                                        </Stack>
+                                    </Grid>                                                                        
+                                </Grid>
+                                {/*Fantasy Trend Chart*/}
+                                <Grid size={12}>
+                                    <Box sx={{ height: 400, bgcolor: 'dashboardBlack.main', borderRadius: 2, overflow: "hidden" }}>
+                                        <FantasyTrendLineChart data={[
+                                            {bout: 'pereira vs. blachowiz', points: 120, date: '12/12/12'},
+                                            {bout: 'pereira vs. ankalaev', points: 80, date: '12/12/12'},
+                                            {bout: 'pereira vs. ankalaev', points: 30, date: '12/12/12'},
+                                            {bout: 'pereira vs. ankalaev', points: 40, date: '12/12/12'},
+                                            {bout: 'pereira vs. adesanya', points: 100, date: '12/12/12'}
+                                        ]}/>
+                                    </Box>
+                                </Grid>
+                                {/*Win Loss Chart*/}
+                                <Grid size={{mobile: 12, laptop: 7}}>
+                                    <Box sx={{ height: 400, bgcolor: 'dashboardBlack.main', borderRadius: 2 }} />
+                                </Grid>
+                                {/*Past Fights List*/}
+                                <Grid size={{mobile: 12, laptop: 5}}>
+                                    <Box sx={{ height: 400, bgcolor: 'dashboardBlack.main', borderRadius: 2 }} />
+                                </Grid>
                             </Grid>
-                            <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="STR ACC" stat={strAcc.toFixed(2)} />
-                            </Grid>
-                            <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="TD%" stat={tdDef.toFixed(2)} />
-                            </Grid>
-                            
-                            <Grid size={{xs: 12, sm: 6, md: 4, lg: 2}}>
-                                <QuickStatCard title="TD ACC" stat={tdAcc.toFixed(2)} />
-                            </Grid>
-                            
-                        </Grid>
-                        {/* Fantsy Chart and W/L Chart */}
-                        <Grid container spacing={2}>
-                            <Grid size={{xs: 12, sm: 6, md: 6, lg: 6}}>
-                                <Typography variant="subtitle2">Fantasy Trend Chart (last 3 fights): </Typography>
-                                <FantasyTrendLineChart data={fantasyTrendData}/>
-                            </Grid>
-                            <Grid size={{xs: 12, sm: 6, md: 6, lg: 6}}>
-                                <Typography variant="subtitle2">Method of Victory/Loss: </Typography>
-                                <WinLossChart
-                                record={fighterData.fighter.record}
-                                />
-                            </Grid>
-                        </Grid>
-                        {/* FightList and Interesting Stats */}
-                        <Grid container spacing={2}>
-                            <Grid size={{xs: 12, sm: 6, md: 6, lg: 6}}>
-                                <FightsList/>
-                            </Grid>
-                            <Grid size={{xs: 12, sm: 6, md: 6, lg: 6}}>
-                                <QuickStatCard title="Control %" stat={'32'} />
-                            </Grid>
-                        </Grid>
-                    </Box>
-                </Grid>
-            </Grid>
+                </Stack>
         </Container>
         
     )

@@ -27,7 +27,7 @@ export default function FightStatsPage() {
     const fighterTwo = data.fighterB
 
     return (
-        <Container maxWidth='xl' sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
+        <Container maxWidth='desktop' sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
             {/* Bout Information */}
             <Box sx={{
                 display: "flex",
@@ -40,7 +40,7 @@ export default function FightStatsPage() {
 
             <Grid container spacing={2}>
                 {/* Fighter 1 Sidebar */}
-                <Grid size={{ xs: 4, md: 2}}>
+                <Grid size={{ mobile: 4, laptop: 2}}>
                     <Sidebar 
                         name={fighterOne.full_name}
                         nickname={fighterOne.nick_name}
@@ -54,7 +54,7 @@ export default function FightStatsPage() {
                 </Grid>
 
                 {/* Middle Section*/}
-                <Grid size={{xs: 4, md: 8}} spacing={2}>
+                <Grid size={{mobile: 4, laptop: 8}} spacing={2}>
                     <Box sx={{
                         display:'flex',
                         flexDirection: 'column',
@@ -117,7 +117,7 @@ export default function FightStatsPage() {
                 </Grid>
 
                 {/* Fighter 2 Sidebar */}
-                <Grid size={{ xs: 4, md: 2}}>
+                <Grid size={{ mobile: 4, laptop: 2}}>
                     <Sidebar 
                         name={fighterTwo.full_name}
                         nickname={fighterTwo.nick_name}

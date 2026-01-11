@@ -49,3 +49,19 @@
     --a: 360deg;
   }
 }
+
+.yax {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;   /* center text horizontally */
+  line-height: 1;
+
+  min-width: 8px;           /* ← key line */
+  padding: 4px 8px;
+  border-radius: 4px;
+
+  background: hsla(150, 8%, 5%, .5);
+  color: hsla(0, 0%, 100%, 0.3);
+  white-space: nowrap;
+}
+

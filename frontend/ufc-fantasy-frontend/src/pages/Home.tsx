@@ -42,9 +42,6 @@ const glowWrapperSx = {
     borderRadius: '8px',
     animation: 'rotating 4s linear infinite',
   },
-
-
-
   '& > *': {
     position: 'relative',
     zIndex: 1,

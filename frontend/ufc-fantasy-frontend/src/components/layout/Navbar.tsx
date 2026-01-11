@@ -37,9 +37,9 @@ export default function Navbar(){
 
     return (
         <AppBar position='static' sx={{
-                                    bgcolor: 'background.default', 
+                                    bgcolor: 'background.default',
+                                    px: '16px'
                                     }}>
-            <Container maxWidth="xl">
                 <Toolbar disableGutters>
                     <IconButton
                         component={Link}
@@ -167,7 +167,6 @@ export default function Navbar(){
                         </Button>
                     </Box>
                 </Toolbar>
-            </Container>
         </AppBar>
     )
 }
