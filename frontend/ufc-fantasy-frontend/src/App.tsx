@@ -264,6 +264,7 @@ function App() {
                   <Route path="/fighter/:id" element={<AthleteStatsPage />} />
                   <Route path="/fight/:id" element={<FightStatsPage />} />
                   <Route path="/fighter" element={<AthleteStatsPage />} />
+                  <Route path="/team" element={<UserTeamPage/>}/>
                 </Routes>
           </Box>
         </BrowserRouter>
