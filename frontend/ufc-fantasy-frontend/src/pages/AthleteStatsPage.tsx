@@ -68,6 +68,32 @@ export default function AthleteStatsPage(){
     }))
         */}
 
+        const mockData = {
+        wins: {
+            total: 12,
+            ko_tko_wins: 12,
+            tko_doctor_stoppage_wins: 1,
+            submission_wins: 8,
+            unanimous_decision_wins: 10,
+            split_decision_wins: 4,
+            majority_decision_wins: 2,
+            dq_wins: 0,
+        },
+        losses: {
+            total: 3,
+            ko_tko_losses: 1,
+            tko_doctor_stoppage_losses: 1,
+            submission_losses: 2,
+            unanimous_decision_losses: 4,
+            split_decision_losses: 1,
+            majority_decision_losses: 0,
+            dq_losses: 0,
+        },
+        draws: 1,
+        };
+
+
+
     return (
         <Container maxWidth="laptop">
                 <Stack direction={'column'} spacing={2}>
@@ -164,7 +190,9 @@ export default function AthleteStatsPage(){
                                 </Grid>
                                 {/*Win Loss Chart*/}
                                 <Grid size={{mobile: 12, laptop: 7}}>
-                                    <Box sx={{ height: 400, bgcolor: 'dashboardBlack.main', borderRadius: 2 }} />
+                                    <Box sx={{ height: 400, bgcolor: 'dashboardBlack.main', borderRadius: 2, overflow: 'hidden'}}>
+                                        <WinLossChart record={mockData}/>
+                                    </Box>
                                 </Grid>
                                 {/*Past Fights List*/}
                                 <Grid size={{mobile: 12, laptop: 5}}>
