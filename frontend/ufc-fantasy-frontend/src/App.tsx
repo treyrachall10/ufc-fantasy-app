@@ -20,6 +20,7 @@ import {
 } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { createTheme, ThemeProvider } from "@mui/material/styles";
+import '@mui/x-data-grid/themeAugmentation';
 
 declare module '@mui/material/styles' {
   interface TypographyVariants {
@@ -223,6 +224,26 @@ const theme = createTheme({
         },
         contained: {
           border: '1px solid',
+        }
+      }
+    },
+    MuiDataGrid: {
+      styleOverrides: {
+        root: {
+          border: 0,
+          borderRadius: 8,
+          //Makes borders invisible (if they were instead removed sizing would mess up)
+          "--DataGrid-rowBorderColor": "transparent",
+          "--DataGrid-borderColor": "transparent",
+          "--DataGrid-columnSeparatorColor": "transparent",
+          "& .MuiDataGrid-columnSeparator": { opacity: 0 },
+          //Background Colors
+          "& .MuiDataGrid-columnHeader": {backgroundColor:  'hsla(150, 8%, 5%, 1)'},
+          backgroundColor: 'hsla(150, 8%, 5%, 1)',
+          "& .MuiDataGrid-columnHeaderTitle":{
+            color: 'hsla(0, 0%, 100%, 0.50)',
+            fontWeight: '300',
+          },
         }
       }
     }
