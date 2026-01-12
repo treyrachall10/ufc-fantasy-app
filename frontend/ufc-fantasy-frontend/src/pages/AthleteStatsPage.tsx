@@ -5,6 +5,7 @@ import QuickStatCard from "../components/statHolders/QuickStatCard";
 import FightsList from "../components/lists/FightsList";
 import WinLossChart from "../components/charts/WinLossChart";
 import FantasyTrendLineChart from "../components/charts/FantasyTrendLineChart";
+import FightResultBadge from "../components/badges/FightResultBadge";
 import { FantasyFightScore, FighterWithCareerStats } from "../types/types";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router";
@@ -69,9 +70,11 @@ export default function AthleteStatsPage(){
     }))
         */}
 
+    
     // Define the columns for the data grid
     // Each column needs: field (matches the data property name), headerName (what users see), and width
     const columns = [
+        {field: 'result', headerName: 'Result', renderCell: (params: any) => {return <FightResultBadge result={params.row.result} method={params.row.method}/>}},
         {field: 'opponent', headerName: 'Opponent', flex: 1},
         {field: 'event', headerName: 'Event', flex: 1 }, //Flex keeps consistent sizing when chaning window size
         {field: 'round', headerName: 'Round', flex: 1 },
@@ -81,56 +84,70 @@ export default function AthleteStatsPage(){
     // Each row object must have an 'id' property and properties that match the 'field' names in columns
     // Will be replaced when API is connected. Tests out events with long name
     const rows = [
-    {
-        id: 1,
-        opponent: 'Alex Pereira',
-        event: 'UFC 281',
-        round: 'R5 (KO)',
-        date: '2022-11-12',
-    },
-    {
-        id: 2,
-        opponent: 'Robert Whittaker',
-        event: 'UFC 271',
-        round: 'Decision',
-        date: '2022-02-12',
-    },
-    {
-        id: 3,
-        opponent: 'Paulo Costa',
-        event: 'UFC 253',
-        round: 'R2 (TKO)',
-        date: '2020-09-26',
-    },
-    {
-        id: 4,
-        opponent: 'Kelvin Gastelum',
-        event: 'UFC 236',
-        round: 'Decision',
-        date: '2019-04-13',
-    },
-    {
-        id: 5,
-        opponent: 'Derek Brunson',
-        event: 'UFC 230',
-        round: 'R1 (TKO)',
-        date: '2018-11-03',
-    },
-    {
-        id: 6,
-        opponent: 'Anderson Silva',
-        event: 'UFC 234',
-        round: 'Decision',
-        date: '2019-02-10',
-    },
-    {
-        id: 7,
-        opponent: 'Jared Cannonier',
-        event: 'UFC 276',
-        round: 'Decision',
-        date: '2022-07-02',
-    },
-    ];
+  {
+    id: 1,
+    result: 'L',
+    method: 'TKO',
+    opponent: 'Alex Pereira',
+    event: 'UFC 281',
+    round: 'R5',
+    date: '2022-11-12',
+  },
+  {
+    id: 2,
+    result: 'L',
+    method: 'DEC',
+    opponent: 'Robert Whittaker',
+    event: 'UFC 271',
+    round: 'R5',
+    date: '2022-02-12',
+  },
+  {
+    id: 3,
+    result: 'W',
+    method: 'TKO',
+    opponent: 'Paulo Costa',
+    event: 'UFC 253',
+    round: 'R2',
+    date: '2020-09-26',
+  },
+  {
+    id: 4,
+    result: 'W',
+    method: 'DEC',
+    opponent: 'Kelvin Gastelum',
+    event: 'UFC 236',
+    round: 'R5',
+    date: '2019-04-13',
+  },
+  {
+    id: 5,
+    result: 'W',
+    method: 'TKO',
+    opponent: 'Derek Brunson',
+    event: 'UFC 230',
+    round: 'R1',
+    date: '2018-11-03',
+  },
+  {
+    id: 6,
+    result: 'W',
+    method: 'DEC',
+    opponent: 'Anderson Silva',
+    event: 'UFC 234',
+    round: 'R5',
+    date: '2019-02-10',
+  },
+  {
+    id: 7,
+    result: 'W',
+    method: 'DEC',
+    opponent: 'Jared Cannonier',
+    event: 'UFC 276',
+    round: 'R5',
+    date: '2022-07-02',
+  },
+];
 
     const mockData = {
         wins: {
@@ -266,6 +283,7 @@ export default function AthleteStatsPage(){
                                            rows={rows}
                                            hideFooter
                                            disableColumnSorting
+                                           disableRowSelectionOnClick
                                             //Allows alternating colored rows
                                             getRowClassName={(params) =>
                                                 params.indexRelativeToCurrentPage % 2 === 0 ? "even-row" : "odd-row"
@@ -286,7 +304,7 @@ export default function AthleteStatsPage(){
                                                 "& .MuiDataGrid-iconButtonContainer": {display: "none"},
                                                 "& .MuiDataGrid-sortIcon": {display: "none"},
                                             })} 
-                                           />   
+                                           />
                                     </Box>
                                 </Grid>
                             </Grid>

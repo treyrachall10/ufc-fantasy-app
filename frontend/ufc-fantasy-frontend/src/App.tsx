@@ -48,6 +48,7 @@ declare module '@mui/material/styles' {
     whiteAlpha20: PaletteOptions['primary'];
     dashboardBlack: PaletteOptions['primary'];
     brandAlpha50: PaletteOptions['primary'];
+    brandAlpha75: PaletteOptions['primary'];
     gray800?: PaletteOptions['primary'];
     gray900?: PaletteOptions['primary'];
   }
@@ -59,6 +60,7 @@ declare module '@mui/material/styles' {
     brandAlpha50?: PaletteOptions['primary'];
     gray800?: PaletteOptions['primary'];
     gray900?: PaletteOptions['primary'];
+    brandAlpha75?: PaletteOptions['primary'];
   }
 }
 
@@ -194,6 +196,9 @@ const theme = createTheme({
       brandAlpha50: { // Defines the brand color 50% alpha channel
         main: 'hsla(0, 91%, 43%, 0.5)',
       },
+      brandAlpha75: { // Defines the brand color 75% alpha channel
+        main: 'hsla(0, 91%, 43%, 0.75)',
+      },
       background: { // Defines the defualt background color
         default: 'hsla(135, 8%, 10%, 1)'
       },
@@ -237,7 +242,7 @@ const theme = createTheme({
           "--DataGrid-borderColor": "transparent",
           "--DataGrid-columnSeparatorColor": "transparent",
           "& .MuiDataGrid-columnSeparator": { opacity: 0 },
-          //Background Colors
+          //Colors
           "& .MuiDataGrid-columnHeader": {backgroundColor:  'hsla(150, 8%, 5%, 1)'},
           backgroundColor: 'hsla(150, 8%, 5%, 1)',
           "& .MuiDataGrid-columnHeaderTitle":{
