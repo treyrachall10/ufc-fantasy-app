@@ -56,82 +56,145 @@ export default function HomePage() {
       {/* Hero */}
       <Stack direction='column' spacing={9} alignItems={'center'}>
         <Stack direction={'column'} spacing={3} alignItems={'center'}>
-        <Box sx={glowWrapperSx}>
-            <Button variant="contained" color="dashboardBlack" sx={{border: 'none'}} href="https://github.com/treyrachall10/ufc-fantasy-app"
-            > 
-            <Stack direction={'row'} gap={1} justifyContent={'center'} alignItems={'center'}>
-                <GitHubIcon fontSize="medium"/>
-                <Typography fontSize={'.75rem'}>STAR ON GITHUB</Typography>
-            </Stack>
-            </Button>
-        </Box>
-        {/* Hero Text */}
-        <Stack spacing={1}>
-            <Box sx={{display: 'flex', 
-                    flexDirection: 'column',
-                    alignItems: 'center', }}>
-                <Typography variant='h1'>Fantasy UFC</Typography>
-                <Typography variant='h1' color="brand.main">Finally season based</Typography>
+            <Box sx={glowWrapperSx}>
+                <Button 
+                    variant="contained" 
+                    color="dashboardBlack" 
+                    sx={{border: 'none'}} 
+                    href="https://github.com/treyrachall10/ufc-fantasy-app"
+                > 
+                <Stack 
+                    direction={'row'} 
+                    gap={1} 
+                    justifyContent={'center'} 
+                    alignItems={'center'}
+                >
+                    <GitHubIcon fontSize="medium"/>
+                    <Typography fontSize={'.75rem'}>STAR ON GITHUB</Typography>
+                </Stack>
+                </Button>
             </Box>
-            {/*Hero Supporting Text */}
-            <Box sx={{display: 'flex', 
-                    flexDirection: 'column',
-                    alignItems: 'center', 
+            {/* Hero Text */}
+            <Stack 
+                spacing={1}
+                >
+                <Stack 
+                    sx={{ 
+                        alignItems: 'center', }}
+                    >
+                    <Typography 
+                        variant='h1' 
+                        textAlign={'center'}
+                        sx={{
+                            textAlign: 'center',
+                            color: {xs: 'brand.main', sm: 'text.primary'}
+                        }}
+                        >
+                            Fantasy UFC
+                    </Typography>
+                    <Typography 
+                        variant='h1'
+                        sx={{
+                            display: {xs: 'none', sm: 'block'},
+                            color: 'brand.main',
+                            textAlign: 'center',
+                        }}
+                    >
+                        Finally season based
+                    </Typography>
+                </Stack>
+                {/*Hero Supporting Text */}
+                <Box sx={{
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        alignItems: 'center', 
                     }}>
-                <Typography variant='body' fontSize={'1.1rem'} color={'text.secondary'}>A season based fantasy league platform for UFC fans</Typography>
-            </Box>
-        </Stack>
-        {/*Hero Buttons*/}
-        <Stack direction={'row'} spacing={1} justifyContent={'center'}>
-            <Button variant="contained" 
+                    <Typography 
+                        variant='body' 
+                        sx={{
+                            fontSize: '1.1rem',
+                            color: 'text.secondary',
+                            textAlign: 'center',
+                        }}
+                        >
+                            A season based fantasy league platform for UFC fans
+                    </Typography>
+                </Box>
+            </Stack>
+            {/*Hero Buttons*/}
+            <Stack 
+                direction={'row'} 
+                spacing={1} 
+                justifyContent={'center'}
+            >
+                <Button 
+                    variant="contained" 
                     color='brandAlpha50' 
                     sx={{ 
-                            borderColor: 'brand.light',
-                            '&:hover': {
-                                borderColor: 'brand.main'
-                            }                        
-                        }}
-                >
-                Join a League
-            </Button>
-             <Button variant="contained" color="whiteAlpha20"
-                    sx={{
-                        borderColor: 'gray900.main',
+                        borderColor: 'brand.light',
                         '&:hover': {
-                            borderColor: 'gray800.main'
-                        }
+                            borderColor: 'brand.main'
+                        }                        
                     }}
-                >
-                Sign In
-            </Button>
+                    >
+                        Join a League
+                </Button>
+                <Button variant="contained" color="whiteAlpha20"
+                        sx={{
+                            borderColor: 'gray900.main',
+                            '&:hover': {
+                                borderColor: 'gray800.main'
+                            }
+                        }}
+                    >
+                    Sign In
+                </Button>
+                </Stack>
             </Stack>
-        </Stack>
-        {/*Hover Cards*/}
-        <Stack direction={'row'} spacing={2}>
-            {cards.map((card, index) => (
-                <Card key={card.id} elevation={0} sx={{bgcolor: 'background.default',
-                                                        borderRadius: '1rem',
-                                                        }}>
-                    <CardActionArea>
-                        <CardContent sx={{height: '100%',
+            {/*Hover Cards*/}
+            <Stack direction={'row'} spacing={2}>
+                {cards.map((card, index) => (
+                    <Card 
+                        key={card.id} 
+                        elevation={0} 
+                        sx={{
+                            bgcolor: 'background.default',
+                            borderRadius: '1rem',
+                        }}>
+                        <CardActionArea>
+                            <CardContent 
+                                sx={{
+                                        height: '100%',
                                         bgcolor: 'background.default',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         alignItems: 'center'
-                                        }}>
-                            <Stack direction={'row'} justifyContent={'center'} alignItems={'center'}>
-                                {card.icon}
-                                <Typography variant='subtitle2' component='div'>
-                                    {card.title}
+                                    }}>
+                                <Stack 
+                                    direction={'row'} 
+                                    justifyContent={'center'} 
+                                    alignItems={'center'}
+                                >
+                                    {card.icon}
+                                    <Typography 
+                                        variant='subtitle2' 
+                                        component='div'
+                                    >
+                                        {card.title}
+                                    </Typography>
+                                </Stack>
+                                <Typography 
+                                    variant='body' 
+                                    component='div' 
+                                    color="text.secondary"
+                                    textAlign={'center'}
+                                    >
+                                    {card.description}
                                 </Typography>
-                            </Stack>
-                            <Typography variant='body' component='div' color="text.secondary">
-                                {card.description}
-                            </Typography>
-                        </CardContent>
-                    </CardActionArea>
-                </Card>
-            ))}
+                            </CardContent>
+                        </CardActionArea>
+                    </Card>
+                ))}
         </Stack>
       </Stack>
     </>
