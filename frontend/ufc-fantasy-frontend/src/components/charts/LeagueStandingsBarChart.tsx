@@ -1,22 +1,16 @@
-import type { Fighter } from '../../types/types';
 import HighchartsReact from 'highcharts-react-official';
 import Highcharts from 'highcharts';
 
-interface WinLossChartProps {
-    record: Fighter['record'],
-}
+export default function LeagueStandingsBarChart() {
 
-export default function WinLossChart({
-   record
-}: WinLossChartProps) {
     const data = [
-        { category: "KO/TKO", W: record?.wins.ko_tko_wins, L: record?.losses.ko_tko_losses },
-        { category: "Submission", W: record?.wins.submission_wins, L: record?.losses.submission_losses },
-        { category: "Split Decision", W: record?.wins.split_decision_wins, L: record?.losses.split_decision_losses },
-        { category: "Unanimous Decision", W: record?.wins.unanimous_decision_wins, L: record?.losses.unanimous_decision_losses },
-        { category: "Majority Decision", W: record?.wins.majority_decision_wins, L: record?.losses.majority_decision_losses },
-        { category: "Doctor Stoppage", W: record?.wins.tko_doctor_stoppage_wins, L: record?.losses.tko_doctor_stoppage_losses },
-        { category: "DQ", W: record?.wins.dq_wins, L: record?.losses.dq_losses },
+    { category: "Iron Fist FC", points: 184 },
+    { category: "Bloodline MMA", points: 162 },
+    { category: "Apex Predators", points: 201 },
+    { category: "Submission Syndicate", points: 139 },
+    { category: "Knockout Kings", points: 225 },
+    { category: "Ground Zero Gym", points: 121 },
+    { category: "Warpath Fight Team", points: 173 },
     ];
 
         const options = {
@@ -24,9 +18,11 @@ export default function WinLossChart({
                 type: 'bar',
                 backgroundColor: 'hsla(150, 8%, 5%, 1)',
                 spacing: [16, 16, 16, 16],
+                height: 700,
+                marginLeft: 275,
             },
             title: {
-                text: 'Win Loss',
+                text: 'League Standings',
                 align: 'Left',
                 style: {
                     fontSize: '1rem',
@@ -55,14 +51,17 @@ export default function WinLossChart({
                 lineWidth: 0,
                 offset: -5,
                 labels: {
+                    enabled: false,
+                    reserveSpace: true,
                     style: {
                         color: 'white',
                         fontWeight: '300',
-                        letterSpacing: '0.03em'
+                        letterSpacing: '0.03em',
                         },
                 },
                 title: {
-                    text: 'Methods'
+                    text: 'Teams',
+                    enabled: false,
                 }
             },
             yAxis: {
@@ -77,25 +76,22 @@ export default function WinLossChart({
             },
             series: [
                 {
-                    name: 'Wins',
-                    data: data.map(d => d.W),
-                    color: 'hsla(0, 91%, 43%, 0.75)',
-                    borderWidth: 1,
-                    borderColor: 'hsla(0, 91%, 43%, 1)',
-                },
-                {
-                    name: 'Losses',
-                    data: data.map(d => d.L),
+                    name: 'Team Name',
+                    data: data.map(d => d.points),
                     color: 'hsla(0, 91%, 43%, 0.3)',
                     borderWidth: 1,
                     borderColor: 'hsla(0, 91%, 43%, 1)',
+                    tooltip: {
+                        followPointer: true,
+                    }
                 },
                 ],
             plotOptions: {
                 bar: {
                     borderRadius: 1,
                     borderWidth: 0,
-                    pointPadding: 0.15,
+                    pointWidth: 26,
+                    pointPadding: 1,
                     dataLabels: {
                         enabled: true,
                         style: {
@@ -117,10 +113,9 @@ export default function WinLossChart({
                 enabled: false,
             }
         } 
-    
     return (
-        <HighchartsReact
-        highcharts={Highcharts}
-        options={options}/>
+                <HighchartsReact
+                highcharts={Highcharts}
+                options={options}/>
     )
 }
