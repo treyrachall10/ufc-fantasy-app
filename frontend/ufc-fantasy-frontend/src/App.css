@@ -53,10 +53,10 @@
 .yax {
   display: inline-flex;
   align-items: center;
-  justify-content: center;   /* center text horizontally */
+  justify-content: center;
   line-height: 1;
 
-  min-width: 8px;           /* ← key line */
+  min-width: 8px;
   padding: 4px 8px;
   border-radius: 4px;
 
@@ -65,3 +65,15 @@
   white-space: nowrap;
 }
 
+/* team label for league dashboard */
+:root {
+  --dashboard-label-size: 0.95rem;
+}
+.team-name {
+  font-size: var(--dashboard-label-size);
+  font-weight: 500;
+}
+
+.team-points {
+  font-size: var(--dashboard-label-size);
+}

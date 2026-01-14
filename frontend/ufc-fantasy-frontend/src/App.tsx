@@ -5,6 +5,7 @@ import FightersListPage from './pages/FightersListPage'
 import EventsListPage from './pages/EventsListPage'
 import FightsListPage from './pages/FightsListPage';
 import AthleteStatsPage from './pages/AthleteStatsPage';
+import LeagueDashboard from './pages/LeagueDashboard';
 import HomePage from './pages/Home';
 import Navbar from './components/layout/Navbar';
 import { Box, CssBaseline } from '@mui/material';
@@ -256,10 +257,10 @@ const theme = createTheme({
   breakpoints: {
     values: {
     xs: 0,
-    sm: 0,
-    md: 0,
-    lg: 0,
-    xl: 0,
+    sm: 600,
+    md: 900,
+    lg: 1200,
+    xl: 1536,
     mobile: 475,
     tablet: 800,
     laptop: 1200,
@@ -290,6 +291,7 @@ function App() {
                   <Route path="/fight/:id" element={<FightStatsPage />} />
                   <Route path="/fighter" element={<AthleteStatsPage />} />
                   <Route path="/team" element={<UserTeamPage/>}/>
+                  <Route path="/league" element={<LeagueDashboard/>}/>
                 </Routes>
           </Box>
         </BrowserRouter>
