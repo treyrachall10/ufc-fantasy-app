@@ -4,6 +4,7 @@ import { Box, Typography, Stack, Grid } from '@mui/material';
 import Link from '@mui/material/Link';
 import LeagueStandingsBarChart from "../components/charts/LeagueStandingsBarChart";
 import LeagueStandingBarChartLabel from "../components/badges/LeagueStandingBarChartLabel";
+import { DataGrid } from '@mui/x-data-grid';
 
 export default function LeagueDashboard() {
     const data = [
@@ -25,6 +26,31 @@ export default function LeagueDashboard() {
         }
         team.standing = standing;
     }
+
+    // Define the columns for the data grid
+    // Each column needs: field (matches the data property name), headerName (what users see), and width
+    const columns: any = [
+        {field: 'standing', headerName: 'Standing', flex: 1},
+        {field: 'team', headerName: 'Team', flex: 1, renderCell: (params: any) => (
+            <Link 
+                href={`/form/${params.value}`} 
+                sx={{
+                    textDecoration: 'underline',
+                    color: 'text.primary'
+                }}
+                >{params.value}</Link>
+        )},
+        {field: 'pts', headerName: 'Points', flex: 1},
+    ];
+    
+    // Each row object must have an 'id' property and properties that match the 'field' names in columns
+    // Will be replaced when API is connected. Tests out fighters with long name
+    const rows = data.map((team, index) => ({
+    id: index + 1,   // required by MUI DataGrid
+    standing: team.standing,
+    team: team.team,
+    pts: team.pts,
+    }));
 
     return (
         <ListPageLayout>
@@ -91,16 +117,16 @@ export default function LeagueDashboard() {
                         </Avatar>
                     </Box>
                 </Grid>
-                {/* League Standings Chart*/}
+                {/* League Standings Chart (only visible on laptop and desktop)*/}
                 <Grid 
-                    size={{mobile: 12}}
+                    size={{xs: 12}}
                     sx={{
                         borderRadius: 2,
                         overflow: 'hidden',
                         position: 'relative',
                     }}
                     >
-                        <Box display={{xs: 'none', lg: 'block'}}>
+                    <Box display={{xs: 'none', md: 'block'}}>
                         <LeagueStandingsBarChart/>
                         {/* Custom Overlaying Chart Labels */}
                         <Box
@@ -126,6 +152,44 @@ export default function LeagueDashboard() {
                                 </Typography>
                                 <LeagueStandingBarChartLabel teams={data}/> {/* Creates continer of labels */}
                                 </Box>
+                    </Box>
+                        {/* League Standings List (only visible on mobile and tablet)*/}
+                        <Box sx={{ 
+                                width: '100%', 
+                                overflow: "hidden", 
+                                display: {xs: 'block', md: 'none'},
+                                }}>
+                            <DataGrid //displays the table 
+                                rows= {rows} 
+                                columns= {columns} 
+                                hideFooter 
+                                disableRowSelectionOnClick // removes checkboxes
+                                disableVirtualization // renders all rows on a page, prevents scrolling the grid to see rows
+                                disableColumnSorting // removes sorting. (if adding filtering remove this)
+                                
+                                //Allows alternating colored rows
+                                getRowClassName={(params) =>
+                                    params.indexRelativeToCurrentPage % 2 === 0 ? "even-row" : "odd-row"
+                                }
+                                
+                                // STYLING
+                                sx={(theme) => ({
+                                    //Alternating row colors
+                                    "& .MuiDataGrid-row.even-row":{
+                                        backgroundColor: (theme.palette.brand as any).dark,
+                                    },
+                                    "& .MuiDataGrid-row.odd-row":{
+                                        backgroundColor: "transparent",
+                                    },
+
+                                    //Text Styling     
+                                    // Hides Unwanted parts of the grid
+                                    // Sort Icons and Interactive elements from them
+                                    "& .MuiDataGrid-iconButtonContainer": {display: "none"},
+                                    "& .MuiDataGrid-sortIcon": {display: "none"},
+                    
+                                })}      
+                            />
                         </Box>
                 </Grid>
             </Grid>
