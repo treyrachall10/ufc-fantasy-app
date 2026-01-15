@@ -11,6 +11,7 @@ import { Container,
 import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined';
 import SportsMartialArtsOutlinedIcon from '@mui/icons-material/SportsMartialArtsOutlined';
 import GitHubIcon from '@mui/icons-material/GitHub';
+import Navbar from "../components/layout/Navbar";
 
 const cards = [
     {
@@ -54,7 +55,7 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <Stack direction='column' spacing={9} alignItems={'center'}>
+      <Stack direction='column' spacing={9} maxHeight={'100vh'} alignItems={'center'} justifyContent={'center'}>
         <Stack direction={'column'} spacing={3} alignItems={'center'}>
             <Box sx={glowWrapperSx}>
                 <Button 
