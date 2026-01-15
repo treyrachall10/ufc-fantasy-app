@@ -9,6 +9,7 @@ import LeagueDashboard from './pages/LeagueDashboard';
 import HomePage from './pages/Home';
 import Navbar from './components/layout/Navbar';
 import SignIn from './pages/SignIn';
+import SignUp from './pages/SignUp';
 import { Box, CssBaseline } from '@mui/material';
 import FightStatsPage from './pages/FightStatsPage';
 import UserTeamPage from './pages/UserTeamPage';
@@ -357,6 +358,7 @@ function App() {
               {/* Pages WITHOUT navbar */}
               <Route element={<AuthLayout />}>
                 <Route path="/sign-in" element={<SignIn />} />
+                <Route path="/sign-up" element={<SignUp />} />
               </Route>
 
             </Routes>
