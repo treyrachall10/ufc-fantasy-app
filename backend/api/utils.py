@@ -36,3 +36,12 @@ def create_fantasy_for_fighter(fight, fighter,  round_stats):
     fantasy['total'] = fantasy['fight'].fight_total_points
 
     return fantasy
+
+def has_special_char(text):
+    """
+        -   Checks if text contains a special character
+    
+    :param text: String
+    """
+
+    return any(not character.isalnum() for character in text)

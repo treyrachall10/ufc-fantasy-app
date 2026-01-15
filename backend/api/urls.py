@@ -9,5 +9,6 @@ urlpatterns = [
     path('fights/<int:id>', views.GetFighterFightsViewSet),
     path('fights/<int:id>/fantasy-scores/recent', views.GetLastThreeFantasyScoresViewSet),
     path('events/<int:id>', views.GetFightsFromEventViewSet),
-    path('fight/<int:id>', views.GetHeadToHeadStatsViewSet)
+    path('fight/<int:id>', views.GetHeadToHeadStatsViewSet),
+    path('auth/signup/', views.createUser)
 ]
