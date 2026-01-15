@@ -290,6 +290,27 @@ const theme = createTheme({
           borderRadius: 6,
         }
       }
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          backgroundColor: 'hsla(135, 8%, 10%, 1)'
+        }
+      }
+    },
+    MuiList: {
+      styleOverrides: {
+        root: {
+          backgroundColor: 'hsla(135, 8%, 10%, 1)'
+        }
+      }
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundColor: 'hsla(135, 8%, 10%, 1)'
+        }
+      }
     }
   },
   breakpoints: {
