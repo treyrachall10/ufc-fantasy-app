@@ -12,6 +12,7 @@ import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined';
 import SportsMartialArtsOutlinedIcon from '@mui/icons-material/SportsMartialArtsOutlined';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import Navbar from "../components/layout/Navbar";
+import { Link } from 'react-router-dom';
 
 const cards = [
     {
@@ -140,14 +141,17 @@ export default function HomePage() {
                     >
                         Join a League
                 </Button>
-                <Button variant="contained" color="whiteAlpha20"
-                        sx={{
-                            borderColor: 'gray900.main',
-                            '&:hover': {
-                                borderColor: 'gray800.main'
-                            }
-                        }}
-                    >
+                <Button 
+                    variant="contained" 
+                    color="whiteAlpha20"
+                    component={Link} to="/sign-in"
+                    sx={{
+                        borderColor: 'gray900.main',
+                        '&:hover': {
+                            borderColor: 'gray800.main'
+                        }
+                    }}
+                >
                     Sign In
                 </Button>
                 </Stack>

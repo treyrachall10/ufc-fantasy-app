@@ -98,8 +98,22 @@ export default function Navbar(){
                         sx={{ display: { xs: 'block', md: 'none' } }}
                         >
                         {pages.map((page) => (
-                            <MenuItem key={page.title} onClick={handleCloseNavMenu}>
-                            <Typography sx={{ textAlign: 'center' }}>{page.title}</Typography>
+                            <MenuItem 
+                                key={page.title} 
+                                onClick={handleCloseNavMenu}
+                                sx={{
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(255, 255, 255, 0.04)'
+                                    }
+                                }}
+                                >
+                                <Typography 
+                                    sx={{ 
+                                        textAlign: 'center' 
+                                    }}
+                                    >
+                                        {page.title}
+                                    </Typography>
                             </MenuItem>
                         ))}
                         </Menu>
@@ -145,24 +159,38 @@ export default function Navbar(){
                         </Button>
                         ))}
                     </Box>
-                    <Box sx={{ display: 'flex', 
-                        flexGrow: 0, gap: 1}}>
-                        <Button variant='contained' color={"whiteAlpha20"}
-                            sx={{borderColor: 'gray900.main',
+                    <Box 
+                        sx={{ 
+                            display: 'flex', 
+                            flexGrow: 0, 
+                            gap: 1
+                            }}
+                        >
+                        <Button 
+                            variant='contained' 
+                            color={"whiteAlpha20"}
+                            component={Link} to="/sign-in"
+                            sx={{
+                                textWrap: 'nowrap',
+                                borderColor: 'gray900.main',
                                 '&:hover': {
                                 borderColor: 'gray800.main'
                                     }
+                            }}
+                        >
+                            Sign In
+                        </Button>
+                        <Button 
+                            variant="contained" 
+                            color='brandAlpha50' 
+                            sx={{
+                                display: {xs: 'none', md:'flex'},
+                                borderColor: 'brand.light',
+                                '&:hover': {
+                                    borderColor: 'brand.main'
+                                }                        
                                 }}
-                        >Sign In</Button>
-                        <Button variant="contained" 
-                                color='brandAlpha50' 
-                                sx={{ 
-                                        borderColor: 'brand.light',
-                                        '&:hover': {
-                                            borderColor: 'brand.main'
-                                        }                        
-                                    }}
-                            >
+                        >
                             Join a League
                         </Button>
                     </Box>
