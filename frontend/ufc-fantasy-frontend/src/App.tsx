@@ -8,10 +8,13 @@ import AthleteStatsPage from './pages/AthleteStatsPage';
 import LeagueDashboard from './pages/LeagueDashboard';
 import HomePage from './pages/Home';
 import Navbar from './components/layout/Navbar';
+import SignIn from './pages/SignIn';
 import { Box, CssBaseline } from '@mui/material';
 import FightStatsPage from './pages/FightStatsPage';
 import UserTeamPage from './pages/UserTeamPage';
 import { BrowserRouter, Routes, Route} from 'react-router-dom';
+import MainLayout from './components/layout/LayoutWithNavbar';
+import AuthLayout from './components/layout/AuthLayout';
 import {
   useQuery,
   useMutation,
@@ -22,6 +25,7 @@ import {
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import '@mui/x-data-grid/themeAugmentation';
+import { Sign } from 'crypto';
 
 declare module '@mui/material/styles' {
   interface TypographyVariants {
@@ -221,6 +225,14 @@ const theme = createTheme({
       },
   },
   components: {
+    MuiCssBaseline: {
+    styleOverrides: {
+      body: {
+        
+        minHeight: '100vh',
+      },
+    },
+  },
     MuiButton: {
       styleOverrides: {
         root: {
@@ -252,6 +264,32 @@ const theme = createTheme({
           },
         }
       }
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        notchedOutline: {
+          borderColor: 'hsla(0, 0%, 21%, 1)',
+        },
+        root: {
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'hsla(0, 0%, 27%, 1)',
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'hsla(0, 0%, 21%, 1)',
+          },
+          '&.Mui-error .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'error.main',
+          },
+        },
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          backgroundColor: 'rgba(5, 7, 10, 0.5)',
+          borderRadius: 6,
+        }
+      }
     }
   },
   breakpoints: {
@@ -276,28 +314,34 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
 
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <Navbar />
-          <Box sx={{pt: '6rem', alignItems: 'center'}}>
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/fights" element={<FightsListPage />} />
-                  <Route path="/fights/:id" element={<FightsListPage />} />
-                  <Route path="/fighters" element={<FightersListPage />} />
-                  <Route path="/events" element={<EventsListPage />} />
-                  <Route path="/events/:id" element={<FightsListPage />} />
-                  <Route path="/fighter/:id" element={<AthleteStatsPage />} />
-                  <Route path="/fight/:id" element={<FightStatsPage />} />
-                  <Route path="/fighter" element={<AthleteStatsPage />} />
-                  <Route path="/team" element={<UserTeamPage/>}/>
-                  <Route path="/league" element={<LeagueDashboard/>}/>
-                </Routes>
-          </Box>
-        </BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <Routes>
 
-        <ReactQueryDevtools initialIsOpen={false} />
-      </QueryClientProvider>
+              {/* Pages WITH navbar */}
+              <Route element={<MainLayout />}>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/fights" element={<FightsListPage />} />
+                <Route path="/fights/:id" element={<FightsListPage />} />
+                <Route path="/fighters" element={<FightersListPage />} />
+                <Route path="/events" element={<EventsListPage />} />
+                <Route path="/events/:id" element={<FightsListPage />} />
+                <Route path="/fighter/:id" element={<AthleteStatsPage />} />
+                <Route path="/fight/:id" element={<FightStatsPage />} />
+                <Route path="/fighter" element={<AthleteStatsPage />} />
+                <Route path="/team" element={<UserTeamPage />} />
+                <Route path="/league" element={<LeagueDashboard />} />
+              </Route>
+
+              {/* Pages WITHOUT navbar */}
+              <Route element={<AuthLayout />}>
+                <Route path="/sign-in" element={<SignIn />} />
+              </Route>
+
+            </Routes>
+          </BrowserRouter>
+        </QueryClientProvider>
+
     </ThemeProvider>
   );
 }
