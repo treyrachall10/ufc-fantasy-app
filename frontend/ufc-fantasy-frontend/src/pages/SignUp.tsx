@@ -14,6 +14,15 @@ import { styled } from '@mui/material/styles';
 import { GoogleIcon } from '../components/CustomIcons';
 import fistLogo from '../images/fist-svgrepo-com.svg';
 
+// Tanstack imports
+import { useMutation } from '@tanstack/react-query';
+
+type CreateUserPayload = {
+  username: string | null
+  email: string | null
+  password: string | null
+}
+
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
@@ -32,6 +41,18 @@ const Card = styled(MuiCard)(({ theme }) => ({
 }));
 
 export default function SignUp() {
+
+  // POST request to create a user
+  const createUserMutation = useMutation({
+    mutationFn: (payload: CreateUserPayload ) => {
+      return fetch('http://localhost:8000/auth/signup/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+    },
+  })
+    
   const [emailError, setEmailError] = React.useState(false);
   const [passwordError, setPasswordError] = React.useState(false);
   const [nameError, setNameError] = React.useState(false);
@@ -43,7 +64,7 @@ export default function SignUp() {
   const validateInputs = () => {
     const email = document.getElementById('email') as HTMLInputElement;
     const password = document.getElementById('password') as HTMLInputElement;
-    const name = document.getElementById('name') as HTMLInputElement;
+    const name = document.getElementById('username') as HTMLInputElement;
 
     let valid = true;
 
@@ -65,9 +86,9 @@ export default function SignUp() {
       setEmailErrorMessage('');
     }
 
-    if (!password.value || password.value.length < 6) {
+    if (!password.value || password.value.length < 8) {
       setPasswordError(true);
-      setPasswordErrorMessage('Password must be at least 6 characters.');
+      setPasswordErrorMessage('Password must be at least 8 characters.');
       valid = false;
     } else {
       setPasswordError(false);
@@ -78,17 +99,19 @@ export default function SignUp() {
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!validateInputs()) {
-      event.preventDefault();
       return;
     }
 
     const data = new FormData(event.currentTarget);
-    console.log({
-      name: data.get('name'),
-      email: data.get('email'),
-      password: data.get('password'),
-    });
+    const payload = {
+      username: data.get('username') as string,
+      email: data.get('email') as string,
+      password: data.get('password') as string,
+    }
+
+    createUserMutation.mutate(payload)
   };
 
   return (
@@ -121,11 +144,11 @@ export default function SignUp() {
           sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
         >
           <FormControl>
-            <FormLabel htmlFor="name">Display name</FormLabel>
+            <FormLabel htmlFor="name">Username</FormLabel>
             <TextField
-              id="name"
-              name="name"
-              placeholder="PoatanFan"
+              id="username"
+              name="username"
+              placeholder="DoBronxFan"
               required
               error={nameError}
               helperText={nameErrorMessage}

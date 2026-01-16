@@ -11,7 +11,7 @@ from .utils import create_fantasy_for_fighter, has_special_char
 
 # Post Methods
 @api_view(['POST'])
-def createrUser(request):
+def createUser(request):
     username = request.data.get('username')
     email = request.data.get('email')
     password = request.data.get('password')
