@@ -363,6 +363,7 @@ function App() {
 
             </Routes>
           </BrowserRouter>
+          <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>
 
     </ThemeProvider>
