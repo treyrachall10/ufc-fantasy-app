@@ -20,7 +20,8 @@ import { useMutation } from '@tanstack/react-query';
 type CreateUserPayload = {
   username: string | null
   email: string | null
-  password: string | null
+  password1: string | null
+  password2: string | null
 }
 
 const Card = styled(MuiCard)(({ theme }) => ({
@@ -44,37 +45,64 @@ export default function SignUp() {
 
   // POST request to create a user
   const createUserMutation = useMutation({
-    mutationFn: (payload: CreateUserPayload ) => {
-      return fetch('http://localhost:8000/auth/signup/', {
+    mutationFn: async (payload: CreateUserPayload ) => {
+      const response = await fetch('http://localhost:8000/dj-rest-auth/registration/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw data;
+      }
+      
+      return data;
     },
+
+      // Do something if fails
+      onError: (error: any) => {
+        console.log("BACKEND ERROR: ", error);
+        if (error.username){
+          setUsernameError(true);
+          setUsernameErrorMessage(error.username[0]);
+        }
+        if (error.email){
+          setEmailError(true);
+          setEmailErrorMessage(error.email[0]);
+        }
+        if (error.password1){
+          setPasswordError(true);
+          setPasswordErrorMessage(error.password1[0]);
+        }
+      },
+
+      // Impliment OnSuccess
   })
     
   const [emailError, setEmailError] = React.useState(false);
   const [passwordError, setPasswordError] = React.useState(false);
-  const [nameError, setNameError] = React.useState(false);
+  const [usernameError, setUsernameError] = React.useState(false);
 
   const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('');
-  const [nameErrorMessage, setNameErrorMessage] = React.useState('');
+  const [usernameErrorMessage, setUsernameErrorMessage] = React.useState('');
 
   const validateInputs = () => {
     const email = document.getElementById('email') as HTMLInputElement;
-    const password = document.getElementById('password') as HTMLInputElement;
+    const password1 = document.getElementById('password1') as HTMLInputElement;
+    const password2 = document.getElementById('password2') as HTMLInputElement;
     const name = document.getElementById('username') as HTMLInputElement;
 
     let valid = true;
 
     if (!name.value) {
-      setNameError(true);
-      setNameErrorMessage('Display name is required.');
+      setUsernameError(true);
+      setUsernameErrorMessage('Display name is required.');
       valid = false;
     } else {
-      setNameError(false);
-      setNameErrorMessage('');
+      setUsernameError(false);
+      setUsernameErrorMessage('');
     }
 
     if (!email.value || !/\S+@\S+\.\S+/.test(email.value)) {
@@ -86,13 +114,19 @@ export default function SignUp() {
       setEmailErrorMessage('');
     }
 
-    if (!password.value || password.value.length < 8) {
+    if (!password1.value || password1.value.length < 8) {
       setPasswordError(true);
       setPasswordErrorMessage('Password must be at least 8 characters.');
       valid = false;
     } else {
       setPasswordError(false);
       setPasswordErrorMessage('');
+    }
+
+    if(password1.value != password2.value) {
+      setPasswordError(true);
+      setPasswordErrorMessage('Passwords must match.');
+      valid = false;
     }
 
     return valid;
@@ -108,7 +142,8 @@ export default function SignUp() {
     const payload = {
       username: data.get('username') as string,
       email: data.get('email') as string,
-      password: data.get('password') as string,
+      password1: data.get('password1') as string,
+      password2: data.get('password2') as string,
     }
 
     createUserMutation.mutate(payload)
@@ -150,8 +185,8 @@ export default function SignUp() {
               name="username"
               placeholder="DoBronxFan"
               required
-              error={nameError}
-              helperText={nameErrorMessage}
+              error={usernameError}
+              helperText={usernameErrorMessage}
               fullWidth
             />
           </FormControl>
@@ -170,10 +205,24 @@ export default function SignUp() {
           </FormControl>
 
           <FormControl>
-            <FormLabel htmlFor="password">Password</FormLabel>
+            <FormLabel htmlFor="password1">Password</FormLabel>
             <TextField
-              id="password"
-              name="password"
+              id="password1"
+              name="password1"
+              type="password"
+              placeholder="••••••"
+              required
+              error={passwordError}
+              helperText={passwordErrorMessage}
+              fullWidth
+            />
+          </FormControl>
+
+          <FormControl>
+            <FormLabel htmlFor="password2">Confirm Password</FormLabel>
+            <TextField
+              id="password2"
+              name="password2"
               type="password"
               placeholder="••••••"
               required

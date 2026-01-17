@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 urlpatterns = [
@@ -10,5 +10,7 @@ urlpatterns = [
     path('fights/<int:id>/fantasy-scores/recent', views.GetLastThreeFantasyScoresViewSet),
     path('events/<int:id>', views.GetFightsFromEventViewSet),
     path('fight/<int:id>', views.GetHeadToHeadStatsViewSet),
-    path('auth/signup/', views.createUser)
+    path('auth/signup/', views.createUser),
+    path('dj-rest-auth/', include('dj_rest_auth.urls')),
+    path('dj-rest-auth/registration/', include('dj_rest_auth.registration.urls')),
 ]

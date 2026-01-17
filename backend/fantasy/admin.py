@@ -1,5 +1,6 @@
 from django.contrib import admin
-from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from accounts.models import User
 from .models import (
     Fighters,
     Events,
@@ -20,3 +21,4 @@ admin.site.register(RoundStats)
 admin.site.register(FighterCareerStats)
 admin.site.register(RoundScore)
 admin.site.register(FightScore)
+admin.site.register(User, UserAdmin)
