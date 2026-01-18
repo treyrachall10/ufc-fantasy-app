@@ -11,8 +11,9 @@ import { Container,
 import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined';
 import SportsMartialArtsOutlinedIcon from '@mui/icons-material/SportsMartialArtsOutlined';
 import GitHubIcon from '@mui/icons-material/GitHub';
-import Navbar from "../components/layout/Navbar";
 import { Link } from 'react-router-dom';
+import { AuthContext } from "../auth/AuthProvider";
+import { useContext } from "react";
 
 const cards = [
     {
@@ -53,6 +54,7 @@ const glowWrapperSx = {
 
 
 export default function HomePage() {
+    const auth = useContext(AuthContext)!;
   return (
     <>
       {/* Hero */}
@@ -141,19 +143,21 @@ export default function HomePage() {
                     >
                         Join a League
                 </Button>
-                <Button 
-                    variant="contained" 
-                    color="whiteAlpha20"
-                    component={Link} to="/sign-in"
-                    sx={{
-                        borderColor: 'gray900.main',
-                        '&:hover': {
-                            borderColor: 'gray800.main'
-                        }
-                    }}
-                >
-                    Sign In
-                </Button>
+                { !auth.token && ( // Render component if not logged in
+                    <Button 
+                        variant="contained" 
+                        color="whiteAlpha20"
+                        component={Link} to="/sign-in"
+                        sx={{
+                            borderColor: 'gray900.main',
+                            '&:hover': {
+                                borderColor: 'gray800.main'
+                            }
+                        }}
+                    >
+                        Sign In
+                    </Button>
+                )}
                 </Stack>
             </Stack>
             {/*Hover Cards*/}
