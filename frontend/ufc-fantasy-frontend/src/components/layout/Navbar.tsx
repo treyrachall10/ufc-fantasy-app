@@ -195,23 +195,23 @@ export default function Navbar(){
                             alignItems: 'center'
                             }}
                         >
-                            {/* render sign in button if user not logged in*/}
-                            {!auth.token && (
-                                <Button 
-                                    variant='contained' 
-                                    color={"whiteAlpha20"}
-                                    component={Link} to="/sign-in"
-                                    sx={{
-                                        textWrap: 'nowrap',
-                                        borderColor: 'gray900.main',
-                                        '&:hover': {
-                                        borderColor: 'gray800.main'
-                                            }
-                                    }}
-                                >
-                                    Sign In
-                                </Button>
-                                )}
+                        {/* render sign in button if user not logged in*/}
+                        {!auth.token && (
+                        <Button 
+                            variant='contained' 
+                            color={"whiteAlpha20"}
+                            component={Link} to="/sign-in"
+                            sx={{
+                                textWrap: 'nowrap',
+                                borderColor: 'gray900.main',
+                                '&:hover': {
+                                borderColor: 'gray800.main'
+                                    }
+                            }}
+                        >
+                            Sign In
+                        </Button>
+                        )}
                         <Button 
                             variant="contained" 
                             color='brandAlpha50' 
