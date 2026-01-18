@@ -20,13 +20,15 @@ const cards = [
         id: 1,
         icon: <FlagOutlinedIcon></FlagOutlinedIcon>,
         title: 'Leagues',
-        description: 'Join or create  league'
+        description: 'Join or create  league',
+        link: '/leagues'
     },
     {
         id: 2,
         icon: <SportsMartialArtsOutlinedIcon></SportsMartialArtsOutlinedIcon>,
         title: 'Fighters',
-        description: 'View a list of fighters'
+        description: 'View a list of fighters',
+        link: '/fighters'
     },
 ]
 
@@ -170,7 +172,9 @@ export default function HomePage() {
                             bgcolor: 'background.default',
                             borderRadius: '1rem',
                         }}>
-                        <CardActionArea>
+                        <CardActionArea
+                            component={Link} to={card.link}
+                        >
                             <CardContent 
                                 sx={{
                                         height: '100%',
