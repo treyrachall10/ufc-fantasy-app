@@ -20,6 +20,7 @@ import { useMutation } from '@tanstack/react-query';
 import { saveToken } from '../auth/auth';
 import { useContext } from 'react';
 import { AuthContext } from '../auth/AuthProvider';
+import { useNavigate } from 'react-router-dom';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -69,6 +70,7 @@ type UserSignInPayload = {
 }
 
 export default function SignIn() {
+  const navigate = useNavigate()
   const auth = useContext(AuthContext)!;
   
   const [emailError, setEmailError] = React.useState(false);
@@ -109,7 +111,8 @@ export default function SignIn() {
     },
 
     onSuccess: (data) => {
-      auth.login(data.access)
+      auth.login(data.access);
+      navigate('/');
     }
   })
 
