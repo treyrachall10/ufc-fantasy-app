@@ -191,7 +191,8 @@ export default function Navbar(){
                         sx={{ 
                             display: 'flex', 
                             flexGrow: 0, 
-                            gap: 1
+                            gap: 1,
+                            alignItems: 'center'
                             }}
                         >
                             {/* render sign in button if user not logged in*/}
