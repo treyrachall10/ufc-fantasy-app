@@ -1,4 +1,5 @@
 import React from 'react';
+import { useState } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import FightersListPage from './pages/FightersListPage'
@@ -14,19 +15,18 @@ import { Box, CssBaseline } from '@mui/material';
 import FightStatsPage from './pages/FightStatsPage';
 import UserTeamPage from './pages/UserTeamPage';
 import { BrowserRouter, Routes, Route} from 'react-router-dom';
+import { AuthProvider } from './auth/AuthProvider';
 import MainLayout from './components/layout/LayoutWithNavbar';
 import AuthLayout from './components/layout/AuthLayout';
 import {
-  useQuery,
-  useMutation,
-  useQueryClient,
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import '@mui/x-data-grid/themeAugmentation';
-import { Sign } from 'crypto';
+import { getToken } from './auth/auth';
+import ProtectedRoute from './auth/ProtectedRoute';
 
 declare module '@mui/material/styles' {
   interface TypographyVariants {
@@ -330,13 +330,14 @@ const theme = createTheme({
 })
 
 function App() {
-  const queryClient = new QueryClient();
+const queryClient = new QueryClient();
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
 
         <QueryClientProvider client={queryClient}>
+          <AuthProvider>
           <BrowserRouter>
             <Routes>
 
@@ -352,17 +353,20 @@ function App() {
                 <Route path="/fight/:id" element={<FightStatsPage />} />
                 <Route path="/fighter" element={<AthleteStatsPage />} />
                 <Route path="/team" element={<UserTeamPage />} />
-                <Route path="/league" element={<LeagueDashboard />} />
+                <Route element={<ProtectedRoute/>}>
+                  <Route path="/league" element={<LeagueDashboard />} />
+                </Route>
               </Route>
 
               {/* Pages WITHOUT navbar */}
               <Route element={<AuthLayout />}>
-                <Route path="/sign-in" element={<SignIn />} />
-                <Route path="/sign-up" element={<SignUp />} />
+                <Route path="/sign-in" element={<SignIn/>} />
+                <Route path="/sign-up" element={<SignUp/>} />
               </Route>
 
             </Routes>
           </BrowserRouter>
+          </AuthProvider>
           <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>
 

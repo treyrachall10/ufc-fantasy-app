@@ -13,6 +13,8 @@ import MuiCard from '@mui/material/Card';
 import { styled } from '@mui/material/styles';
 import { GoogleIcon } from '../components/CustomIcons';
 import fistLogo from '../images/fist-svgrepo-com.svg';
+import { useContext } from 'react';
+import { AuthContext } from '../auth/AuthProvider';
 
 // Tanstack imports
 import { useMutation } from '@tanstack/react-query';
@@ -22,6 +24,10 @@ type CreateUserPayload = {
   email: string | null
   password1: string | null
   password2: string | null
+}
+
+type SignUpProps = {
+  setToken: (accessToken: string) => void;
 }
 
 const Card = styled(MuiCard)(({ theme }) => ({
@@ -42,6 +48,7 @@ const Card = styled(MuiCard)(({ theme }) => ({
 }));
 
 export default function SignUp() {
+  const auth = useContext(AuthContext)!;
 
   // POST request to create a user
   const createUserMutation = useMutation({
@@ -56,7 +63,7 @@ export default function SignUp() {
       if (!response.ok) {
         throw data;
       }
-      
+    
       return data;
     },
 
@@ -77,7 +84,9 @@ export default function SignUp() {
         }
       },
 
-      // Impliment OnSuccess
+      onSuccess: (data) => {
+        auth.login(data.access)
+      },
   })
     
   const [emailError, setEmailError] = React.useState(false);

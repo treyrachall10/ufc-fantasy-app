@@ -16,6 +16,10 @@ import { styled } from '@mui/material/styles';
 import ForgotPassword from '../components/ForgotPassword';
 import { GoogleIcon} from '../components/CustomIcons';
 import fistLogo from '../images/fist-svgrepo-com.svg';
+import { useMutation } from '@tanstack/react-query';
+import { saveToken } from '../auth/auth';
+import { useContext } from 'react';
+import { AuthContext } from '../auth/AuthProvider';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -59,12 +63,55 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
   },
 }));
 
-export default function SignIn(props: { disableCustomTheme?: boolean }) {
+type UserSignInPayload = {
+  email: string | null
+  password: string | null
+}
+
+export default function SignIn() {
+  const auth = useContext(AuthContext)!;
+  
   const [emailError, setEmailError] = React.useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
   const [passwordError, setPasswordError] = React.useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('');
   const [open, setOpen] = React.useState(false);
+
+  // POST request to login a user
+  const signInUserMutation = useMutation({
+    mutationFn: async (payload: UserSignInPayload) => {
+      const response = await fetch('http://localhost:8000/dj-rest-auth/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw data
+      }
+
+      return data
+    },
+
+    // Do something if fails
+    onError: (error: any) => {
+      if (error){
+        setEmailError(true);
+        setEmailErrorMessage(error.non_field_errors);        
+        setPasswordError(true);
+        setPasswordErrorMessage(error.non_field_errors);
+      }
+      if (error.password1){
+
+      }
+    },
+
+    onSuccess: (data) => {
+      auth.login(data.access)
+    }
+  })
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -75,15 +122,19 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
     if (emailError || passwordError) {
-      event.preventDefault();
+     
       return;
     }
     const data = new FormData(event.currentTarget);
-    console.log({
-      email: data.get('email'),
-      password: data.get('password'),
-    });
+    const payload = {
+      email: data.get('email') as string,
+      password: data.get('password') as string,
+    }
+
+    signInUserMutation.mutate(payload);
   };
 
   const validateInputs = () => {

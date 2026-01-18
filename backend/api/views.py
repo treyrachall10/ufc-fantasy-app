@@ -1,73 +1,16 @@
 '''
     Contains views for API
 '''
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from django.contrib.auth.models import User
+from rest_framework.permissions import IsAuthenticated
 
 from .serializers import *
 from fantasy.models import Fighters, Events, Fights, FighterCareerStats, FightStats, RoundStats, RoundScore
 from .utils import create_fantasy_for_fighter, has_special_char
 
 # Post Methods
-@api_view(['POST'])
-def createUser(request):
-    username = request.data.get('username')
-    email = request.data.get('email')
-    password = request.data.get('password')
 
-    # Check if user provided a username
-    if not username:
-        return Response(
-            {"error": "Username is required"},
-            status=400
-        )
-    # Check if user provided available username
-    if User.objects.filter(username=username).exists():
-        return Response(
-            {"error": "Username already taken"},
-            status=400
-        )
-
-    # Check if user provided an email
-    if not email:
-        return Response(
-            {"error": "Email is required"},
-            status=400
-        )
-    # Check if user provided email that hasn't been used
-    if User.objects.filter(email=email).exists():
-        return Response(
-            {"error": "Email already taken"},
-            status=400
-        )
-    
-    # Password check
-    if not password:
-        return Response(
-            {"error": "Password is requred"},
-            status=400
-        )
-    # Password length check
-    if len(password) < 8:
-        return Response(
-            {"error": "Password must be at least 8 characters"},
-            status=400
-        )
-    # Password special character check
-    if not has_special_char(text=password):
-        return Response(
-            {"error": "Password must contain at least 1 special character"},
-            status=400
-        )
-    
-    user = User.objects.create_user(
-        username=username,
-        email=email,
-        password=password
-    )
-
-    return Response({"message": "User created"})
 
 # Get Methods
 @api_view(['GET'])
