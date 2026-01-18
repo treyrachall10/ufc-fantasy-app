@@ -15,6 +15,7 @@ import { GoogleIcon } from '../components/CustomIcons';
 import fistLogo from '../images/fist-svgrepo-com.svg';
 import { useContext } from 'react';
 import { AuthContext } from '../auth/AuthProvider';
+import { useNavigate } from 'react-router-dom';
 
 // Tanstack imports
 import { useMutation } from '@tanstack/react-query';
@@ -48,6 +49,7 @@ const Card = styled(MuiCard)(({ theme }) => ({
 }));
 
 export default function SignUp() {
+  const navigate = useNavigate();
   const auth = useContext(AuthContext)!;
 
   // POST request to create a user
@@ -85,7 +87,8 @@ export default function SignUp() {
       },
 
       onSuccess: (data) => {
-        auth.login(data.access)
+        auth.login(data.access);
+        navigate('/');
       },
   })
     
