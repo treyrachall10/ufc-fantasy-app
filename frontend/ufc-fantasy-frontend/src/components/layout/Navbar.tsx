@@ -1,17 +1,20 @@
 import { AppBar, 
             Box, 
-            Container, 
             Button, 
             Typography, 
             IconButton,
             Menu,
             MenuItem,
         } from '@mui/material';
+import { Avatar } from '@mui/material';
 import * as React from 'react';
 import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
 import { Link } from 'react-router-dom';
 import fistLogo from '../../images/fist-svgrepo-com.svg';
+import { useContext } from 'react';
+import { AuthContext } from '../../auth/AuthProvider';
+import { useNavigate } from 'react-router-dom';
 
 const pages = [{
         title: 'Fighters',
@@ -24,6 +27,10 @@ const pages = [{
         ]
 
 export default function Navbar(){
+    const navigate = useNavigate();
+    // Gives access to token state directly
+    const auth = useContext(AuthContext)!;
+
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
     const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
 
@@ -34,6 +41,27 @@ export default function Navbar(){
     const handleCloseNavMenu = () => {
         setAnchorElNav(null);
     };
+
+    const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorElUser(event.currentTarget);
+    }
+
+    const handleCloseUserMenu = () => {
+        setAnchorElUser(null);
+    }
+
+    const settings = [
+        { label: 'Profile', to: '/profile' },
+        { label: 'Account', to: '/account' },
+        { label: 'Dashboard', to: '/league' },
+        {
+            label: 'Logout',
+            action: () => {
+            auth.logout();
+            navigate('/sign-in');
+            },
+        },
+    ];
 
     return (
         <AppBar position='static' sx={{
@@ -163,23 +191,27 @@ export default function Navbar(){
                         sx={{ 
                             display: 'flex', 
                             flexGrow: 0, 
-                            gap: 1
+                            gap: 1,
+                            alignItems: 'center'
                             }}
                         >
-                        <Button 
-                            variant='contained' 
-                            color={"whiteAlpha20"}
-                            component={Link} to="/sign-in"
-                            sx={{
-                                textWrap: 'nowrap',
-                                borderColor: 'gray900.main',
-                                '&:hover': {
-                                borderColor: 'gray800.main'
-                                    }
-                            }}
-                        >
-                            Sign In
-                        </Button>
+                            {/* render sign in button if user not logged in*/}
+                            {!auth.token && (
+                                <Button 
+                                    variant='contained' 
+                                    color={"whiteAlpha20"}
+                                    component={Link} to="/sign-in"
+                                    sx={{
+                                        textWrap: 'nowrap',
+                                        borderColor: 'gray900.main',
+                                        '&:hover': {
+                                        borderColor: 'gray800.main'
+                                            }
+                                    }}
+                                >
+                                    Sign In
+                                </Button>
+                                )}
                         <Button 
                             variant="contained" 
                             color='brandAlpha50' 
@@ -193,6 +225,29 @@ export default function Navbar(){
                         >
                             Join a League
                         </Button>
+                        {auth.token && (
+                            <>
+                                <IconButton
+                                    onClick={handleOpenUserMenu}
+                                >
+                                    <Avatar alt="Profile Picture"/>
+                                </IconButton>
+                                <Menu
+                                    anchorEl={anchorElUser}
+                                    open={Boolean(anchorElUser)}
+                                    onClose={handleCloseUserMenu}
+                                >
+                                    {settings.map((setting) => (
+                                        <MenuItem key={setting.label} onClick={() => {
+                                            setting.action?.(); // Will only run if setting.action exist in list
+                                            handleCloseUserMenu();
+                                        }}>
+                                            <Typography sx={{ textAlign: 'center' }}>{setting.label}</Typography>
+                                        </MenuItem>
+                                    ))}
+                                </Menu>
+                            </>
+                        )}
                     </Box>
                 </Toolbar>
         </AppBar>

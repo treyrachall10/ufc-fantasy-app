@@ -173,8 +173,15 @@ REST_AUTH = {
 }
 
 # Tells allauth how login should work
-ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
+# SIGNUP: require username
+ACCOUNT_SIGNUP_FIELDS = [
+    "username*",
+    "email*",
+    "password1*",
+    "password2*",
+]
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_EMAIL_VERIFICATION = 'none'

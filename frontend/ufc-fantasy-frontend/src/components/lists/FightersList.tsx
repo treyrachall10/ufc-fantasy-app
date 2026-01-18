@@ -2,13 +2,16 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query'
 import { Fighter } from '../../types/types';
+import { getToken } from '../../auth/auth';
+import { authFetch } from '../../auth/authFetch';
 
 export default function FightersList() {      
     {/* API fetching*/}    
     const { data, isPending, error } = useQuery<Fighter[]>({
-            queryKey: ['fighterListData'],
-            queryFn: () => fetch('http://localhost:8000/fighters').then(r => r.json()),
-        })
+        queryKey: ['fighterListData'],
+        queryFn: () => fetch('http://localhost:8000/fighters').then(r => r.json()),
+
+    });
     
     if (isPending) return <span>Loading...</span>
     if (error) return <span>Oops!</span>
