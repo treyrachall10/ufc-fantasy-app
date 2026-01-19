@@ -147,26 +147,26 @@ export default function AthleteStatsPage(){
   },
 ];
 
-    const mockData = {
+    const winChartData = {
         wins: {
-            total: 12,
-            ko_tko_wins: 12,
-            tko_doctor_stoppage_wins: 1,
-            submission_wins: 8,
-            unanimous_decision_wins: 10,
-            split_decision_wins: 4,
-            majority_decision_wins: 2,
-            dq_wins: 0,
+            total: fighterData.fighter.record.wins.total,
+            ko_tko_wins: fighterData.fighter.record.wins.ko_tko_wins,
+            tko_doctor_stoppage_wins: fighterData.fighter.record.wins.tko_doctor_stoppage_wins,
+            submission_wins: fighterData.fighter.record.wins.submission_wins,
+            unanimous_decision_wins: fighterData.fighter.record.wins.unanimous_decision_wins,
+            split_decision_wins: fighterData.fighter.record.wins.split_decision_wins,
+            majority_decision_wins: fighterData.fighter.record.wins.majority_decision_wins,
+            dq_wins: fighterData.fighter.record.wins.dq_wins,
         },
         losses: {
-            total: 3,
-            ko_tko_losses: 1,
-            tko_doctor_stoppage_losses: 1,
-            submission_losses: 2,
-            unanimous_decision_losses: 4,
-            split_decision_losses: 1,
-            majority_decision_losses: 0,
-            dq_losses: 0,
+            total: fighterData.fighter.record.losses.total,
+            ko_tko_losses: fighterData.fighter.record.losses.ko_tko_losses,
+            tko_doctor_stoppage_losses: fighterData.fighter.record.losses.tko_doctor_stoppage_losses,
+            submission_losses: fighterData.fighter.record.losses.submission_losses,
+            unanimous_decision_losses: fighterData.fighter.record.losses.unanimous_decision_losses,
+            split_decision_losses: fighterData.fighter.record.losses.split_decision_losses,
+            majority_decision_losses: fighterData.fighter.record.losses.majority_decision_losses,
+            dq_losses: fighterData.fighter.record.losses.dq_losses,
         },
         draws: 1,
         };
@@ -270,7 +270,7 @@ export default function AthleteStatsPage(){
                                 {/*Win Loss Chart*/}
                                 <Grid size={{mobile: 12, laptop: 5}}>
                                     <Box sx={{ height: 400, bgcolor: 'dashboardBlack.main', borderRadius: 2, overflow: 'hidden'}}>
-                                        <WinLossChart record={mockData}/>
+                                        <WinLossChart record={winChartData}/>
                                     </Box>
                                 </Grid>
                                 {/*Past Fights List*/}
