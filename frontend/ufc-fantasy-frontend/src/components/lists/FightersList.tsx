@@ -17,18 +17,25 @@ export default function FightersList() {
     if (error) return <span>Oops!</span>
 
     const columns: GridColDef[] = [
-    { field: 'name', headerName: 'Name', renderCell: (params) => (
-        <Link to={`/fighter/${params.id}`} style={{color: "black"}}>{params.value}</Link>
-    )},
-    { field: 'nickName', headerName: 'Nick Name' },
-    { field: 'stance', headerName: 'stance' },
-    { field: 'weight', headerName: 'Weight' },
-    { field: 'height', headerName: 'Height' },
-    { field: 'reach', headerName: 'Reach' },
-    { field: 'dob', headerName: 'DOB' },
-    { field: 'w', headerName: 'W' },
-    { field: 'l', headerName: 'L' },
-    { field: 'd', headerName: 'D' },
+    {
+        field: 'name',
+        headerName: 'Name',
+        flex: 2,
+        renderCell: (params) => (
+        <Link to={`/fighter/${params.id}`} style={{ color: 'white' }}>
+            {params.value}
+        </Link>
+        ),
+    },
+    { field: 'nickName', headerName: 'Nick Name', flex: 1 },
+    { field: 'stance', headerName: 'Stance', flex: 1 },
+    { field: 'weight', headerName: 'Weight', flex: 1 },
+    { field: 'height', headerName: 'Height', flex: 1 },
+    { field: 'reach', headerName: 'Reach', flex: 1 },
+    { field: 'dob', headerName: 'DOB', flex: 1 },
+    { field: 'w', headerName: 'W', flex: 0.5 },
+    { field: 'l', headerName: 'L', flex: 0.5 },
+    { field: 'd', headerName: 'D', flex: 0.5 },
     ];
 
     const rows = data.map((fighter) => ({
@@ -46,6 +53,32 @@ export default function FightersList() {
     }));
 
     return(
-        <DataGrid columns={columns} rows={rows}/>
+        <DataGrid 
+            columns={columns}
+            rows={rows}
+            hideFooter
+            disableColumnSorting
+            disableRowSelectionOnClick
+            //Allows alternating colored rows
+            getRowClassName={(params) =>
+                params.indexRelativeToCurrentPage % 2 === 0 ? "even-row" : "odd-row"
+            }
+            // STYLING
+            sx={(theme) => ({
+                //Alternating row colors
+                "& .MuiDataGrid-row.even-row":{
+                    backgroundColor: (theme.palette.brand as any).dark,
+                },
+                "& .MuiDataGrid-row.odd-row":{
+                    backgroundColor: "transparent",
+                },
+
+                //Text Styling     
+                // Hides Unwanted parts of the grid
+                // Sort Icons and Interactive elements from them
+                "& .MuiDataGrid-iconButtonContainer": {display: "none"},
+                "& .MuiDataGrid-sortIcon": {display: "none"},
+            })} 
+        />
     )
 }

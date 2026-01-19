@@ -78,10 +78,10 @@ export default function AthleteStatsPage(){
     // Define columns for datagrid
     // Each column needs: field (matches the data property name), headerName (what users see), and width
     const columns = [
-        {field: 'result', headerName: 'Result', renderCell: (params: any) => {return <FightResultBadge result={params.row.result} method={params.row.method}/>}},
+        {field: 'result', headerName: 'Result', renderCell: (params: any) => {return <FightResultBadge result={params.row.result} method={params.row.method}/>}, flex: 0.75},
         {field: 'opponent', headerName: 'Opponent', flex: 1},
         {field: 'event', headerName: 'Event', flex: 1 }, //Flex keeps consistent sizing when chaning window size
-        {field: 'round', headerName: 'Round', flex: 1 },
+        {field: 'round', headerName: 'Round', flex: 0 },
         {field: 'date', headerName: 'Date', flex: 1},
     ];
     
