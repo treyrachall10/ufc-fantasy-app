@@ -209,7 +209,7 @@ export default function AthleteStatsPage(){
                                 {/*Fantasy Trend Chart*/}
                                 <Grid size={12}>
                                     <Box sx={{ height: 400, bgcolor: 'dashboardBlack.main', borderRadius: 2, overflow: "hidden" }}>
-                                        <FantasyTrendLineChart data={fantasyTrendData}/>
+                                        <FantasyTrendLineChart data={fantasyTrendData} fighter={fighterData.fighter.full_name}/>
                                     </Box>
                                 </Grid>
                                 {/*Win Loss Chart*/}
