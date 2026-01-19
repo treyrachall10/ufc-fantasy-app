@@ -10,7 +10,8 @@ import Navbar from './components/layout/Navbar';
 import { Box, CssBaseline } from '@mui/material';
 import FightStatsPage from './pages/FightStatsPage';
 import UserTeamPage from './pages/UserTeamPage';
-import { BrowserRouter, Routes, Route} from 'react-router-dom';
+import DraftLobbyPage from './pages/DraftLobbyPage';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import {
   useQuery,
   useMutation,
@@ -188,36 +189,36 @@ const theme = createTheme({
     }
   },
   palette: {
-      brand: { // Defines the main brand color
-        main: 'hsla(0, 91%, 43%, 1)',    // 100%
-        light: 'hsla(0, 91%, 43%, 0.3)', // 30%
-        dark: 'hsla(0, 91%, 43%, 0.05)', // 5%
-      },
-      brandAlpha50: { // Defines the brand color 50% alpha channel
-        main: 'hsla(0, 91%, 43%, 0.5)',
-      },
-      brandAlpha75: { // Defines the brand color 75% alpha channel
-        main: 'hsla(0, 91%, 43%, 0.75)',
-      },
-      background: { // Defines the defualt background color
-        default: 'hsla(135, 8%, 10%, 1)'
-      },
-      text: { // Defines the text default color
-        primary: 'hsl(0, 0%, 100%)',
-        secondary: 'hsla(0, 0%, 100%, 0.50)',
-      },
-      whiteAlpha20: {
-        main: 'hsla(0, 0%, 21%, 0.20)'
-      },
-      dashboardBlack: { // Dashbpoard component backgrounds
-        main: 'hsla(150, 8%, 5%, 1)'
-      },
-      gray800: { // Lighter gray for hover border on off buttons
-        main: 'hsla(0, 0%, 27%, 1)'
-      },
-      gray900: { // Darker gray for standard border on off buttons
-        main: 'hsla(0, 0%, 21%, 1)'
-      },
+    brand: { // Defines the main brand color
+      main: 'hsla(0, 91%, 43%, 1)',    // 100%
+      light: 'hsla(0, 91%, 43%, 0.3)', // 30%
+      dark: 'hsla(0, 91%, 43%, 0.05)', // 5%
+    },
+    brandAlpha50: { // Defines the brand color 50% alpha channel
+      main: 'hsla(0, 91%, 43%, 0.5)',
+    },
+    brandAlpha75: { // Defines the brand color 75% alpha channel
+      main: 'hsla(0, 91%, 43%, 0.75)',
+    },
+    background: { // Defines the defualt background color
+      default: 'hsla(135, 8%, 10%, 1)'
+    },
+    text: { // Defines the text default color
+      primary: 'hsl(0, 0%, 100%)',
+      secondary: 'hsla(0, 0%, 100%, 0.50)',
+    },
+    whiteAlpha20: {
+      main: 'hsla(0, 0%, 21%, 0.20)'
+    },
+    dashboardBlack: { // Dashbpoard component backgrounds
+      main: 'hsla(150, 8%, 5%, 1)'
+    },
+    gray800: { // Lighter gray for hover border on off buttons
+      main: 'hsla(0, 0%, 27%, 1)'
+    },
+    gray900: { // Darker gray for standard border on off buttons
+      main: 'hsla(0, 0%, 21%, 1)'
+    },
   },
   components: {
     MuiButton: {
@@ -243,9 +244,9 @@ const theme = createTheme({
           "--DataGrid-columnSeparatorColor": "transparent",
           "& .MuiDataGrid-columnSeparator": { opacity: 0 },
           //Colors
-          "& .MuiDataGrid-columnHeader": {backgroundColor:  'hsla(150, 8%, 5%, 1)'},
+          "& .MuiDataGrid-columnHeader": { backgroundColor: 'hsla(150, 8%, 5%, 1)' },
           backgroundColor: 'hsla(150, 8%, 5%, 1)',
-          "& .MuiDataGrid-columnHeaderTitle":{
+          "& .MuiDataGrid-columnHeaderTitle": {
             color: 'hsla(0, 0%, 100%, 0.50)',
             fontWeight: '300',
           },
@@ -255,15 +256,15 @@ const theme = createTheme({
   },
   breakpoints: {
     values: {
-    xs: 0,
-    sm: 0,
-    md: 0,
-    lg: 0,
-    xl: 0,
-    mobile: 475,
-    tablet: 800,
-    laptop: 1200,
-    desktop: 1440,
+      xs: 0,
+      sm: 0,
+      md: 0,
+      lg: 0,
+      xl: 0,
+      mobile: 475,
+      tablet: 800,
+      laptop: 1200,
+      desktop: 1440,
     },
   },
 })
@@ -278,19 +279,20 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <Navbar />
-          <Box sx={{pt: '6rem', alignItems: 'center'}}>
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/fights" element={<FightsListPage />} />
-                  <Route path="/fights/:id" element={<FightsListPage />} />
-                  <Route path="/fighters" element={<FightersListPage />} />
-                  <Route path="/events" element={<EventsListPage />} />
-                  <Route path="/events/:id" element={<FightsListPage />} />
-                  <Route path="/fighter/:id" element={<AthleteStatsPage />} />
-                  <Route path="/fight/:id" element={<FightStatsPage />} />
-                  <Route path="/fighter" element={<AthleteStatsPage />} />
-                  <Route path="/team" element={<UserTeamPage/>}/>
-                </Routes>
+          <Box sx={{ pt: '6rem', alignItems: 'center' }}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/fights" element={<FightsListPage />} />
+              <Route path="/fights/:id" element={<FightsListPage />} />
+              <Route path="/fighters" element={<FightersListPage />} />
+              <Route path="/events" element={<EventsListPage />} />
+              <Route path="/events/:id" element={<FightsListPage />} />
+              <Route path="/fighter/:id" element={<AthleteStatsPage />} />
+              <Route path="/fight/:id" element={<FightStatsPage />} />
+              <Route path="/fighter" element={<AthleteStatsPage />} />
+              <Route path="/team" element={<UserTeamPage />} />
+              <Route path="/draft" element={<DraftLobbyPage />} />
+            </Routes>
           </Box>
         </BrowserRouter>
 

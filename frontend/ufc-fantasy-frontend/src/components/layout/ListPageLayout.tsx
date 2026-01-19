@@ -1,15 +1,14 @@
-import { Container} from '@mui/material';
-import Stack from '@mui/material/Stack';
+import { Container, Stack, SxProps, Theme } from '@mui/material';
 import { ReactNode } from "react";
 
-export default function ListPageLayout (props: { children: ReactNode }) {
+export default function ListPageLayout(props: { children: ReactNode, sx?: SxProps<Theme> }) {
     return (
-    <>
-        <Container maxWidth="desktop">
-            <Stack direction="column">
-                {props.children}
-            </Stack>
-        </Container>
-    </>
+        <>
+            <Container maxWidth="desktop" sx={{ ...props.sx }}>
+                <Stack direction="column">
+                    {props.children}
+                </Stack>
+            </Container>
+        </>
     )
 }
