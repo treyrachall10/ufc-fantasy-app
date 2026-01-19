@@ -39,14 +39,15 @@ def GetCareerStatsViewSet(request, id):
 
 @api_view(['GET'])
 def GetFighterFightsViewSet(request, id):
-    fights = Fights.objects.filter(fightstats__fighter_id=id).distinct()
-    serializer = FightSerializer(fights, many=True)
+    fights = Fights.objects.filter(fightstats__fighter_id=id).prefetch_related('fightstats_set').distinct() # Prefetch related gets fields related to fights and stores in memory
+    serializer = FighterFightSerializer(fights, many=True, context={'fighter_id': id, 'request': request}) # Passing context allows for further logic in serializer
     return Response(serializer.data)
 
 @api_view(['GET'])
-def GetLastThreeFantasyScoresViewSet(request, id):
+def GetLastFiveFantasyScoresViewSet(request, id):
     fighter = Fighters.objects.get(fighter_id=id)
-    fightScore = FightScore.objects.filter(fighter=fighter).order_by('fight__event__date')[:3]
+    fightScore = FightScore.objects.filter(fighter=fighter).order_by('-fight__event__date')[:5]
+    fightScore = reversed(fightScore)
     serializer = FantasyFightScoreSerializer(fightScore, many=True)
     return Response(serializer.data)
 

@@ -20,7 +20,7 @@ const cards = [
         id: 1,
         icon: <FlagOutlinedIcon></FlagOutlinedIcon>,
         title: 'Leagues',
-        description: 'Join or create  league',
+        description: 'View your leagues',
         link: '/leagues'
     },
     {

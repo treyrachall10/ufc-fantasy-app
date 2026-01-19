@@ -1,7 +1,5 @@
 import HighchartsReact from 'highcharts-react-official';
 import Highcharts from 'highcharts';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { wrap } from 'module';
 
 interface FantasyTrendPoint {
     bout: string,
@@ -76,7 +74,7 @@ export default function FantasyTrendLineChart({data}: FantasyTrendLineChartProps
         series: [{
             type: "area",
             name: 'fighter',
-            data: data.map(d => d.points),
+            data: data.map(d => Number(d.points.toFixed(2))),
             color: "hsla(0, 91%, 43%, 1)",
             fillColor: "hsla(0, 91%, 43%, 0.05)",
             marker: {

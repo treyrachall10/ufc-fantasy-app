@@ -11,7 +11,7 @@ urlpatterns = [
     path('fights', views.GetFightViewSet),
     path('fighter/<int:id>', views.GetCareerStatsViewSet),
     path('fights/<int:id>', views.GetFighterFightsViewSet),
-    path('fights/<int:id>/fantasy-scores/recent', views.GetLastThreeFantasyScoresViewSet),
+    path('fights/<int:id>/fantasy-scores/recent', views.GetLastFiveFantasyScoresViewSet),
     path('events/<int:id>', views.GetFightsFromEventViewSet),
     path('fight/<int:id>', views.GetHeadToHeadStatsViewSet),
     path('dj-rest-auth/', include('dj_rest_auth.urls')),
