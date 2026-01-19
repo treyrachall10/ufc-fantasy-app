@@ -6,7 +6,7 @@ import FightsList from "../components/lists/FightsList";
 import WinLossChart from "../components/charts/WinLossChart";
 import FantasyTrendLineChart from "../components/charts/FantasyTrendLineChart";
 import FightResultBadge from "../components/badges/FightResultBadge";
-import { FantasyFightScore, FighterWithCareerStats } from "../types/types";
+import { FantasyFightScore, Fight, FighterWithCareerStats, FightForFighter } from "../types/types";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router";
 
@@ -14,7 +14,6 @@ export default function AthleteStatsPage(){
     const  params = useParams()
     const id = params.id; 
     {/* API fetching*/}    
-    {/*
     const { data: fighterData,
             isPending: fighterPending,
             error: fighterError } = useQuery<FighterWithCareerStats>({
@@ -29,38 +28,45 @@ export default function AthleteStatsPage(){
             queryFn: () => fetch(`http://localhost:8000/fights/${id}/fantasy-scores/recent`).then(r => r.json()),
         })
     
-    if (fighterPending || fantasyPending) return <span>Loading...</span>
-    if (fighterError || fantasyError) return <span>Oops!</span>
+    const { data: fighterFightsData,
+        isPending: fightsPending,
+        error: fightsError } = useQuery<FightForFighter[]>({
+        queryKey: ['fighterFights', id],
+        queryFn: () => fetch(`http://localhost:8000/fights/${id}`).then(r => r.json()),
+    })
+
+    if (fighterPending || fantasyPending || fightsPending) return <span>Loading...</span>
+    if (fighterError || fantasyError || fightsError) return <span>Oops!</span>
 
     // Strikes landed per minute (fight time is in seconds)
     const slpm =
-    fighterData.total_fight_time > 0
+    (fighterData.total_fight_time > 0
         ? fighterData.striking.total.landed / (fighterData.total_fight_time / 60)
-        : 0;
+        : 0).toFixed(1);
 
     // Striking accuracy
     const strAcc =
-    fighterData.striking.significant.attempted > 0
+    Number((fighterData.striking.significant.attempted > 0
         ? (fighterData.striking.significant.landed / fighterData.striking.significant.attempted) * 100
-        : 0;
+        : 0).toFixed(1));
 
     // Striking defense
     const strDef =
-    fighterData.opponent.striking.significant.attempted > 0
+    Number((fighterData.opponent.striking.significant.attempted > 0
         ? (1 - fighterData.opponent.striking.significant.landed / fighterData.opponent.striking.significant.attempted) * 100
-        : 100;
+        : 100).toFixed(1));
 
     // Takedown accuracy
     const tdAcc =
-    fighterData.grappling.takedowns.attempted > 0
+    Number((fighterData.grappling.takedowns.attempted > 0
         ? (fighterData.grappling.takedowns.landed / fighterData.grappling.takedowns.attempted) * 100
-        : 0;
+        : 0).toFixed(1));
 
     // Takedown defense
     const tdDef =
-    fighterData.opponent.grappling.takedowns.attempted > 0
+    Number((fighterData.opponent.grappling.takedowns.attempted > 0
         ? (1 - fighterData.opponent.grappling.takedowns.landed / fighterData.opponent.grappling.takedowns.attempted) * 100
-        : 100;
+        : 100).toFixed(1));
 
     // Fantasy Trend Points
     const fantasyTrendData = fantasyScoresData.map(fantasyData => ({
@@ -68,107 +74,50 @@ export default function AthleteStatsPage(){
         points: fantasyData.fight_total_points,
         date: fantasyData.date
     }))
-        */}
-
     
-    // Define the columns for the data grid
+    // Define columns for datagrid
     // Each column needs: field (matches the data property name), headerName (what users see), and width
     const columns = [
-        {field: 'result', headerName: 'Result', renderCell: (params: any) => {return <FightResultBadge result={params.row.result} method={params.row.method}/>}},
+        {field: 'result', headerName: 'Result', renderCell: (params: any) => {return <FightResultBadge result={params.row.result} method={params.row.method}/>}, flex: 0.75},
         {field: 'opponent', headerName: 'Opponent', flex: 1},
         {field: 'event', headerName: 'Event', flex: 1 }, //Flex keeps consistent sizing when chaning window size
-        {field: 'round', headerName: 'Round', flex: 1 },
+        {field: 'round', headerName: 'Round', flex: 0 },
         {field: 'date', headerName: 'Date', flex: 1},
     ];
     
     // Each row object must have an 'id' property and properties that match the 'field' names in columns
     // Will be replaced when API is connected. Tests out events with long name
-    const rows = [
-  {
-    id: 1,
-    result: 'L',
-    method: 'TKO',
-    opponent: 'Alex Pereira',
-    event: 'UFC 281',
-    round: 'R5',
-    date: '2022-11-12',
-  },
-  {
-    id: 2,
-    result: 'L',
-    method: 'DEC',
-    opponent: 'Robert Whittaker',
-    event: 'UFC 271',
-    round: 'R5',
-    date: '2022-02-12',
-  },
-  {
-    id: 3,
-    result: 'W',
-    method: 'TKO',
-    opponent: 'Paulo Costa',
-    event: 'UFC 253',
-    round: 'R2',
-    date: '2020-09-26',
-  },
-  {
-    id: 4,
-    result: 'W',
-    method: 'DEC',
-    opponent: 'Kelvin Gastelum',
-    event: 'UFC 236',
-    round: 'R5',
-    date: '2019-04-13',
-  },
-  {
-    id: 5,
-    result: 'W',
-    method: 'TKO',
-    opponent: 'Derek Brunson',
-    event: 'UFC 230',
-    round: 'R1',
-    date: '2018-11-03',
-  },
-  {
-    id: 6,
-    result: 'W',
-    method: 'DEC',
-    opponent: 'Anderson Silva',
-    event: 'UFC 234',
-    round: 'R5',
-    date: '2019-02-10',
-  },
-  {
-    id: 7,
-    result: 'W',
-    method: 'DEC',
-    opponent: 'Jared Cannonier',
-    event: 'UFC 276',
-    round: 'R5',
-    date: '2022-07-02',
-  },
-];
+    const rows = fighterFightsData.map((data) => ({
+            id: data.fight_id,
+            result: data.result,
+            method: data.method,
+            opponent: data.opponent,
+            event: data.event.event,
+            round: data.round,
+            date: data.event.date,
+    }));
 
-    const mockData = {
+    // Dynamic data for method win data
+    const winChartData = {
         wins: {
-            total: 12,
-            ko_tko_wins: 12,
-            tko_doctor_stoppage_wins: 1,
-            submission_wins: 8,
-            unanimous_decision_wins: 10,
-            split_decision_wins: 4,
-            majority_decision_wins: 2,
-            dq_wins: 0,
+            total: fighterData.fighter.record.wins.total,
+            ko_tko_wins: fighterData.fighter.record.wins.ko_tko_wins,
+            tko_doctor_stoppage_wins: fighterData.fighter.record.wins.tko_doctor_stoppage_wins,
+            submission_wins: fighterData.fighter.record.wins.submission_wins,
+            unanimous_decision_wins: fighterData.fighter.record.wins.unanimous_decision_wins,
+            split_decision_wins: fighterData.fighter.record.wins.split_decision_wins,
+            majority_decision_wins: fighterData.fighter.record.wins.majority_decision_wins,
+            dq_wins: fighterData.fighter.record.wins.dq_wins,
         },
         losses: {
-            total: 3,
-            ko_tko_losses: 1,
-            tko_doctor_stoppage_losses: 1,
-            submission_losses: 2,
-            unanimous_decision_losses: 4,
-            split_decision_losses: 1,
-            majority_decision_losses: 0,
-            dq_losses: 0,
+            total: fighterData.fighter.record.losses.total,
+            ko_tko_losses: fighterData.fighter.record.losses.ko_tko_losses,
+            tko_doctor_stoppage_losses: fighterData.fighter.record.losses.tko_doctor_stoppage_losses,
+            submission_losses: fighterData.fighter.record.losses.submission_losses,
+            unanimous_decision_losses: fighterData.fighter.record.losses.unanimous_decision_losses,
+            split_decision_losses: fighterData.fighter.record.losses.split_decision_losses,
+            majority_decision_losses: fighterData.fighter.record.losses.majority_decision_losses,
+            dq_losses: fighterData.fighter.record.losses.dq_losses,
         },
         draws: 1,
         };
@@ -185,40 +134,40 @@ export default function AthleteStatsPage(){
                                 justifyContent: {mobile: 'center', laptop: 'flex-start'},
                                 alignItems: {mobile: 'center', laptop: 'flex-start'},
                         }}>
-                            <Typography variant="h2">Alex Pereira</Typography>
-                            <Typography variant="body" color="text.secondary">"Poatan"</Typography>
-                            <Typography variant="h3">10-2-0</Typography>
+                            <Typography variant="h2">{fighterData.fighter.full_name}</Typography>
+                            <Typography variant="body" color="text.secondary">"{fighterData.fighter.nick_name}"</Typography>
+                            <Typography variant="h3">{fighterData.fighter.record.wins.total}-{fighterData.fighter.record.losses.total}-{fighterData.fighter.record.draws}</Typography>
                         </Stack>
                             <Grid container spacing={3} justifyContent={{ mobile: 'center', laptop: 'flex-start' }}>
                                 {/*Meta Data Box*/}
                                 <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
                                         <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
                                             <Typography variant="metaLabel" color="text.secondary">Height: </Typography>
-                                            <Typography variant="metaText">60"</Typography>
+                                            <Typography variant="metaText">{fighterData.fighter.height}"</Typography>
                                         </Stack>
                                 </Grid>
                                 <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
                                     <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
                                         <Typography variant="metaLabel" color="text.secondary">Weight: </Typography>
-                                        <Typography variant="metaText">205lbs</Typography>
+                                        <Typography variant="metaText">{fighterData.fighter.weight}lbs</Typography>
                                     </Stack>
                                 </Grid>
                                 <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
                                     <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
                                         <Typography variant="metaLabel" color="text.secondary">Reach: </Typography>
-                                        <Typography variant="metaText">60"</Typography>
+                                        <Typography variant="metaText">{fighterData.fighter.reach}"</Typography>
                                     </Stack>
                                 </Grid>
                                 <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
                                     <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
                                         <Typography variant="metaLabel" color="text.secondary">Stance: </Typography>
-                                        <Typography variant="metaText">Orthodox</Typography>
+                                        <Typography variant="metaText">{fighterData.fighter.stance}</Typography>
                                     </Stack>
                                 </Grid>
                                 <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
                                     <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
                                         <Typography variant="metaLabel" color="text.secondary">Dob: </Typography>
-                                        <Typography variant="metaText">12-02-2003</Typography>
+                                        <Typography variant="metaText">{fighterData.fighter.dob}</Typography>
                                     </Stack>
                                 </Grid>
                             </Grid>
@@ -228,51 +177,45 @@ export default function AthleteStatsPage(){
                                 <Grid container size={12} spacing={1} sx={{ bgcolor: 'dashboardBlack.main', borderRadius: 2, p: 1}}>
                                     <Grid size={2.4} padding={1}>
                                         <Stack direction="column">
-                                            <Typography variant="kpiValue">8.85</Typography>
+                                            <Typography variant="kpiValue">{slpm}</Typography>
                                             <Typography variant="caption">SLPM</Typography>
                                         </Stack>
                                     </Grid>
                                     <Grid size={2.4} padding={1}>
                                         <Stack direction="column">
-                                            <Typography variant="kpiValue">58.95</Typography>
+                                            <Typography variant="kpiValue">{strDef}%</Typography>
                                             <Typography variant="caption">Str. Def.</Typography>
                                         </Stack>
                                     </Grid>
                                     <Grid size={2.4} padding={1}>
                                         <Stack direction="column">
-                                            <Typography variant="kpiValue">56.89</Typography>
+                                            <Typography variant="kpiValue">{strAcc}%</Typography>
                                             <Typography variant="caption">Str. Acc.</Typography>
                                         </Stack>
                                     </Grid>
                                     <Grid size={2.4} padding={1}>
                                         <Stack direction="column">
-                                            <Typography variant="kpiValue">70%</Typography>
+                                            <Typography variant="kpiValue">{tdAcc}%</Typography>
                                             <Typography variant="caption">Td%</Typography>
                                         </Stack>
                                     </Grid>
                                     <Grid size={2.4} padding={1}>
                                         <Stack direction="column">
-                                            <Typography variant="kpiValue">34.44</Typography>
-                                            <Typography variant="caption">Td Acc.</Typography>
+                                            <Typography variant="kpiValue">{tdDef}%</Typography>
+                                            <Typography variant="caption">Td Def.</Typography>
                                         </Stack>
                                     </Grid>                                                                        
                                 </Grid>
                                 {/*Fantasy Trend Chart*/}
                                 <Grid size={12}>
                                     <Box sx={{ height: 400, bgcolor: 'dashboardBlack.main', borderRadius: 2, overflow: "hidden" }}>
-                                        <FantasyTrendLineChart data={[
-                                            {bout: 'pereira vs. blachowiz', points: 120, date: '12/12/12'},
-                                            {bout: 'pereira vs. ankalaev', points: 80, date: '12/12/12'},
-                                            {bout: 'pereira vs. ankalaev', points: 30, date: '12/12/12'},
-                                            {bout: 'pereira vs. ankalaev', points: 40, date: '12/12/12'},
-                                            {bout: 'pereira vs. adesanya', points: 100, date: '12/12/12'}
-                                        ]}/>
+                                        <FantasyTrendLineChart data={fantasyTrendData}/>
                                     </Box>
                                 </Grid>
                                 {/*Win Loss Chart*/}
                                 <Grid size={{mobile: 12, laptop: 5}}>
                                     <Box sx={{ height: 400, bgcolor: 'dashboardBlack.main', borderRadius: 2, overflow: 'hidden'}}>
-                                        <WinLossChart record={mockData}/>
+                                        <WinLossChart record={winChartData}/>
                                     </Box>
                                 </Grid>
                                 {/*Past Fights List*/}

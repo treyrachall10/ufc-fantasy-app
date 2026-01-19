@@ -120,6 +120,20 @@ export interface Fight {
     winner: string,
 }
 
+export interface FightForFighter {
+    fight_id: number,
+    event: Event,
+    bout: string,
+    weight_class: string,
+    method: string,
+    round: number,
+    round_format: string,
+    time: number,
+    winner: string,
+    opponent: string,
+    result: string,
+}
+
 export interface FantasyFightScore {
     bout: string,
     date: string,

@@ -11,3 +11,8 @@ tqdm
 pyyaml
 django-cors-headers
 djangorestframework
+django-cors-headers
+djangorestframework
+django-allauth
+dj-rest-auth
+djangorestframework-simplejwt

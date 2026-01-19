@@ -1,17 +1,20 @@
 import { AppBar, 
             Box, 
-            Container, 
             Button, 
             Typography, 
             IconButton,
             Menu,
             MenuItem,
         } from '@mui/material';
+import { Avatar } from '@mui/material';
 import * as React from 'react';
 import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
 import { Link } from 'react-router-dom';
 import fistLogo from '../../images/fist-svgrepo-com.svg';
+import { useContext } from 'react';
+import { AuthContext } from '../../auth/AuthProvider';
+import { useNavigate } from 'react-router-dom';
 
 const pages = [{
         title: 'Fighters',
@@ -24,6 +27,10 @@ const pages = [{
         ]
 
 export default function Navbar(){
+    const navigate = useNavigate();
+    // Gives access to token state directly
+    const auth = useContext(AuthContext)!;
+
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
     const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
 
@@ -34,6 +41,27 @@ export default function Navbar(){
     const handleCloseNavMenu = () => {
         setAnchorElNav(null);
     };
+
+    const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorElUser(event.currentTarget);
+    }
+
+    const handleCloseUserMenu = () => {
+        setAnchorElUser(null);
+    }
+
+    const settings = [
+        { label: 'Profile', to: '/profile' },
+        { label: 'Account', to: '/account' },
+        { label: 'Dashboard', to: '/league' },
+        {
+            label: 'Logout',
+            action: () => {
+            auth.logout();
+            navigate('/sign-in');
+            },
+        },
+    ];
 
     return (
         <AppBar position='static' sx={{
@@ -98,8 +126,22 @@ export default function Navbar(){
                         sx={{ display: { xs: 'block', md: 'none' } }}
                         >
                         {pages.map((page) => (
-                            <MenuItem key={page.title} onClick={handleCloseNavMenu}>
-                            <Typography sx={{ textAlign: 'center' }}>{page.title}</Typography>
+                            <MenuItem 
+                                key={page.title} 
+                                onClick={handleCloseNavMenu}
+                                sx={{
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(255, 255, 255, 0.04)'
+                                    }
+                                }}
+                                >
+                                <Typography 
+                                    sx={{ 
+                                        textAlign: 'center' 
+                                    }}
+                                    >
+                                        {page.title}
+                                    </Typography>
                             </MenuItem>
                         ))}
                         </Menu>
@@ -145,26 +187,67 @@ export default function Navbar(){
                         </Button>
                         ))}
                     </Box>
-                    <Box sx={{ display: 'flex', 
-                        flexGrow: 0, gap: 1}}>
-                        <Button variant='contained' color={"whiteAlpha20"}
-                            sx={{borderColor: 'gray900.main',
+                    <Box 
+                        sx={{ 
+                            display: 'flex', 
+                            flexGrow: 0, 
+                            gap: 1,
+                            alignItems: 'center'
+                            }}
+                        >
+                        {/* render sign in button if user not logged in*/}
+                        {!auth.token && (
+                        <Button 
+                            variant='contained' 
+                            color={"whiteAlpha20"}
+                            component={Link} to="/sign-in"
+                            sx={{
+                                textWrap: 'nowrap',
+                                borderColor: 'gray900.main',
                                 '&:hover': {
                                 borderColor: 'gray800.main'
                                     }
+                            }}
+                        >
+                            Sign In
+                        </Button>
+                        )}
+                        <Button 
+                            variant="contained" 
+                            color='brandAlpha50' 
+                            sx={{
+                                display: {xs: 'none', md:'flex'},
+                                borderColor: 'brand.light',
+                                '&:hover': {
+                                    borderColor: 'brand.main'
+                                }                        
                                 }}
-                        >Sign In</Button>
-                        <Button variant="contained" 
-                                color='brandAlpha50' 
-                                sx={{ 
-                                        borderColor: 'brand.light',
-                                        '&:hover': {
-                                            borderColor: 'brand.main'
-                                        }                        
-                                    }}
-                            >
+                        >
                             Join a League
                         </Button>
+                        {auth.token && (
+                            <>
+                                <IconButton
+                                    onClick={handleOpenUserMenu}
+                                >
+                                    <Avatar alt="Profile Picture"/>
+                                </IconButton>
+                                <Menu
+                                    anchorEl={anchorElUser}
+                                    open={Boolean(anchorElUser)}
+                                    onClose={handleCloseUserMenu}
+                                >
+                                    {settings.map((setting) => (
+                                        <MenuItem key={setting.label} onClick={() => {
+                                            setting.action?.(); // Will only run if setting.action exist in list
+                                            handleCloseUserMenu();
+                                        }}>
+                                            <Typography sx={{ textAlign: 'center' }}>{setting.label}</Typography>
+                                        </MenuItem>
+                                    ))}
+                                </Menu>
+                            </>
+                        )}
                     </Box>
                 </Toolbar>
         </AppBar>

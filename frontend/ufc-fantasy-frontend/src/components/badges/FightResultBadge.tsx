@@ -6,16 +6,29 @@ interface FightResultBadge {
 }
 
 export default function FightResultBadge({result, method}: FightResultBadge){
+    let displayResult = result;
+    let displayMethod = method;
+    let bgColor;
 
-
-    const bgColor = result === 'W'? 'brandAlpha75.main': 'brand.light'
+    // Determine bgcolor and result
+    if (result === 'W') {
+        bgColor = 'brandAlpha75.main';
+    } else if (result === 'L') {
+        bgColor = 'brand.light';
+    } else if (result === 'D' && method == null) {
+        displayResult = 'NC';
+        displayMethod = 'NC'
+        bgColor = 'transparent';
+    } else if (result === 'D') {
+        bgColor = 'transparent'
+    } 
 
     return (
         <Box sx={{
             display: "inline-flex",
             justifyContent: "flex-start",
             alignItems: "center",
-            gap: .25
+            gap: .25,
         }}>
             {/* Result */}
             <Box sx={{
@@ -33,7 +46,7 @@ export default function FightResultBadge({result, method}: FightResultBadge){
                                 fontWeight: '500', 
                                 textAlign: 'center', 
                                 lineHeight: '100%'}}
-                                >{result.toUpperCase()}
+                                >{displayResult}
                 </Typography>
             </Box>
             {/* Method */}
@@ -55,7 +68,7 @@ export default function FightResultBadge({result, method}: FightResultBadge){
                     transformOrigin: 'center',
                     lineHeight: '100%'
                     }}>
-                        {method.toUpperCase()}
+                        {displayMethod}
                     </Typography>
             </Box>
         </Box>
