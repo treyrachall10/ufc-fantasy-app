@@ -187,7 +187,7 @@ const theme = createTheme({
       whiteAlpha20: {
         main: 'hsla(0, 0%, 21%, 0.20)'
       },
-      dashboardBlack: { // Dashbpoard component backgrounds
+      dashboardBlack: { // Dashboard component backgrounds
         main: 'hsla(150, 8%, 5%, 1)'
       },
       gray800: { // Lighter gray for hover border on off buttons
@@ -282,6 +282,18 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: 'hsla(135, 8%, 10%, 1)'
+        }
+      }
+    },
+    MuiTooltip: {
+      styleOverrides: {
+        tooltip: {
+          border: '0.5px solid',
+          borderColor: 'hsla(0, 91%, 43%, 1)',
+          backgroundColor: 'rgba(23, 28, 24, 0.85)'
+        },
+        arrow: {
+          color: 'hsla(0, 91%, 43%, 1)',
         }
       }
     }
