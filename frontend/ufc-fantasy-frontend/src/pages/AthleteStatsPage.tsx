@@ -74,9 +74,8 @@ export default function AthleteStatsPage(){
         points: fantasyData.fight_total_points,
         date: fantasyData.date
     }))
-
     
-    // Define the columns for the data grid
+    // Define columns for datagrid
     // Each column needs: field (matches the data property name), headerName (what users see), and width
     const columns = [
         {field: 'result', headerName: 'Result', renderCell: (params: any) => {return <FightResultBadge result={params.row.result} method={params.row.method}/>}},
@@ -184,13 +183,13 @@ export default function AthleteStatsPage(){
                                     </Grid>
                                     <Grid size={2.4} padding={1}>
                                         <Stack direction="column">
-                                            <Typography variant="kpiValue">{strDef}</Typography>
+                                            <Typography variant="kpiValue">{strDef}%</Typography>
                                             <Typography variant="caption">Str. Def.</Typography>
                                         </Stack>
                                     </Grid>
                                     <Grid size={2.4} padding={1}>
                                         <Stack direction="column">
-                                            <Typography variant="kpiValue">{strAcc}</Typography>
+                                            <Typography variant="kpiValue">{strAcc}%</Typography>
                                             <Typography variant="caption">Str. Acc.</Typography>
                                         </Stack>
                                     </Grid>
@@ -202,7 +201,7 @@ export default function AthleteStatsPage(){
                                     </Grid>
                                     <Grid size={2.4} padding={1}>
                                         <Stack direction="column">
-                                            <Typography variant="kpiValue">{tdDef}</Typography>
+                                            <Typography variant="kpiValue">{tdDef}%</Typography>
                                             <Typography variant="caption">Td Def.</Typography>
                                         </Stack>
                                     </Grid>                                                                        
@@ -210,13 +209,7 @@ export default function AthleteStatsPage(){
                                 {/*Fantasy Trend Chart*/}
                                 <Grid size={12}>
                                     <Box sx={{ height: 400, bgcolor: 'dashboardBlack.main', borderRadius: 2, overflow: "hidden" }}>
-                                        <FantasyTrendLineChart data={[
-                                            {bout: 'pereira vs. blachowiz', points: 120, date: '12/12/12'},
-                                            {bout: 'pereira vs. ankalaev', points: 80, date: '12/12/12'},
-                                            {bout: 'pereira vs. ankalaev', points: 30, date: '12/12/12'},
-                                            {bout: 'pereira vs. ankalaev', points: 40, date: '12/12/12'},
-                                            {bout: 'pereira vs. adesanya', points: 100, date: '12/12/12'}
-                                        ]}/>
+                                        <FantasyTrendLineChart data={fantasyTrendData}/>
                                     </Box>
                                 </Grid>
                                 {/*Win Loss Chart*/}
