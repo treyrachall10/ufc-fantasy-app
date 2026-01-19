@@ -6,7 +6,7 @@ import FightsList from "../components/lists/FightsList";
 import WinLossChart from "../components/charts/WinLossChart";
 import FantasyTrendLineChart from "../components/charts/FantasyTrendLineChart";
 import FightResultBadge from "../components/badges/FightResultBadge";
-import { FantasyFightScore, FighterWithCareerStats } from "../types/types";
+import { FantasyFightScore, Fight, FighterWithCareerStats, FightForFighter } from "../types/types";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router";
 
@@ -28,8 +28,15 @@ export default function AthleteStatsPage(){
             queryFn: () => fetch(`http://localhost:8000/fights/${id}/fantasy-scores/recent`).then(r => r.json()),
         })
     
-    if (fighterPending || fantasyPending) return <span>Loading...</span>
-    if (fighterError || fantasyError) return <span>Oops!</span>
+    const { data: fighterFightsData,
+        isPending: fightsPending,
+        error: fightsError } = useQuery<FightForFighter[]>({
+        queryKey: ['fighterFights', id],
+        queryFn: () => fetch(`http://localhost:8000/fights/${id}`).then(r => r.json()),
+    })
+
+    if (fighterPending || fantasyPending || fightsPending) return <span>Loading...</span>
+    if (fighterError || fantasyError || fightsError) return <span>Oops!</span>
 
     // Strikes landed per minute (fight time is in seconds)
     const slpm =
@@ -81,72 +88,17 @@ export default function AthleteStatsPage(){
     
     // Each row object must have an 'id' property and properties that match the 'field' names in columns
     // Will be replaced when API is connected. Tests out events with long name
-    const rows = [
-  {
-    id: 1,
-    result: 'L',
-    method: 'TKO',
-    opponent: 'Alex Pereira',
-    event: 'UFC 281',
-    round: 'R5',
-    date: '2022-11-12',
-  },
-  {
-    id: 2,
-    result: 'L',
-    method: 'DEC',
-    opponent: 'Robert Whittaker',
-    event: 'UFC 271',
-    round: 'R5',
-    date: '2022-02-12',
-  },
-  {
-    id: 3,
-    result: 'W',
-    method: 'TKO',
-    opponent: 'Paulo Costa',
-    event: 'UFC 253',
-    round: 'R2',
-    date: '2020-09-26',
-  },
-  {
-    id: 4,
-    result: 'W',
-    method: 'DEC',
-    opponent: 'Kelvin Gastelum',
-    event: 'UFC 236',
-    round: 'R5',
-    date: '2019-04-13',
-  },
-  {
-    id: 5,
-    result: 'W',
-    method: 'TKO',
-    opponent: 'Derek Brunson',
-    event: 'UFC 230',
-    round: 'R1',
-    date: '2018-11-03',
-  },
-  {
-    id: 6,
-    result: 'W',
-    method: 'DEC',
-    opponent: 'Anderson Silva',
-    event: 'UFC 234',
-    round: 'R5',
-    date: '2019-02-10',
-  },
-  {
-    id: 7,
-    result: 'W',
-    method: 'DEC',
-    opponent: 'Jared Cannonier',
-    event: 'UFC 276',
-    round: 'R5',
-    date: '2022-07-02',
-  },
-];
+    const rows = fighterFightsData.map((data) => ({
+            id: data.fight_id,
+            result: data.result,
+            method: data.method,
+            opponent: data.opponent,
+            event: data.event.event,
+            round: data.round,
+            date: data.event.date,
+    }));
 
+    // Dynamic data for method win data
     const winChartData = {
         wins: {
             total: fighterData.fighter.record.wins.total,

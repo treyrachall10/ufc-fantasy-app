@@ -71,7 +71,7 @@ class FighterSerializer(serializers.HyperlinkedModelSerializer):
             'record',
         ]
 
-class EventSerializer(serializers.HyperlinkedModelSerializer):
+class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Events
         fields = [
@@ -81,9 +81,10 @@ class EventSerializer(serializers.HyperlinkedModelSerializer):
             'location',
         ]
 
-class FightSerializer(serializers.HyperlinkedModelSerializer):
+class FightSerializer(serializers.ModelSerializer):
     event = EventSerializer(many=False, read_only=True)
     winner = serializers.CharField(source='winner.full_name', read_only=True)
+    method = serializers.SerializerMethodField()
 
     class Meta:
         model = Fights
@@ -98,6 +99,38 @@ class FightSerializer(serializers.HyperlinkedModelSerializer):
             'time',
             'winner',
         ]
+    
+    def get_method(self, obj):
+        method = obj.method
+        if 'Decision' in method:
+            return 'DEC'
+        elif method == 'KO/TKO':
+            return 'TKO'
+        elif method == 'Submission':
+            return 'SUB'
+
+class FighterFightSerializer(FightSerializer):
+    opponent = serializers.SerializerMethodField()
+    result = serializers.SerializerMethodField()
+
+    class Meta(FightSerializer.Meta):
+        fields = FightSerializer.Meta.fields + ['opponent'] + ['result']
+
+    def get_opponent(self, obj):
+        fighter_id = self.context['fighter_id']
+        for fightStat in obj.fightstats_set.all():
+            if fightStat.fighter_id != fighter_id:
+                return fightStat.fighter.full_name
+        return None
+    
+    def get_result(self, obj):
+        fighter_id = self.context['fighter_id']
+        if obj.winner is None:
+            return 'D'
+        if obj.winner_id == fighter_id:
+            return 'W'
+        return 'L'
+            
 
 class TotalStrikesSerialier(serializers.HyperlinkedModelSerializer):
     landed = serializers.IntegerField(source='total_str_landed', read_only=True)

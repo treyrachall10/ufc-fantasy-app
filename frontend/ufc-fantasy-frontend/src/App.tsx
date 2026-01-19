@@ -24,7 +24,6 @@ import {
 } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import '@mui/x-data-grid/themeAugmentation';
-import { getToken } from './auth/auth';
 import ProtectedRoute from './auth/ProtectedRoute';
 import LeaguesPage from './pages/LeaguesPage';
 
