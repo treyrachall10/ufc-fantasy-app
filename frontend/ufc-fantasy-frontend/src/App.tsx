@@ -12,7 +12,6 @@ import Navbar from './components/layout/Navbar';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import { Box, CssBaseline } from '@mui/material';
-import FightStatsPage from './pages/FightStatsPage';
 import UserTeamPage from './pages/UserTeamPage';
 import { BrowserRouter, Routes, Route} from 'react-router-dom';
 import { AuthProvider } from './auth/AuthProvider';
@@ -52,7 +51,6 @@ const queryClient = new QueryClient();
                 <Route path="/events" element={<EventsListPage />} />
                 <Route path="/events/:id" element={<FightsListPage />} />
                 <Route path="/fighter/:id" element={<AthleteStatsPage />} />
-                <Route path="/fight/:id" element={<FightStatsPage />} />
                 <Route path="/team" element={<UserTeamPage />} />
                 <Route path="/leagues" element={<LeaguesPage/>}/>
                 <Route element={<ProtectedRoute/>}>
