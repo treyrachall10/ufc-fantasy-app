@@ -28,7 +28,7 @@ export default function FightResultBadge({result, method}: FightResultBadge){
             display: "inline-flex",
             justifyContent: "flex-start",
             alignItems: "center",
-            gap: .25
+            gap: .25,
         }}>
             {/* Result */}
             <Box sx={{
