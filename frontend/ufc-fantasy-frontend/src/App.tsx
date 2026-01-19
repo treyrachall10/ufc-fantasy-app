@@ -54,7 +54,6 @@ const queryClient = new QueryClient();
                 <Route path="/events/:id" element={<FightsListPage />} />
                 <Route path="/fighter/:id" element={<AthleteStatsPage />} />
                 <Route path="/fight/:id" element={<FightStatsPage />} />
-                <Route path="/fighter" element={<AthleteStatsPage />} />
                 <Route path="/team" element={<UserTeamPage />} />
                 <Route path="/leagues" element={<LeaguesPage/>}/>
                 <Route element={<ProtectedRoute/>}>

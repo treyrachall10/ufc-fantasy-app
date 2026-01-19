@@ -14,7 +14,6 @@ export default function AthleteStatsPage(){
     const  params = useParams()
     const id = params.id; 
     {/* API fetching*/}    
-    {/*
     const { data: fighterData,
             isPending: fighterPending,
             error: fighterError } = useQuery<FighterWithCareerStats>({
@@ -34,33 +33,33 @@ export default function AthleteStatsPage(){
 
     // Strikes landed per minute (fight time is in seconds)
     const slpm =
-    fighterData.total_fight_time > 0
+    (fighterData.total_fight_time > 0
         ? fighterData.striking.total.landed / (fighterData.total_fight_time / 60)
-        : 0;
+        : 0).toFixed(1);
 
     // Striking accuracy
     const strAcc =
-    fighterData.striking.significant.attempted > 0
+    Number((fighterData.striking.significant.attempted > 0
         ? (fighterData.striking.significant.landed / fighterData.striking.significant.attempted) * 100
-        : 0;
+        : 0).toFixed(1));
 
     // Striking defense
     const strDef =
-    fighterData.opponent.striking.significant.attempted > 0
+    Number((fighterData.opponent.striking.significant.attempted > 0
         ? (1 - fighterData.opponent.striking.significant.landed / fighterData.opponent.striking.significant.attempted) * 100
-        : 100;
+        : 100).toFixed(1));
 
     // Takedown accuracy
     const tdAcc =
-    fighterData.grappling.takedowns.attempted > 0
+    Number((fighterData.grappling.takedowns.attempted > 0
         ? (fighterData.grappling.takedowns.landed / fighterData.grappling.takedowns.attempted) * 100
-        : 0;
+        : 0).toFixed(1));
 
     // Takedown defense
     const tdDef =
-    fighterData.opponent.grappling.takedowns.attempted > 0
+    Number((fighterData.opponent.grappling.takedowns.attempted > 0
         ? (1 - fighterData.opponent.grappling.takedowns.landed / fighterData.opponent.grappling.takedowns.attempted) * 100
-        : 100;
+        : 100).toFixed(1));
 
     // Fantasy Trend Points
     const fantasyTrendData = fantasyScoresData.map(fantasyData => ({
@@ -68,7 +67,6 @@ export default function AthleteStatsPage(){
         points: fantasyData.fight_total_points,
         date: fantasyData.date
     }))
-        */}
 
     
     // Define the columns for the data grid
@@ -185,40 +183,40 @@ export default function AthleteStatsPage(){
                                 justifyContent: {mobile: 'center', laptop: 'flex-start'},
                                 alignItems: {mobile: 'center', laptop: 'flex-start'},
                         }}>
-                            <Typography variant="h2">Alex Pereira</Typography>
-                            <Typography variant="body" color="text.secondary">"Poatan"</Typography>
-                            <Typography variant="h3">10-2-0</Typography>
+                            <Typography variant="h2">{fighterData.fighter.full_name}</Typography>
+                            <Typography variant="body" color="text.secondary">"{fighterData.fighter.nick_name}"</Typography>
+                            <Typography variant="h3">{fighterData.fighter.record.wins.total}-{fighterData.fighter.record.losses.total}-{fighterData.fighter.record.draws}</Typography>
                         </Stack>
                             <Grid container spacing={3} justifyContent={{ mobile: 'center', laptop: 'flex-start' }}>
                                 {/*Meta Data Box*/}
                                 <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
                                         <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
                                             <Typography variant="metaLabel" color="text.secondary">Height: </Typography>
-                                            <Typography variant="metaText">60"</Typography>
+                                            <Typography variant="metaText">{fighterData.fighter.height}"</Typography>
                                         </Stack>
                                 </Grid>
                                 <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
                                     <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
                                         <Typography variant="metaLabel" color="text.secondary">Weight: </Typography>
-                                        <Typography variant="metaText">205lbs</Typography>
+                                        <Typography variant="metaText">{fighterData.fighter.weight}lbs</Typography>
                                     </Stack>
                                 </Grid>
                                 <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
                                     <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
                                         <Typography variant="metaLabel" color="text.secondary">Reach: </Typography>
-                                        <Typography variant="metaText">60"</Typography>
+                                        <Typography variant="metaText">{fighterData.fighter.reach}"</Typography>
                                     </Stack>
                                 </Grid>
                                 <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
                                     <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
                                         <Typography variant="metaLabel" color="text.secondary">Stance: </Typography>
-                                        <Typography variant="metaText">Orthodox</Typography>
+                                        <Typography variant="metaText">{fighterData.fighter.stance}</Typography>
                                     </Stack>
                                 </Grid>
                                 <Grid size={{ mobile: 12, tablet: 6, laptop: 2.4 }}>
                                     <Stack direction="row" justifyContent={{mobile: "center", laptop: "flex-start"}} textAlign="center" spacing={.5}>
                                         <Typography variant="metaLabel" color="text.secondary">Dob: </Typography>
-                                        <Typography variant="metaText">12-02-2003</Typography>
+                                        <Typography variant="metaText">{fighterData.fighter.dob}</Typography>
                                     </Stack>
                                 </Grid>
                             </Grid>
@@ -228,32 +226,32 @@ export default function AthleteStatsPage(){
                                 <Grid container size={12} spacing={1} sx={{ bgcolor: 'dashboardBlack.main', borderRadius: 2, p: 1}}>
                                     <Grid size={2.4} padding={1}>
                                         <Stack direction="column">
-                                            <Typography variant="kpiValue">8.85</Typography>
+                                            <Typography variant="kpiValue">{slpm}</Typography>
                                             <Typography variant="caption">SLPM</Typography>
                                         </Stack>
                                     </Grid>
                                     <Grid size={2.4} padding={1}>
                                         <Stack direction="column">
-                                            <Typography variant="kpiValue">58.95</Typography>
+                                            <Typography variant="kpiValue">{strDef}</Typography>
                                             <Typography variant="caption">Str. Def.</Typography>
                                         </Stack>
                                     </Grid>
                                     <Grid size={2.4} padding={1}>
                                         <Stack direction="column">
-                                            <Typography variant="kpiValue">56.89</Typography>
+                                            <Typography variant="kpiValue">{strAcc}</Typography>
                                             <Typography variant="caption">Str. Acc.</Typography>
                                         </Stack>
                                     </Grid>
                                     <Grid size={2.4} padding={1}>
                                         <Stack direction="column">
-                                            <Typography variant="kpiValue">70%</Typography>
+                                            <Typography variant="kpiValue">{tdAcc}%</Typography>
                                             <Typography variant="caption">Td%</Typography>
                                         </Stack>
                                     </Grid>
                                     <Grid size={2.4} padding={1}>
                                         <Stack direction="column">
-                                            <Typography variant="kpiValue">34.44</Typography>
-                                            <Typography variant="caption">Td Acc.</Typography>
+                                            <Typography variant="kpiValue">{tdDef}</Typography>
+                                            <Typography variant="caption">Td Def.</Typography>
                                         </Stack>
                                     </Grid>                                                                        
                                 </Grid>
