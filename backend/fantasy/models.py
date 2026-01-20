@@ -9,6 +9,7 @@ from django.db import models
     - RoundStats holds a foreign key to FightStats and includes per round fight stats for each fighter for each fight
     - FighterCareerStats holds a one-to-one relationship with Fighters and contains fighters’ career stats
 """
+from django.conf import settings
 
 class Fighters(models.Model):
     fighter_id = models.AutoField(primary_key=True)
@@ -191,4 +192,104 @@ class FightScore(models.Model):
                 fields=['fight', 'fighter'],
                 name='unique_fight_fighter_per_fight'
             )
+        ]
+'''
+    -   Fantasy Models
+'''
+
+class League(models.Model):
+
+    class Status(models.TextChoices):
+        SETUP = "SETUP", "Setup"
+        DRAFTING = "DRAFTING", "Drafting"
+        LIVE = "LIVE", "Live"
+        COMPLETED = "COMPLETED", "Completed"       
+
+    name=models.CharField(max_length=64)
+    creator=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    status=models.CharField(choices=Status.choices, default=Status.SETUP)
+    created_at = models.DateTimeField(auto_now_add=True)
+    end_date = models.DateTimeField(null=True, blank=True)
+
+class LeagueMember(models.Model):
+
+    class Role(models.TextChoices):
+        CREATOR = "CREATOR", "Creator"
+        PLAYER = "PLAYER", "Player"
+
+    owner=models.ForeignKey(settings.AUTH_USER_MODEL)
+    league=models.ForeignKey(League, on_delete=models.CASCADE)
+    role=models.CharField(choices=Role.choices, default=Role.PLAYER)
+    joined_at=models.DateTimeField(auto_now_add=True)
+
+class Team(models.Model):
+    member=models.ForeignKey(LeagueMember, on_delete=models.CASCADE)
+    name=models.CharField(max_length=64)
+    created_at=models.DateTimeField(auto_now_add=True)
+
+class Roster(models.Model):
+
+    class SlotType(models.TextChoices):
+        # Men
+        FLYWEIGHT = "FLYWEIGHT", "Flyweight"
+        BANTAMWEIGHT = "BANTAMWEIGHT", "Bantamweight"
+        FEATHERWEIGHT = "FEATHERWEIGHT", "Featherweight"
+        LIGHTWEIGHT = "LIGHTWEIGHT", "Lightweight"
+        WELTERWEIGHT = "WELTERWEIGHT", "Welterweight"
+        MIDDLEWEIGHT = "MIDDLEWEIGHT", "Middleweight"
+        LIGHT_HEAVYWEIGHT = "LIGHT_HEAVYWEIGHT", "Light Heavyweight"
+        HEAVYWEIGHT = "HEAVYWEIGHT", "Heavyweight"
+
+        # Women
+        WOMENS_STRAWWEIGHT = "WOMENS_STRAWWEIGHT", "Women’s Strawweight"
+        WOMENS_FLYWEIGHT = "WOMENS_FLYWEIGHT", "Women’s Flyweight"
+        WOMENS_BANTAMWEIGHT = "WOMENS_BANTAMWEIGHT", "Women’s Bantamweight"
+        WOMENS_FEATHERWEIGHT = "WOMENS_FEATHERWEIGHT", "Women’s Featherweight"
+
+        # Special
+        FLEX = "FLEX", "Flex"
+
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
+    fighter = models.ForeignKey(Fighters, on_delete=models.CASCADE, null=True, blank=True)
+    slot_type = models.CharField(choices=SlotType.choices, max_length=32)
+
+class Draft(models.Model):
+
+    class Status(models.TextChoices):
+        NOT_SCHEDULED = "NOT_SCHEDULED", "Not Scheduled"
+        PENDING = "PENDING", "Pending"        
+        IN_PROGRESS = "IN_PROGRESS", "In Progress"
+        COMPLETED = "COMPLETED", "Completed"
+    league=models.ForeignKey(League, on_delete=models.CASCADE)
+    status=models.CharField(choices=Status.choices, default=Status.NOT_SCHEDULED, max_length=16)
+    draft_date=models.DateTimeField(null=True, blank=True)
+
+class DraftOrder(models.Model):
+    team=models.ForeignKey(Team, on_delete=models.CASCADE)
+    draft=models.ForeignKey(Draft, on_delete=models.CASCADE)
+    pick_num=models.IntegerField()
+
+    class Meta:
+        # Ensures only one draft pick per draft
+        constraints = [
+            models.UniqueConstraint(
+                fields=['draft', 'pick_num'], 
+                name="unique_draft_pick_in_draft")
+        ]
+
+class DraftPick(models.Model):
+    fighter=models.ForeignKey(Fighters, on_delete=models.CASCADE)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
+    pick_num=models.IntegerField()
+    draft=models.ForeignKey(Draft, on_delete=models.CASCADE)
+    class Meta:
+        # Ensures only one draft pick per draft
+        constraints = [
+            models.UniqueConstraint(
+                fields=['fighter', 'draft'], 
+                name="unique_fighter_in__draft"),
+            models.UniqueConstraint(
+                fields=['pick_num', 'draft'], 
+                name="unique_pick_num_in_draft"),
+                
         ]
