@@ -56,9 +56,9 @@ export default function FightersList() {
         <DataGrid 
             columns={columns}
             rows={rows}
-            hideFooter
             disableColumnSorting
             disableRowSelectionOnClick
+            disableColumnMenu
             //Allows alternating colored rows
             getRowClassName={(params) =>
                 params.indexRelativeToCurrentPage % 2 === 0 ? "even-row" : "odd-row"

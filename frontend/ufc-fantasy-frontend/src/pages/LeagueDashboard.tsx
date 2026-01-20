@@ -1,12 +1,51 @@
+import * as React from 'react';
 import ListPageLayout from "../components/layout/ListPageLayout";
 import Avatar from '@mui/material/Avatar';
-import { Box, Typography, Stack, Grid } from '@mui/material';
+import { Box, Typography, Stack, Grid, Tooltip, ClickAwayListener } from '@mui/material';
 import Link from '@mui/material/Link';
 import LeagueStandingsBarChart from "../components/charts/LeagueStandingsBarChart";
 import LeagueStandingBarChartLabel from "../components/badges/LeagueStandingBarChartLabel";
 import { DataGrid } from '@mui/x-data-grid';
 
 export default function LeagueDashboard() {
+    const [open, setOpen] = React.useState(false);
+
+    const handleTooltipClose = () => {
+        setOpen(false);
+    }
+
+    const handleTooltipOpen = () => {
+        setOpen(true);
+    }
+
+    const fantasyScoringTooltip = (
+        <Typography variant="body2">
+            <strong>Fantasy Scoring Breakdown</strong>
+            <br /><br />
+            • Knockdowns: +10 each
+            <br />
+            • Takedowns Landed: +3 each
+            <br />
+            • Submission Attempts: +2 each
+            <br />
+            • Control Time: +0.05 points per second
+            <br /><br />
+            <strong>Win & Finish Bonuses</strong>
+            <br />
+            • Win Bonus: +20
+            <br />
+            • Round 1 Finish: +30
+            <br />
+            • Round 2 Finish: +20
+            <br />
+            • Round 3–4 Finish: +10
+            <br />
+            • Round 5 Decision: 0
+            <br /><br />
+            • Early Finish Bonus: +0.03 points per second remaining in the round
+        </Typography>
+);
+
     const data = [
         { team: "Iron Fist FC", pts: 184, standing: 0 },
         { team: "Bloodline MMA", pts: 162, standing: 0 },
@@ -30,7 +69,7 @@ export default function LeagueDashboard() {
     // Define the columns for the data grid
     // Each column needs: field (matches the data property name), headerName (what users see), and width
     const columns: any = [
-        {field: 'standing', headerName: 'Standing', flex: 1},
+        {field: 'standing', headerName: 'Standing', flex: .75},
         {field: 'team', headerName: 'Team', flex: 1, renderCell: (params: any) => (
             <Link 
                 href={`/form/${params.value}`} 
@@ -40,7 +79,7 @@ export default function LeagueDashboard() {
                 }}
                 >{params.value}</Link>
         )},
-        {field: 'pts', headerName: 'Points', flex: 1},
+        {field: 'pts', headerName: 'Pts', flex: .5},
     ];
     
     // Each row object must have an 'id' property and properties that match the 'field' names in columns
@@ -90,9 +129,41 @@ export default function LeagueDashboard() {
                                 </Typography>
                             </Stack>
                         </Stack>
-                        <Box>
-                            <Link sx={{fontSize: "1.25rem", color: 'hsla(198, 100%, 58%, 0.5)'}}>Scoring Criteria</Link>
-                        </Box>
+                        <ClickAwayListener onClickAway={handleTooltipClose}>
+                            <Tooltip
+                                title={fantasyScoringTooltip}
+                                open={open}
+                                onClose={handleTooltipClose}
+                                arrow={true}
+                                disableFocusListener
+                                disableHoverListener
+                                disableTouchListener
+                                slotProps={{
+                                    tooltip: {
+                                        sx: {
+                                            maxWidth: 'none',
+                                        }
+                                    }
+                                }}
+                            >
+                                <Box
+                                    onClick={handleTooltipOpen}
+                                    sx={{
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <Typography 
+                                        sx={{
+                                            fontSize: "1.25rem", 
+                                            color: 'hsla(198, 100%, 58%, 0.5)',
+                                            textDecoration: 'underline'
+                                        }}>
+                                        Scoring Criteria
+                                    </Typography>
+                                </Box>
+                            </Tooltip>
+                        </ClickAwayListener>
+                        
                     </Stack>
                 </Grid>
                 {/* League Image*/}

@@ -8,10 +8,11 @@ interface FantasyTrendPoint {
 }
 
 interface FantasyTrendLineChartProps {
-    data: FantasyTrendPoint[]
+    data: FantasyTrendPoint[],
+    fighter: string
 }
 
-export default function FantasyTrendLineChart({data}: FantasyTrendLineChartProps) {
+export default function FantasyTrendLineChart({data, fighter}: FantasyTrendLineChartProps) {
     const options = {
         chart: {
             type: 'area',
@@ -65,7 +66,7 @@ export default function FantasyTrendLineChart({data}: FantasyTrendLineChartProps
             opposite: true,
         },
         tooltip: {
-            pointFormat: '{series.name} scored {point.y} points during {point.category}',
+            pointFormat: `${fighter} scored {point.y} points during {point.category}`,
             backgroundColor: 'hsla(135, 8%, 10%, 1)',
             style: {
                 color: 'white',
