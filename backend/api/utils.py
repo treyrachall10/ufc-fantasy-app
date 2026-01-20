@@ -3,6 +3,8 @@
 """
 
 from fantasy.models import RoundScore, FightScore
+import secrets
+import string
 
 def create_fantasy_for_fighter(fight, fighter,  round_stats):
     """
@@ -45,3 +47,10 @@ def has_special_char(text):
     """
 
     return any(not character.isalnum() for character in text)
+
+def generate_join_code(length=8):
+    """
+        -   Generates random join code
+    """
+    alphabet = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))

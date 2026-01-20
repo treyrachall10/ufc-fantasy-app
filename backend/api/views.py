@@ -4,13 +4,35 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.db import IntegrityError
 
 from .serializers import *
-from fantasy.models import Fighters, Events, Fights, FighterCareerStats, FightStats, RoundStats, RoundScore
-from .utils import create_fantasy_for_fighter, has_special_char
+from fantasy.models import Fighters, Events, Fights, FighterCareerStats, FightStats, RoundStats, League
+from .utils import create_fantasy_for_fighter, generate_join_code
 
 # Post Methods
-
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def CreateLeague(request):
+    # Attempt to create league 3 times
+    for _ in range(3):
+        join_key = generate_join_code()
+        try:
+            League.objects.create(
+                name=request.data["name"],
+                creator=request.user,
+                status=League.Status.SETUP,
+                end_date=request.data.get("end_date"),
+                join_key=join_key,
+            )
+            break # Successful league creation
+        except IntegrityError: # Code exists in db
+            continue
+    else:
+        return Response(
+            {"detail": "Could not generate unique join code"},
+            status=409
+        )
 
 # Get Methods
 @api_view(['GET'])

@@ -210,6 +210,7 @@ class League(models.Model):
     status=models.CharField(choices=Status.choices, default=Status.SETUP)
     created_at = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(null=True, blank=True)
+    join_key = models.CharField(unique=True, max_length=12)
 
 class LeagueMember(models.Model):
 
