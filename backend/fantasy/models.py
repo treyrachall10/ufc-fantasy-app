@@ -218,7 +218,7 @@ class LeagueMember(models.Model):
         CREATOR = "CREATOR", "Creator"
         PLAYER = "PLAYER", "Player"
 
-    owner=models.ForeignKey(settings.AUTH_USER_MODEL)
+    owner=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     league=models.ForeignKey(League, on_delete=models.CASCADE)
     role=models.CharField(choices=Role.choices, default=Role.PLAYER)
     joined_at=models.DateTimeField(auto_now_add=True)

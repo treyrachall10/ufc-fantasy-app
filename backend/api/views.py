@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db import IntegrityError
 
 from .serializers import *
-from fantasy.models import Fighters, Events, Fights, FighterCareerStats, FightStats, RoundStats, League
+from fantasy.models import Fighters, Events, Fights, FighterCareerStats, FightStats, RoundStats, League, LeagueMember
 from .utils import create_fantasy_for_fighter, generate_join_code
 
 # Post Methods
@@ -18,7 +18,7 @@ def CreateLeague(request):
     for _ in range(3):
         join_key = generate_join_code()
         try:
-            League.objects.create(
+            league = League.objects.create(
                 name=request.data["name"],
                 creator=request.user,
                 status=League.Status.SETUP,
@@ -33,6 +33,40 @@ def CreateLeague(request):
             {"detail": "Could not generate unique join code"},
             status=409
         )
+    return Response(
+        {
+            "league_id": league.id,
+            "join_key": league.join_key,
+        },
+        status=201
+    )
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def CreateLeagueMember(request):
+    try:
+        league = League.objects.get(join_key=request.data['joinKey'])
+    except League.DoesNotExist:
+        return Response(
+            {"detail": "Invalid join code"},
+            status=404
+        )
+    # Check if user in league
+    if LeagueMember.objects.filter(owner=request.user, league=league).exists():
+        return Response(
+            {"detail": "You are already a member of this league"},
+            status=409
+        ) 
+    # Create league member with player role
+    league_member = LeagueMember.objects.create(
+        owner=request.user,
+        league=league,
+        role=LeagueMember.Role.PLAYER
+    )
+    return Response(
+        { "member_id": league_member.id},
+        status=201  
+    )
 
 # Get Methods
 @api_view(['GET'])
