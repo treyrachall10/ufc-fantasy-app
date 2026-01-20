@@ -22,7 +22,7 @@ const pages = [{
                 }, 
                 {
         title: 'Leagues',
-        route: '/fighters'
+        route: '/leagues'
                 }
         ]
 
