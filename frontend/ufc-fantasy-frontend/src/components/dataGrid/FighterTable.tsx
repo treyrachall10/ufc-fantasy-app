@@ -1,14 +1,14 @@
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Box, Button } from '@mui/material';
 
-// --- Types ---
+
 export interface FighterTableProps {
-    variant?: 'default' | 'draft' | 'userTeam'; // Controls styling mode
+    variant?: 'default' | 'draft' | 'userTeam'; // Controls whats getting styled
     showStatus?: boolean; // Controls if "Status" column is shown
     hideFooter?: boolean;
 }
 
-// --- Mock Data (Ideally moved to a separate /data file later) ---
+// Mock Data 
 export const MOCK_FIGHTER_ROWS = [
     { id: 1, weightClass: 'HW', fighter: 'Tom Aspinall', status: 'Booked', last: 321, year: 172, average: 86, projected: 86 },
     { id: 2, weightClass: 'HW', fighter: 'Jon Jones', status: 'Booked', last: 321, year: 172, average: 86, projected: 86 },
@@ -78,8 +78,6 @@ export default function FighterTable({
 
     // 2. Define Styles based on Variant
     const getStyles = (theme: any) => {
-        // Base styles
-        // Base styles (Values lifted from App.tsx global theme)
         const styles = {
             border: 0,
             borderRadius: 8,
@@ -101,7 +99,7 @@ export default function FighterTable({
                 fontWeight: '300',
             },
 
-            // Cleanup
+            // Cleans up unwanted styling
             "& .MuiDataGrid-cell": { borderBottom: 'none' },
             "& ::-webkit-scrollbar": { display: 'none' },
         };

@@ -19,7 +19,7 @@ export default function DraftLobbyPage() {
         { id: 1, wc: 'FLW', name: 'Alexandre Pantoja', round: 'R8', pick: 'P1' },
     ];
 
-    // Mock Draft History - Static
+    // Mock Draft History (Not really in use atm)
     const [draftHistory, setDraftHistory] = useState([
         { id: 106, round: 1, pick: 6, user: 'Team Adan', fighter: 'Sean O\'Malley', wc: 'BW' },
         { id: 105, round: 1, pick: 5, user: 'Team Trey', fighter: 'Belal Muhammad', wc: 'WW' },
@@ -29,6 +29,8 @@ export default function DraftLobbyPage() {
         { id: 101, round: 1, pick: 1, user: 'Team Trey', fighter: 'Jon Jones', wc: 'HW' },
     ]);
 
+    // 3. Helper Functions
+    // This function adds a new mock pick to the TOP of the history list.
     const addPick = () => {
         const newPick = {
             id: Date.now(),
@@ -38,13 +40,10 @@ export default function DraftLobbyPage() {
             fighter: 'Illia Topuria',
             wc: 'FW',
         };
+        // The new pick goes first '...draftHistory' keeps the old ones after it.
         setDraftHistory([newPick, ...draftHistory]);
     };
 
-    const removeLastPick = () => {
-        // Remove the first item (newest pick)
-        setDraftHistory((prev) => prev.slice(1));
-    };
 
     const clearHistory = () => {
         setDraftHistory([]);
@@ -87,7 +86,10 @@ export default function DraftLobbyPage() {
     };
 
     return (
-        <ListPageLayout sx={{ mt: -6 }}> {/* Negative margin to pull columns up */}
+        <ListPageLayout sx={{ mt: -6 }}>
+
+            {/* TOP COLUMN */}
+            {/* Contains the Timer, "On The Clock", and "Upcoming Picks" list */}
             <Box sx={{
                 mb: 3,
                 p: 2,
@@ -96,7 +98,8 @@ export default function DraftLobbyPage() {
                 borderRadius: 4,
             }}>
                 <Grid container spacing={2}>
-                    {/* 1. Timer Section */}
+
+                    {/* Shows current round and countdown */}
                     <Grid size={{ xs: 12, md: 3, lg: 2 }}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                             <Typography variant="caption" sx={{ color: 'white', display: 'block', mb: -0.5, fontWeight: 600, fontSize: '0.85rem' }}>
@@ -111,6 +114,7 @@ export default function DraftLobbyPage() {
                         </Box>
                     </Grid>
 
+
                     {/* 2. On The Clock Section (Main Highlight) */}
                     <Grid size={{ xs: 12, md: 3, lg: 3 }}>
                         <Paper sx={{
@@ -119,7 +123,7 @@ export default function DraftLobbyPage() {
                             alignItems: 'center',
                             gap: 3,
                             borderRadius: 3,
-                            bgcolor: 'whiteAlpha20.main', // Darker start
+                            bgcolor: 'whiteAlpha20.main',
                             border: '1px solid',
                             borderColor: 'whiteAlpha20.main',
                             width: '100%', // Ensure paper takes full width of grid item
@@ -139,7 +143,9 @@ export default function DraftLobbyPage() {
                         </Paper>
                     </Grid>
 
-                    {/* 3. Upcoming Picks & Round Indicator */}
+
+                    {/* Upcoming Picks List */}
+                    {/* Uses 'overflowX' to scroll sideways for who picks next */}
                     <Grid size={{ xs: 12, md: 6, lg: 7 }} sx={{ overflow: 'hidden' }}>
                         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'flex-start', overflowX: 'auto', pb: 1, width: '100%' }}>
                             {draftState.upcomingPicks.map((item: any, index) => {
@@ -187,15 +193,18 @@ export default function DraftLobbyPage() {
                 </Grid>
             </Box>
 
-            {/* Three-Column Layout */}
+
+            {/*Splits into 3 columns here: Roster | Draft Board | History */}
             <Grid container spacing={{ xs: .5, sm: 2 }} >
+
+
                 {/* Left Column - Current Roster */}
                 <Grid size={{ xs: 12, sm: 3 }}>
                     <Paper sx={{
                         height: '80vh',
                         borderRadius: 4,
                         backgroundColor: 'dashboardBlack.main',
-                        p: 2, // Padding for the container
+                        p: 2,
                         display: 'flex',
                         flexDirection: 'column',
                     }}>
@@ -204,7 +213,7 @@ export default function DraftLobbyPage() {
                             <Typography variant="h3" sx={{ fontSize: '1rem', color: 'text.secondary' }}>Current Roster:</Typography>
                         </Box>
 
-                        {/* ROSTER LIST LOOP - Wrapped in Stack for even spacing */}
+                        {/* List of Players */}
                         <Stack spacing={0} sx={{ flex: 1, justifyContent: 'space-between' }}>
                             {ROSTER_SLOTS.map((slot) => (
                                 <DraftPlayerCard
@@ -219,6 +228,9 @@ export default function DraftLobbyPage() {
                     </Paper>
                 </Grid>
 
+
+
+
                 {/* Center Column - Draft Board */}
                 <Grid size={{ xs: 12, sm: 6 }}>
                     <Paper sx={{
@@ -231,10 +243,10 @@ export default function DraftLobbyPage() {
                     }}>
                         <Stack spacing={3} sx={{ height: '100%' }}>
 
-                            {/* 1. TOP ROW: Info & Dropdown */}
+                            {/* Info & Filters */}
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
 
-                                {/* Left Side: Avatar & Text */}
+                                {/* Left Side: Avatar & upcoming pick */}
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                     <Avatar sx={{ bgcolor: 'brand.main', width: 40, height: 40 }}></Avatar>
                                     <Box>
@@ -264,6 +276,8 @@ export default function DraftLobbyPage() {
                                     </Select>
                                 </FormControl>
                             </Box>
+
+                            {/* Available Fighters */}
                             <Box sx={{ flex: 1, overflow: 'hidden' }}>
                                 <FighterTable
                                     variant="draft" // Turns on the specific Draft Board styling
@@ -274,7 +288,10 @@ export default function DraftLobbyPage() {
                     </Paper>
                 </Grid>
 
-                {/* Right Column - Past Picks */}
+
+
+
+                {/* Column 3: Past Picks History */}
                 <Grid size={{ xs: 12, sm: 3 }}>
                     <Paper sx={{
                         height: '80vh',
@@ -283,7 +300,7 @@ export default function DraftLobbyPage() {
                         p: 2,
                         overflowY: 'auto'
                     }}>
-                        {/* Header */}
+                        {/* Header with Test buttons */}
                         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Typography variant="h3" sx={{ fontSize: '1rem', color: 'text.secondary' }}>
                                 Past Picks:
@@ -298,6 +315,12 @@ export default function DraftLobbyPage() {
                             </Box>
                         </Box>
 
+                        {/* 
+                            How the List Works:
+                            1. We pass the 'draftHistory' list to it.
+                            2. 'renderItem' tells it how to draw EACH box (using DraftPlayerCard).
+                            3. The component handles all the slide-in/fade-out animations automatically!
+                        */}
                         <AnimatedList
                             items={draftHistory}
                             renderItem={(item) => (

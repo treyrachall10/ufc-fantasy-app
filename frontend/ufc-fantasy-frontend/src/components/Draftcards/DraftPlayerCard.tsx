@@ -5,9 +5,23 @@ interface DraftPlayerCardProps {
     name: string;
     subtitle: React.ReactNode;
     weightClass: string;
+    /** 
+     - 'roster': Used in the "Current Roster" column.
+     - 'history': Used in the "Past Picks" column 
+     -  default 'roster'
+     */
     variant?: 'roster' | 'history';
 }
 
+/**
+ * Workflow:
+ * 1. Receives fighter data and context via props.
+ * 2. Determines styling flags (`isRoster`, `isHistory`) based on `variant`.
+ * 3. Applies unified layout styles (Box/Flex) with conditional adjustments for:
+ *    - Font weights (History is often bolder/more distinct).
+ *    - Spacing/Gap.
+ *    - Border rendering (Controlled by theme variables).
+ */
 export default function DraftPlayerCard({
     name,
     subtitle,
@@ -26,15 +40,15 @@ export default function DraftPlayerCard({
         backgroundColor: 'whiteAlpha20.main',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between', // Unified Layout: Always push apart
+        justifyContent: 'space-between', // weight class stays on the far right
         mb: 0,
         border: '1px solid',
         borderColor: 'whiteAlpha20.main',
     };
 
-    // Text Colors
-    const subtitleColor = 'text.secondary'; // Default for both as requested
-    const rightSideColor = 'white'; // Always white as requested
+    // Define text styling variants
+    const subtitleColor = 'text.secondary';
+    const rightSideColor = 'white';
 
     return (
         <Box sx={containerSx}>
@@ -56,6 +70,9 @@ export default function DraftPlayerCard({
                     </Typography>
                 </Box>
             </Box>
+
+
+
 
             {/* RIGHT SIDE CONTENT (Weight Class) */}
             <Typography variant="bodySmall" sx={{ color: rightSideColor, fontWeight: 600 }}>
