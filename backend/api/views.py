@@ -5,12 +5,15 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db import IntegrityError
+from django.db import transaction
 
 from .serializers import *
-from fantasy.models import Fighters, Events, Fights, FighterCareerStats, FightStats, RoundStats, League, LeagueMember
-from .utils import create_fantasy_for_fighter, generate_join_code
+from fantasy.models import Fighters, Events, Fights, FighterCareerStats, FightStats, RoundStats, League, LeagueMember, Team, Roster
+from .utils import create_fantasy_for_fighter, generate_join_code, weight_to_slot
 
-# Post Methods
+'''
+    -   POST METHODS
+'''
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def CreateLeague(request):
@@ -68,7 +71,108 @@ def CreateLeagueMember(request):
         status=201  
     )
 
-# Get Methods
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def CreateTeam(request):
+    # Checks if league exists
+    try:
+        league = League.objects.get(id=request.data['id'])
+    except League.DoesNotExist:
+        return Response({"detail": "League not found"}, status=404)
+    # Checks if user is a member of the league
+    try:
+        league_member = LeagueMember.objects.get(owner=request.user, league=league)
+    except LeagueMember.DoesNotExist:
+        return Response({"detail": "You are not a member of this league"}, status=403)
+    # If user already has team
+    if Team.objects.filter(owner=league_member).exists():
+       return Response(
+            {"detail": "You already have a team in this league"},
+            status=409
+        )
+    # If team name already taken
+    if Team.objects.filter(owner__league=league, name=request.data["teamName"]).exists():
+        return Response(
+            {"detail": "Team name already taken in this league"},
+            status=409
+        )
+    # Create Team
+    try:
+        team = Team.objects.create(
+                            owner=league_member,
+                            name=request.data['teamName'],
+                            )
+    except IntegrityError:
+        return Response(
+            {"detail": "You already have a team in this league"},
+            status=409
+        )
+    return Response(
+        {"team_id": team.id},
+        status=201
+    )
+
+@transaction.atomic
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def AddRosterSlot(request):
+    # Checks if team exists in league and get team plus league
+    try:
+        team = Team.objects.get(id=request.data['id'], owner=request.user)
+        league = team.owner.league
+    except Team.DoesNotExist:
+        return Response(
+            {"detail": "Team does not exist in this league"},
+            status=404
+        )
+    # Checks if fighter exists
+    try:
+        fighter = Fighters.objects.get(fighter_id=request.data['fighter_id'])
+    except Fighters.DoesNotExist:
+        return Response(
+            {"detail": "Couldn't find fighter in database"},
+            status=404
+        )
+    if Roster.objects.filter(
+        fighter=fighter,
+        team__league=league
+    ).exists():
+        return Response(
+            {"detail": "Fighter already been drafted"},
+            status=409
+        )
+    slot_type = weight_to_slot(fighter.weight)
+    slot_taken = Roster.objects.filter(team=team, slot_type=slot_type).exists()
+    flex_taken = Roster.objects.filter(team=team, slot_type=Roster.SlotType.FLEX).exists()
+    # If weight class slot is taken and flex is taken reject draft pick
+    if slot_taken and flex_taken:
+        return Response(
+            {
+                "detail": "You already have a fighter in this weight class and cannot assign this pick to FLEX"
+            },
+            status=409
+        )
+    # If weight class slot is taken and flex is not ask to draft to flex slot
+    if slot_taken and not flex_taken:
+                return Response(
+            {
+                "action_required": "confirm_flex",
+                "detail": "This weight class is full. FLEX is available. Do you want to assign this fighter to Flex?"
+            },
+            status=200
+        )
+    Roster.objects.create(team=team, fighter=fighter, slot_type=slot_type)
+    return Response(
+        {
+            "detail": f"Fighter has been drafted to {slot_type}"
+        },
+        status=200
+    )
+    
+
+'''
+    -   GET METHODS
+'''
 @api_view(['GET'])
 def GetFighterProfileViewSet(request):
     fighters = FighterCareerStats.objects.all()

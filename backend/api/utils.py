@@ -2,7 +2,7 @@
     - Utility functions for api file
 """
 
-from fantasy.models import RoundScore, FightScore
+from fantasy.models import RoundScore, FightScore, Roster
 import secrets
 import string
 
@@ -54,3 +54,29 @@ def generate_join_code(length=8):
     """
     alphabet = string.ascii_uppercase + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+def weight_to_slot(weight):
+    """
+    - Maps a fighter's weight (lbs) to a roster slot type
+
+    :param weight: Integer (fighter weight in lbs)
+    :return: Roster.SlotType
+    """
+    if weight <= 115:
+        return Roster.SlotType.STRAWWEIGHT
+    elif weight <= 125:
+        return Roster.SlotType.FLYWEIGHT
+    elif weight <= 135:
+        return Roster.SlotType.BANTAMWEIGHT
+    elif weight <= 145:
+        return Roster.SlotType.FEATHERWEIGHT
+    elif weight <= 155:
+        return Roster.SlotType.LIGHTWEIGHT
+    elif weight <= 170:
+        return Roster.SlotType.WELTERWEIGHT
+    elif weight <= 185:
+        return Roster.SlotType.MIDDLEWEIGHT
+    elif weight <= 205:
+        return Roster.SlotType.LIGHT_HEAVYWEIGHT
+    else:
+        return Roster.SlotType.HEAVYWEIGHT
