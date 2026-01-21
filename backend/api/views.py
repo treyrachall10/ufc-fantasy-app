@@ -8,7 +8,9 @@ from django.db import IntegrityError
 from django.db import transaction
 
 from .serializers import *
-from fantasy.models import Fighters, Events, Fights, FighterCareerStats, FightStats, RoundStats, League, LeagueMember, Team, Roster
+from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
+                            FightStats, RoundStats, League, LeagueMember, 
+                            Team, Roster, Draft)
 from .utils import create_fantasy_for_fighter, generate_join_code, weight_to_slot
 
 '''
@@ -28,6 +30,12 @@ def CreateLeague(request):
                 end_date=request.data.get("end_date"),
                 join_key=join_key,
             )
+            # Create draft instance and set to not scheduled
+            draft = Draft.objects.create(
+                league=league,
+                status=Draft.Status.NOT_SCHEDULED,
+                scheduled_for=None
+            )
             break # Successful league creation
         except IntegrityError: # Code exists in db
             continue
@@ -40,6 +48,8 @@ def CreateLeague(request):
         {
             "league_id": league.id,
             "join_key": league.join_key,
+            "draft_id": draft.id,
+            "draft_status": "NOT_SCHEDULED"
         },
         status=201
     )
@@ -168,7 +178,56 @@ def AddRosterSlot(request):
         },
         status=200
     )
-    
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def SetDraftStatus(request):
+    # Determine if league exist
+    try:
+        league = League.objects.get(id=request.data['id'])
+    except League.DoesNotExist:
+        return Response(
+            {"detail": "League not found."},
+            status=404
+        )
+    # Allow only league creator to set draft status
+    if league.creator == request.user:
+        try:
+            draft = Draft.objects.get(league=league)
+        except Draft.DoesNotExist:
+            return Response(
+            {"detail": "Draft not found."},
+                status=404
+            )
+        draft_status = draft.status
+        if draft_status == Draft.Status.NOT_SCHEDULED:
+            draft.status = Draft.Status.SCHEDULED
+        elif draft_status == Draft.Status.SCHEDULED:
+            draft.status = Draft.Status.LIVE
+        elif draft_status == Draft.Status.LIVE:
+            draft.status = Draft.Status.COMPLETED
+        else:
+            return Response(
+                {
+                    "detail": "Draft is already completed and cannot be advanced.",   
+                },
+                status=409
+            )
+        return Response(
+            {
+                "detail": f"Draft set to {draft.status}",
+                "draft_status": draft.status
+            },
+            status=200 
+            )
+    draft.save()
+    return Response(
+        {
+            "detail": "You don't have correct permissions to change draft status",   
+        },
+        status=403
+    )
+            
 
 '''
     -   GET METHODS
