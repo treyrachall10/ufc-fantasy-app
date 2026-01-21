@@ -2,9 +2,10 @@
     - Utility functions for api file
 """
 
-from fantasy.models import RoundScore, FightScore, Roster
+from fantasy.models import RoundScore, FightScore, Roster, Team, DraftOrder
 import secrets
 import string
+import random
 
 def create_fantasy_for_fighter(fight, fighter,  round_stats):
     """
@@ -80,3 +81,20 @@ def weight_to_slot(weight):
         return Roster.SlotType.LIGHT_HEAVYWEIGHT
     else:
         return Roster.SlotType.HEAVYWEIGHT
+    
+def generate_draft_order(league, draft):
+    league_members = league.leaguemember_set.all() # Get league member through reverse relation
+    teams = Team.objects.filter(owner__league=league) # Get teams by following team owner relation and inserting league as the filter
+    teams_list = list(teams) # Converts teams to list
+    forward_teams = random.sample(teams_list, k=len(teams_list)) # Shuffles teams randomly
+    reversed_teams = forward_teams[::-1] # Reverses picks for odd rounds
+    rounds = 10
+    for i in range(rounds):
+        pick = 1
+        if i%2 == 0:
+            for team in forward_teams:
+               DraftOrder.objects.create(team=team, draft=draft, pick_num=pick) 
+        else:
+            for team in reversed_teams:
+                DraftOrder.objects.create(team=team, draft=draft, pick_num=pick) 
+

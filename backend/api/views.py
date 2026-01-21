@@ -6,12 +6,13 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db import IntegrityError
 from django.db import transaction
+from django.utils import timezone
 
 from .serializers import *
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
                             FightStats, RoundStats, League, LeagueMember, 
                             Team, Roster, Draft)
-from .utils import create_fantasy_for_fighter, generate_join_code, weight_to_slot
+from .utils import create_fantasy_for_fighter, generate_join_code, weight_to_slot, generate_draft_order
 
 '''
     -   POST METHODS
@@ -202,6 +203,8 @@ def SetDraftStatus(request):
         draft_status = draft.status
         if draft_status == Draft.Status.NOT_SCHEDULED:
             draft.status = Draft.Status.SCHEDULED
+            draft.date = timezone.now()
+            generate_draft_order(league=league, draft=draft)
         elif draft_status == Draft.Status.SCHEDULED:
             draft.status = Draft.Status.LIVE
         elif draft_status == Draft.Status.LIVE:
@@ -213,6 +216,7 @@ def SetDraftStatus(request):
                 },
                 status=409
             )
+        draft.save()
         return Response(
             {
                 "detail": f"Draft set to {draft.status}",
@@ -220,7 +224,6 @@ def SetDraftStatus(request):
             },
             status=200 
             )
-    draft.save()
     return Response(
         {
             "detail": "You don't have correct permissions to change draft status",   
