@@ -202,9 +202,16 @@ def SetDraftStatus(request):
             )
         draft_status = draft.status
         if draft_status == Draft.Status.NOT_SCHEDULED:
-            draft.status = Draft.Status.SCHEDULED
-            draft.date = timezone.now()
-            generate_draft_order(league=league, draft=draft)
+            try:
+                draft.status = Draft.Status.SCHEDULED
+                draft.date = timezone.now()
+                generate_draft_order(league=league, draft=draft)
+                draft.save()
+            except ValueError as e:
+                return Response(
+                    {"detail": str(e)},
+                    status=400
+                )
         elif draft_status == Draft.Status.SCHEDULED:
             draft.status = Draft.Status.LIVE
         elif draft_status == Draft.Status.LIVE:
