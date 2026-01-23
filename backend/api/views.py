@@ -11,8 +11,11 @@ from django.utils import timezone
 from .serializers import *
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
                             FightStats, RoundStats, League, LeagueMember, 
-                            Team, Roster, Draft)
-from .utils import create_fantasy_for_fighter, generate_join_code, weight_to_slot, generate_draft_order
+                            Team, Roster, Draft, DraftPick, DraftOrder)
+from .utils import (create_fantasy_for_fighter, generate_join_code, 
+                    weight_to_slot, generate_draft_order, execute_draft_pick,
+                    get_current_pick
+                    )
 
 '''
     -   POST METHODS
@@ -133,15 +136,37 @@ def AddRosterSlot(request):
         league = team.owner.league
     except Team.DoesNotExist:
         return Response(
-            {"detail": "Team does not exist in this league"},
+            {"detail": "Team does not exist in this league."},
             status=404
+        )
+    # Verify draft has been created for league
+    try:
+        draft = Draft.objects.get(league=league)
+    except Draft.DoesNotExist:
+        return Response(
+            {"detail": "Draft hasn't been created for this league."},
+            status=500
+        )
+    # Verify draft in drafting state
+    if draft.Status != Draft.Status.IN_PROGRESS:
+        return Response(
+            {"detail": "Draft has not yet started."},
+            status=409,
+        )
+    current_pick = get_current_pick(draft=draft)
+    current_pick_team = current_pick.team
+    # Check if users turn to draft
+    if team != current_pick_team:
+        return Response(
+            {"detail": "It's not your turn to draft."},
+            status=409
         )
     # Checks if fighter exists
     try:
         fighter = Fighters.objects.get(fighter_id=request.data['fighter_id'])
     except Fighters.DoesNotExist:
         return Response(
-            {"detail": "Couldn't find fighter in database"},
+            {"detail": "Couldn't find fighter in database."},
             status=404
         )
     if Roster.objects.filter(
@@ -172,13 +197,91 @@ def AddRosterSlot(request):
             },
             status=200
         )
-    Roster.objects.create(team=team, fighter=fighter, slot_type=slot_type)
+    pick_num = current_pick.pick_num
+    execute_draft_pick(team=team, 
+                       fighter=fighter, 
+                       slot_type=slot_type, 
+                       draft=draft, 
+                       pick_num=pick_num,
+                       current_pick=current_pick
+                       )
     return Response(
         {
             "detail": f"Fighter has been drafted to {slot_type}"
         },
         status=200
     )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def DraftFlexSlot(request):
+    # Checks if team exists in league and get team plus league
+    try:
+        team = Team.objects.get(id=request.data['id'], owner=request.user)
+        league = team.owner.league
+    except Team.DoesNotExist:
+        return Response(
+            {"detail": "Team does not exist in this league."},
+            status=404
+        )
+    # Verify draft has been created for league
+    try:
+        draft = Draft.objects.get(league=league)
+    except Draft.DoesNotExist:
+        return Response(
+            {"detail": "Draft hasn't been created for this league."},
+            status=500
+        )
+    # Verify draft in drafting state
+    if draft.Status != Draft.Status.IN_PROGRESS:
+        return Response(
+            {"detail": "Draft has not yet started."},
+            status=409,
+        )
+    current_pick = get_current_pick(draft=draft)
+    current_pick_team = current_pick.team
+    # Check if users turn to draft
+    if team != current_pick_team:
+        return Response(
+            {"detail": "It's not your turn to draft."},
+            status=409
+        )
+    # Checks if fighter exists
+    try:
+        fighter = Fighters.objects.get(fighter_id=request.data['fighter_id'])
+    except Fighters.DoesNotExist:
+        return Response(
+            {"detail": "Couldn't find fighter in database."},
+            status=404
+        )
+    if Roster.objects.filter(
+        fighter=fighter,
+        team__league=league
+    ).exists():
+        return Response(
+            {"detail": "Fighter already been drafted"},
+            status=409
+        )
+    slot_type = weight_to_slot(fighter.weight)
+    flex_taken = Roster.objects.filter(team=team, slot_type=Roster.SlotType.FLEX).exists()
+    if not flex_taken and Roster.objects.filter(team=team, slot_type=slot_type).exists():
+        pick_num = current_pick.pick_num
+        execute_draft_pick(fighter=fighter, 
+                           team=team, 
+                           slot_type=Roster.SlotType.FLEX, 
+                           draft=draft,
+                           pick_num=pick_num,
+                           current_pick=current_pick
+                           )
+        return Response(
+            {'detail': f'{fighter.full_name} drafted to FLEX'},
+            status=200
+        )
+    else:
+        return Response(
+            {"detail": "Flex slot is no longer available."},
+            status=409
+        )
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -204,7 +307,7 @@ def SetDraftStatus(request):
         if draft_status == Draft.Status.NOT_SCHEDULED:
             try:
                 draft.status = Draft.Status.SCHEDULED
-                draft.date = timezone.now()
+                draft.date = request.data['date']
                 generate_draft_order(league=league, draft=draft)
                 draft.save()
             except ValueError as e:
@@ -213,7 +316,15 @@ def SetDraftStatus(request):
                     status=400
                 )
         elif draft_status == Draft.Status.SCHEDULED:
-            draft.status = Draft.Status.LIVE
+            if timezone.now() >= draft.date:
+                draft.status = Draft.Status.LIVE
+            else:
+                return Response(
+                    {
+                        'detail': 'Draft has not reached it scheduled start time yet.'
+                    },
+                    status=409
+                )
         elif draft_status == Draft.Status.LIVE:
             draft.status = Draft.Status.COMPLETED
         else:

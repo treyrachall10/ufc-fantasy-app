@@ -272,6 +272,7 @@ class DraftOrder(models.Model):
                 fields=['draft', 'pick_num'], 
                 name="unique_draft_pick_in_draft")
         ]
+        ordering = ['pick_num']
 
 class DraftPick(models.Model):
     fighter=models.ForeignKey(Fighters, on_delete=models.CASCADE)
