@@ -2,6 +2,7 @@ import ListPageLayout from "../components/layout/ListPageLayout";
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, Typography, Stack } from '@mui/material';
 import { Link, Button } from '@mui/material';
+import { Router, Link as RouterLink} from "react-router-dom";
 
 export default function LeaguesPage() {
 
@@ -98,6 +99,7 @@ export default function LeaguesPage() {
                     <Button 
                         variant="contained" 
                         color="whiteAlpha20"
+                        component={RouterLink} to="/leagues/create-league"
                         sx={{
 
                             borderColor: 'gray900.main',

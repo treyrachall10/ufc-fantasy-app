@@ -28,17 +28,25 @@ def CreateLeague(request):
         join_key = generate_join_code()
         try:
             league = League.objects.create(
-                name=request.data["name"],
+                name=request.data["leagueName"],
+                capacity=request.data["teams"],
                 creator=request.user,
                 status=League.Status.SETUP,
-                end_date=request.data.get("end_date"),
                 join_key=join_key,
             )
             # Create draft instance and set to not scheduled
             draft = Draft.objects.create(
                 league=league,
                 status=Draft.Status.NOT_SCHEDULED,
-                scheduled_for=None
+            )
+            member = LeagueMember.objects.create(
+                owner = request.user,
+                league = league,
+                role = LeagueMember.Role.CREATOR
+            )
+            team = Team.objects.create(
+                owner=member,
+                name = f"{request.user.username}'s Team"
             )
             break # Successful league creation
         except IntegrityError: # Code exists in db
@@ -53,6 +61,14 @@ def CreateLeague(request):
             "league_id": league.id,
             "join_key": league.join_key,
             "draft_id": draft.id,
+            "member": {
+                "id": member.id,
+                "role": member.role,
+            },
+            "team": {
+                "id": team.id,
+                "name": team.name,
+            },
             "draft_status": "NOT_SCHEDULED"
         },
         status=201

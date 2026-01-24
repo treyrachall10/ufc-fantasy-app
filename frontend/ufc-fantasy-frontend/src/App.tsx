@@ -26,6 +26,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import '@mui/x-data-grid/themeAugmentation';
 import ProtectedRoute from './auth/ProtectedRoute';
 import LeaguesPage from './pages/LeaguesPage';
+import LeagueCreation from './pages/LeagueCreation';
 
 // Theme imports
 import theme from './theme/theme';
@@ -55,6 +56,7 @@ function App() {
                 <Route path="/team" element={<UserTeamPage />} />
                 <Route path="/leagues" element={<LeaguesPage />} />
                 <Route path="/draft" element={<DraftLobbyPage />} />
+                <Route path="/leagues/create-league" element={<LeagueCreation />} />
                 <Route element={<ProtectedRoute />}>
                   <Route path="/league" element={<LeagueDashboard />} />
                 </Route>

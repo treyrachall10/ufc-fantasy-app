@@ -166,6 +166,11 @@ const theme = createTheme({
     }
   },
   palette: {
+    primary: {
+      main: 'hsla(0, 91%, 43%, 1)',
+      light: 'hsla(0, 91%, 43%, 0.3)',
+      dark: 'hsla(0, 91%, 43%, 0.05)',
+    },
       brand: { // Defines the main brand color
         main: 'hsla(0, 91%, 43%, 1)',    // 100%
         light: 'hsla(0, 91%, 43%, 0.3)', // 30%
@@ -295,6 +300,11 @@ const theme = createTheme({
         arrow: {
           color: 'hsla(0, 91%, 43%, 1)',
         }
+      }
+    },
+    MuiToggleButtonGroup: {
+      styleOverrides: {
+
       }
     }
   },

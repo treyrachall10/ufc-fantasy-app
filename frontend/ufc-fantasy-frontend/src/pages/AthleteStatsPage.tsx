@@ -126,7 +126,7 @@ export default function AthleteStatsPage(){
 
     return (
         <Container maxWidth="laptop">
-                <Stack direction={'column'} spacing={2}>
+                <Stack direction={'column'} spacing={2} pt={6}>
                     {/*Header*/}
                         <Stack sx={{
                                 display: 'flex',

@@ -208,6 +208,7 @@ class League(models.Model):
     name=models.CharField(max_length=64)
     creator=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     status=models.CharField(choices=Status.choices, default=Status.SETUP)
+    capacity = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(null=True, blank=True)
     join_key = models.CharField(unique=True, max_length=12)

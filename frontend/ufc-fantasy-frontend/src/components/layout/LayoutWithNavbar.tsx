@@ -5,9 +5,11 @@ import { Box } from '@mui/material';
 export default function MainLayout() {
   return (
     <>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Box sx={{pt: '6rem', alignItems: 'center'}}>
+      <Box sx={{flex: 1, display: 'flex', justifyContent: 'center', alignItems:'center'}}>
         <Outlet />
+      </Box>
       </Box>
     </>
   );
