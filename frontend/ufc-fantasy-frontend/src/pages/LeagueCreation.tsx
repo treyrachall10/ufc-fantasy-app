@@ -12,6 +12,7 @@ import { useContext } from 'react';
 import { AuthContext } from '../auth/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
+import { useQueryClient } from "@tanstack/react-query";
 
 import ToggleButton, { toggleButtonClasses } from '@mui/material/ToggleButton';
 import ToggleButtonGroup, {
@@ -27,6 +28,7 @@ type LeaguePayload = {
 
 export default function LeagueCreation(){
     const navigate = useNavigate();
+    const queryClient = useQueryClient()
 
     const [leagueNameError, setLeagueNameError] = React.useState(false)
     const [leagueNameErrorMessage, setLeagueNameErrorMessage] = React.useState('')
@@ -63,7 +65,19 @@ export default function LeagueCreation(){
         },
     
         onSuccess: (data) => {
-          navigate('/leagues');
+            queryClient.setQueryData(["league", data.league_id],
+                {
+                    id: data.league_id,
+                    join_key: data.join_key,
+                    draft_id: data.draft_id,
+                    draft_status: data.draft_status,
+                    member: data.member
+                }
+            )
+            queryClient.setQueryData(["team", data.team.id],
+                data.team
+            )
+            navigate('/leagues');
         }
       })
 
