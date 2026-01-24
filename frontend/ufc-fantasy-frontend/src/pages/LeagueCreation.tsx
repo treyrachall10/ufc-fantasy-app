@@ -18,6 +18,7 @@ import ToggleButtonGroup, {
   toggleButtonGroupClasses,
 } from '@mui/material/ToggleButtonGroup';
 import { styled } from '@mui/material/styles';
+import { authFetch } from '../auth/authFetch';
 
 type LeaguePayload = {
     leagueName: string,
@@ -26,7 +27,6 @@ type LeaguePayload = {
 
 export default function LeagueCreation(){
     const navigate = useNavigate();
-    const auth = useContext(AuthContext)!;
 
     const [leagueNameError, setLeagueNameError] = React.useState(false)
     const [leagueNameErrorMessage, setLeagueNameErrorMessage] = React.useState('')
@@ -38,12 +38,8 @@ export default function LeagueCreation(){
     // POST request to login a user
       const createLeagueMutation = useMutation({
         mutationFn: async (payload: LeaguePayload) => {
-          const response = await fetch('http://localhost:8000/create-league', {
+          const response = await authFetch('http://localhost:8000/create-league', {
             method: 'POST',
-            headers: { 
-                Authorization: `Bearer ${auth.token}`,
-                'Content-Type': 'application/json' 
-            },
             body: JSON.stringify(payload),
           })
     
