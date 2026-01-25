@@ -3,8 +3,25 @@ import { DataGrid } from '@mui/x-data-grid';
 import { Box, Typography, Stack } from '@mui/material';
 import { Link, Button } from '@mui/material';
 import { Router, Link as RouterLink} from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { authFetch } from "../auth/authFetch";
+
+interface UserLeaguesAndTeams {
+    league_id: number,
+    league_name: string,
+    team_id: number,
+    team_name: string
+}
 
 export default function LeaguesPage() {
+
+    const { data, isPending, error} = useQuery<UserLeaguesAndTeams[]>({
+        queryKey: ['userLeaguesAndTeams'],
+        queryFn: () => authFetch(`http://localhost:8000/leagues`).then(r => r.json()),
+    })
+
+    if (isPending) return <span>Loading...</span>
+    if (error) return <span>Oops!</span>
 
     // Define the columns for the data grid
     // Each column needs: field (matches the data property name), headerName (what users see), and width

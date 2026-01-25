@@ -453,3 +453,5 @@ def GetHeadToHeadStatsViewSet(request, id):
 @permission_classes([IsAuthenticated])
 def GetUserLeaguesAndTeams(request):
     league_member_instance_set = LeagueMember.objects.filter(owner=request.user).select_related('league').prefetch_related('team_set')
+    serializer = UserLeaguesAndTeamsListSerializer(league_member_instance_set, many=True)
+    return Response(serializer.data)

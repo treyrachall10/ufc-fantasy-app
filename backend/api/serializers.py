@@ -447,9 +447,18 @@ class UserLeaguesAndTeamsListSerializer(serializers.Serializer):
     """
     league_id = serializers.IntegerField(source="league.id")
     league_name = serializers.CharField(source="league.name")
-    team_id = serializers.IntegerField(source="team_set.0.id")
-    team_name = serializers.CharField(source="team_set.0.name")
+
+    team_id = serializers.SerializerMethodField()
+    team_name = serializers.SerializerMethodField()
     
+    def get_team_id(self, obj):
+        print(obj.team_set.all()[0].__dict__)
+        team = obj.team_set.all()[0]
+        return team.id
+    
+    def get_team_name(self, obj):
+        team = obj.team_set.all()[0]
+        return team.name
     class Meta:
         fields = [
             "league_id",
