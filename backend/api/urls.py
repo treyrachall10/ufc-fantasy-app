@@ -20,4 +20,5 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('create-league', views.CreateLeague),
     path('leagues', views.GetUserLeaguesAndTeams),
+    path('league/<int:league_id>', views.GetLeagueData),
 ]

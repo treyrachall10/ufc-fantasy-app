@@ -6,9 +6,30 @@ import Link from '@mui/material/Link';
 import LeagueStandingsBarChart from "../components/charts/LeagueStandingsBarChart";
 import LeagueStandingBarChartLabel from "../components/badges/LeagueStandingBarChartLabel";
 import { DataGrid } from '@mui/x-data-grid';
+import { useQuery } from "@tanstack/react-query";
+import { authFetch } from "../auth/authFetch";
+import { useParams } from 'react-router-dom';
+
+interface LeagueInfo {
+    league: {
+        id: number
+        name: string
+        status: "SETUP" | "DRAFTING" | "LIVE" | "COMPLETED"
+        capacity: number
+        join_key: string
+        created_at: string
+        },
+    teams: {
+        id: number
+        owner: number   // LeagueMember id
+        name: string
+        created_at: string  // ISO datetime
+    }[],
+}
 
 export default function LeagueDashboard() {
     const [open, setOpen] = React.useState(false);
+    const params = useParams();
 
     const handleTooltipClose = () => {
         setOpen(false);
@@ -17,6 +38,14 @@ export default function LeagueDashboard() {
     const handleTooltipOpen = () => {
         setOpen(true);
     }
+
+    const { data, isPending, error} = useQuery<LeagueInfo>({
+        queryKey: ['League', params.leagueId],
+        queryFn: () => authFetch(`http://localhost:8000/league/${params.leagueId}`).then(r => r.json()),
+    })
+
+    if (isPending) return <span>Loading...</span>
+    if (error) return <span>Oops!</span>
 
     const fantasyScoringTooltip = (
         <Typography variant="body2">
@@ -46,7 +75,7 @@ export default function LeagueDashboard() {
         </Typography>
 );
 
-    const data = [
+    const rowData = [
         { team: "Iron Fist FC", pts: 184, standing: 0 },
         { team: "Bloodline MMA", pts: 162, standing: 0 },
         { team: "Apex Predators", pts: 201, standing: 0 },
@@ -56,9 +85,9 @@ export default function LeagueDashboard() {
         { team: "Warpath Fight Team", pts: 173, standing: 0 },
     ];
     // Compute league standing
-    for (const team of data) {
+    for (const team of rowData) {
         let standing = 1;
-        for (const comparingTeam of data) {
+        for (const comparingTeam of rowData) {
             if (team.pts < comparingTeam.pts) {
                 standing +=1;
             }
@@ -84,7 +113,7 @@ export default function LeagueDashboard() {
     
     // Each row object must have an 'id' property and properties that match the 'field' names in columns
     // Will be replaced when API is connected. Tests out fighters with long name
-    const rows = data.map((team, index) => ({
+    const rows = rowData.map((team, index) => ({
     id: index + 1,   // required by MUI DataGrid
     standing: team.standing,
     team: team.team,
@@ -221,7 +250,7 @@ export default function LeagueDashboard() {
                                 }}>
                                     Standings
                                 </Typography>
-                                <LeagueStandingBarChartLabel teams={data}/> {/* Creates continer of labels */}
+                                <LeagueStandingBarChartLabel teams={rowData}/> {/* Creates continer of labels */}
                                 </Box>
                     </Box>
                         {/* League Standings List (only visible on mobile and tablet)*/}

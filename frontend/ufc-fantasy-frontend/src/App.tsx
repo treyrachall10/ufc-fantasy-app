@@ -58,7 +58,7 @@ function App() {
                 <Route path="/draft" element={<DraftLobbyPage />} />
                 <Route path="/leagues/create-league" element={<LeagueCreation />} />
                 <Route element={<ProtectedRoute />}>
-                  <Route path="/league" element={<LeagueDashboard />} />
+                  <Route path="/league/:leagueId" element={<LeagueDashboard />} />
                 </Route>
               </Route>
 

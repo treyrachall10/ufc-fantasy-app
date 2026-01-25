@@ -28,7 +28,7 @@ export default function LeaguesPage() {
     const columns = [
         { field: 'league', headerName: 'League', renderCell: (params: any) => (
             <Link 
-                href={`/league`} 
+                href={`/league/${params.id}`} 
                 sx={{
                     textDecoration: 'underline',
                     color: 'text.primary'

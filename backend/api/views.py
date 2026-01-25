@@ -455,3 +455,19 @@ def GetUserLeaguesAndTeams(request):
     league_member_instance_set = LeagueMember.objects.filter(owner=request.user).select_related('league').prefetch_related('team_set')
     serializer = UserLeaguesAndTeamsListSerializer(league_member_instance_set, many=True)
     return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def GetLeagueData(request, league_id):
+    if not LeagueMember.objects.filter(owner=request.user, league_id=league_id).exists():
+        return Response(
+            {"detail": "You are not apart of this league"},
+            status=403
+        )
+    league = League.objects.get(id=league_id)
+    teams = Team.objects.filter(owner__league_id=league_id)
+    serializer = LeagueSerializer(league, many=True)
+    return Response({
+        "league": LeagueSerializer(league).data,
+        "teams": TeamSerializer(teams, many=True).data
+    })
