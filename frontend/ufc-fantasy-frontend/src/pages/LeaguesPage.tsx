@@ -48,18 +48,15 @@ export default function LeaguesPage() {
         { field: 'standing', headerName: 'Standing', flex: 1 },
     ];
 
-    
     // Each row object must have an 'id' property and properties that match the 'field' names in columns
     // Will be replaced when API is connected. Tests out fighters with long name
-    const rows = [
-        { id: 1, league: 'Iron Fist League', team: 'Octagon Kings', points: 342, standing: '1' },
-        { id: 2, league: 'Ground & Pound', team: 'Red Corner Syndicate', points: 318, standing: '3'},
-        { id: 3, league: 'Fight Night Fantasy', team: 'Dagestan Dynasty', points: 401, standing: '1' },
-        { id: 4, league: 'Submission Series', team: 'Heel Hook Heroes', points: 287, standing: '2' },
-        { id: 5, league: 'Elite MMA League', team: 'Cage Control', points: 355, standing: '1' },
-        { id: 6, league: 'Apex Fantasy', team: 'Pressure Passers', points: 296, standing: '3' },
-        { id: 7, league: 'Championship Circuit', team: 'Five Round Finishers', points: 379, standing: '2' },
-    ];
+    const rows = data.map((data) => ({
+        id: data.league_id,
+        league: data.league_name,
+        team: data.team_name,
+        points: 200,
+        standing: '1'
+    }))
 
     // Turn league standings numbers to string
     for (const row of rows) {
