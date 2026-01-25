@@ -1,17 +1,14 @@
 import HighchartsReact from 'highcharts-react-official';
 import Highcharts from 'highcharts';
 
-export default function LeagueStandingsBarChart() {
+interface LeagueStandingsBarChartProps {
+    data: {
+      category: string
+      points: number
+    }[]
+  }
 
-    const data = [
-    { category: "Iron Fist FC", points: 184 },
-    { category: "Bloodline MMA", points: 162 },
-    { category: "Apex Predators", points: 201 },
-    { category: "Submission Syndicate", points: 139 },
-    { category: "Knockout Kings", points: 225 },
-    { category: "Ground Zero Gym", points: 121 },
-    { category: "Warpath Fight Team", points: 173 },
-    ];
+export default function LeagueStandingsBarChart({data}: LeagueStandingsBarChartProps) {
 
         const options = {
             chart: {

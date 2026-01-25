@@ -75,15 +75,17 @@ export default function LeagueDashboard() {
         </Typography>
 );
 
-    const rowData = [
-        { team: "Iron Fist FC", pts: 184, standing: 0 },
-        { team: "Bloodline MMA", pts: 162, standing: 0 },
-        { team: "Apex Predators", pts: 201, standing: 0 },
-        { team: "Submission Syndicate", pts: 139, standing: 0 },
-        { team: "Knockout Kings", pts: 225, standing: 0 },
-        { team: "Ground Zero Gym", pts: 121, standing: 0 },
-        { team: "Warpath Fight Team", pts: 173, standing: 0 },
-    ];
+    const rowData = data.teams.map((team) => ({
+        team: team.name,
+        pts: 184,
+        standing: 0
+    }))
+
+    const labelData = rowData.map((row) => ({
+        category: row.team,
+        points: row.pts,
+    }))
+
     // Compute league standing
     for (const team of rowData) {
         let standing = 1;
@@ -146,12 +148,12 @@ export default function LeagueDashboard() {
                                     lineHeight: {xs: '1.7rem', md: '1.1rem'}
                                 }}
                                 > 
-                                League Name
+                                {data.league.name}
                             </Typography>
                             {/* Subtitle */}
                             <Stack direction= {{xs: "column", md: "row"}} spacing= {1} alignItems= "baseline">
                                 <Typography variant= "subtitle1" color= "text.secondary">
-                                    8 Teams
+                                    {data.league.capacity} Teams
                                 </Typography>
                                 <Typography variant= "body" color="text.secondary">
                                     League Owner
@@ -227,7 +229,7 @@ export default function LeagueDashboard() {
                     }}
                     >
                     <Box display={{xs: 'none', md: 'block'}}>
-                        <LeagueStandingsBarChart/>
+                        <LeagueStandingsBarChart data={labelData}/>
                         {/* Custom Overlaying Chart Labels */}
                         <Box
                             sx={{
