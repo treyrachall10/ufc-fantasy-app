@@ -84,7 +84,7 @@ export default function LeagueCreation(){
     // Handles form submission when submit button is clicked
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
-
+        console.log(teams)
         if (!validateInputs()) {
             return;
         }
@@ -93,13 +93,14 @@ export default function LeagueCreation(){
 
         const payload = {
             leagueName: data.get('league') as string ,
-            teams: Number(data.get('teams')),
+            teams: Number(teams),
         }
         createLeagueMutation.mutate(payload)
     }
 
     // Handles team selection
     const handleChange = (event: React.MouseEvent<HTMLElement>, value: string | null) => {
+        console.log(value)
         if (value !== null) {
             setTeams(value);
         }
