@@ -438,3 +438,22 @@ class HeadToHeadStatsSerializer(serializers.Serializer):
     bout = serializers.CharField(source='fight.bout', read_only=True)
     fighterAFantasy = FantasyScoreSerializer()
     fighterBFantasy = FantasyScoreSerializer()
+
+
+
+class UserLeaguesAndTeamsListSerializer(serializers.Serializer):
+    """
+        -   Serializers league members set to return users leagues and teams information
+    """
+    league_id = serializers.IntegerField(source="league.id")
+    league_name = serializers.CharField(source="league.name")
+    team_id = serializers.IntegerField(source="team_set.0.id")
+    team_name = serializers.CharField(source="team_set.0.name")
+    
+    class Meta:
+        fields = [
+            "league_id",
+            "league_name",
+            "team_id",
+            "team_name"
+        ]
