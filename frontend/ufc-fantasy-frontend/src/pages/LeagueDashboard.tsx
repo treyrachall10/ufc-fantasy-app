@@ -14,6 +14,15 @@ import IconButton from '@mui/material/IconButton';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import Snackbar, { SnackbarCloseReason } from '@mui/material/Snackbar';
 import CloseIcon from '@mui/icons-material/Close';
+import { useContext } from 'react'
+import { AuthContext } from '../auth/AuthProvider'
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import type { Dayjs } from 'dayjs';
 
 interface LeagueInfo {
     league: {
@@ -23,6 +32,7 @@ interface LeagueInfo {
         capacity: number
         join_key: string
         created_at: string
+        creator: number // User id
         },
     teams: {
         id: number
@@ -32,9 +42,68 @@ interface LeagueInfo {
     }[],
 }
 
-export default function LeagueDashboard() {    
+export interface ScheduleDraftDialogProps {
+  open: boolean;
+  onClose: (value: string) => void;
+  onSubmit: (date: Dayjs) => void;
+}
 
+function ScheduleDraftDialogue(props: ScheduleDraftDialogProps) {
+    const { onClose, open, onSubmit} = props;
+    const [draftDate, setDraftDate] = React.useState<Dayjs | null>(null)
+
+    const handleClose = () => {
+        onClose('')
+    };
+
+    return (
+    <Dialog onClose={handleClose} open={open}>
+      <DialogTitle align='center'>Set Draft Date</DialogTitle>
+      <DialogContent 
+        sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 1,
+            p: 4
+        }}
+      >
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DateTimePicker 
+                label="Select Date and Time"
+                value={draftDate}
+                onChange={setDraftDate}
+                sx={{
+                    margin: 1
+                }}
+                />
+            </LocalizationProvider>
+            <Button 
+                variant="contained" 
+                color='brandAlpha50'
+                onClick={() => {
+                    if (!draftDate) return;
+                    onSubmit(draftDate);
+                }}
+                sx={{ 
+                    borderColor: 'brand.light',
+                    '&:hover': {
+                        borderColor: 'brand.main'
+                    }                        
+                }}
+                >
+                    Submit
+            </Button>
+        </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function LeagueDashboard() {   
+    const auth = useContext(AuthContext)!
+    
     const [open, setOpen] = React.useState(false);
+    const [dialogueOpen, setDialogueOpen] = React.useState(false);
     const [joinCodeAnchorEl, setJoinCodeAnchorEl] = React.useState<HTMLButtonElement | null>(null);
     const [snackbarOpen, setSnackbarOpen] = React.useState(false);
     const params = useParams();
@@ -46,6 +115,8 @@ export default function LeagueDashboard() {
 
     if (isPending) return <span>Loading...</span>
     if (error) return <span>Oops!</span>
+
+    const isCreator = auth.user?.pk === data.league.creator
     
     const handleTooltipClose = () => {
         setOpen(false);
@@ -55,6 +126,18 @@ export default function LeagueDashboard() {
         setOpen(true);
     }
 
+    const handleDialogueOpen = () => {
+        setDialogueOpen(true);
+    }
+
+    const handleDialogueClose = (value: string) => {
+        setDialogueOpen(false);
+    }
+
+    const handleDialogueSubmit = (date: Dayjs) => {
+        
+    }
+
     const handleJoinCodeOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
         setJoinCodeAnchorEl(event.currentTarget);
     }
@@ -62,8 +145,6 @@ export default function LeagueDashboard() {
     const handleJoinCodeClose = () => {
         setJoinCodeAnchorEl(null);
     }
-
-
 
     const handleCopyClipboard = () => {
         navigator.clipboard.writeText(data?.league.join_key)
@@ -208,7 +289,7 @@ export default function LeagueDashboard() {
                                     League Owner
                                 </Typography>
                             </Stack>
-                            <Box>
+                            <Stack direction={'row'} gap={1}>
                                 <Button 
                                     variant="contained" 
                                     color='brandAlpha50'
@@ -270,6 +351,24 @@ export default function LeagueDashboard() {
                                         </Stack>
                                     </Stack>
                                 </Popover>
+                                {isCreator && <Button 
+                                        variant="contained" 
+                                        color="whiteAlpha20"
+                                        onClick={handleDialogueOpen}
+                                        sx={{
+                                            borderColor: 'gray900.main',
+                                            '&:hover': {
+                                                borderColor: 'gray800.main'
+                                            }
+                                        }}
+                                    >
+                                        Set Draft Date
+                                </Button>}
+                                <ScheduleDraftDialogue
+                                    onClose={handleDialogueClose}
+                                    open={dialogueOpen}
+                                    onSubmit={handleDialogueSubmit}
+                                />
                                 <Snackbar
                                     open={snackbarOpen}
                                     autoHideDuration={2000}
@@ -277,7 +376,7 @@ export default function LeagueDashboard() {
                                     message="Copied to clipboard"
                                     action={action}
                                 />
-                            </Box>
+                            </Stack>
                         </Stack>
                         <ClickAwayListener onClickAway={handleTooltipClose}>
                             <Tooltip
@@ -302,6 +401,7 @@ export default function LeagueDashboard() {
                                         cursor: 'pointer'
                                     }}
                                 >
+                                    
                                     <Typography 
                                         sx={{
                                             fontSize: "1.25rem", 

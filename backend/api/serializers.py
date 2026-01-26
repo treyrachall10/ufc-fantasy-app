@@ -487,4 +487,5 @@ class LeagueSerializer(serializers.ModelSerializer):
             "capacity",
             "join_key",
             "created_at",
+            "creator"
         ]
