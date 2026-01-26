@@ -7,7 +7,7 @@ export default function MainLayout() {
     <>
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <Box sx={{flex: 1, display: 'flex', justifyContent: 'center', alignItems:'center'}}>
+      <Box sx={{flex: 1, display: 'flex', justifyContent: 'center'}}>
         <Outlet />
       </Box>
       </Box>

@@ -466,7 +466,6 @@ def GetLeagueData(request, league_id):
         )
     league = League.objects.get(id=league_id)
     teams = Team.objects.filter(owner__league_id=league_id)
-    serializer = LeagueSerializer(league, many=True)
     return Response({
         "league": LeagueSerializer(league).data,
         "teams": TeamSerializer(teams, many=True).data
