@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ListPageLayout from "../components/layout/ListPageLayout";
 import Avatar from '@mui/material/Avatar';
-import { Box, Typography, Stack, Grid, Tooltip, ClickAwayListener } from '@mui/material';
+import { Box, Typography, Stack, Grid, Tooltip, ClickAwayListener, Button } from '@mui/material';
 import Link from '@mui/material/Link';
 import LeagueStandingsBarChart from "../components/charts/LeagueStandingsBarChart";
 import LeagueStandingBarChartLabel from "../components/badges/LeagueStandingBarChartLabel";
@@ -9,6 +9,11 @@ import { DataGrid } from '@mui/x-data-grid';
 import { useQuery } from "@tanstack/react-query";
 import { authFetch } from "../auth/authFetch";
 import { useParams } from 'react-router-dom';
+import Popover from '@mui/material/Popover';
+import IconButton from '@mui/material/IconButton';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import Snackbar, { SnackbarCloseReason } from '@mui/material/Snackbar';
+import CloseIcon from '@mui/icons-material/Close';
 
 interface LeagueInfo {
     league: {
@@ -27,17 +32,12 @@ interface LeagueInfo {
     }[],
 }
 
-export default function LeagueDashboard() {
+export default function LeagueDashboard() {    
+
     const [open, setOpen] = React.useState(false);
+    const [joinCodeAnchorEl, setJoinCodeAnchorEl] = React.useState<HTMLButtonElement | null>(null);
+    const [snackbarOpen, setSnackbarOpen] = React.useState(false);
     const params = useParams();
-
-    const handleTooltipClose = () => {
-        setOpen(false);
-    }
-
-    const handleTooltipOpen = () => {
-        setOpen(true);
-    }
 
     const { data, isPending, error} = useQuery<LeagueInfo>({
         queryKey: ['League', params.leagueId],
@@ -46,6 +46,54 @@ export default function LeagueDashboard() {
 
     if (isPending) return <span>Loading...</span>
     if (error) return <span>Oops!</span>
+    
+    const handleTooltipClose = () => {
+        setOpen(false);
+    }
+
+    const handleTooltipOpen = () => {
+        setOpen(true);
+    }
+
+    const handleJoinCodeOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+        setJoinCodeAnchorEl(event.currentTarget);
+    }
+
+    const handleJoinCodeClose = () => {
+        setJoinCodeAnchorEl(null);
+    }
+
+
+
+    const handleCopyClipboard = () => {
+        navigator.clipboard.writeText(data?.league.join_key)
+        handleSnackbarOpen();
+    }
+
+    const joinCodeOpen = Boolean(joinCodeAnchorEl);
+
+    const handleSnackbarOpen = () => {
+        setSnackbarOpen(true);
+    };
+
+    const handleSnackbarClose = (    
+        event: React.SyntheticEvent | Event,
+        reason?: SnackbarCloseReason,) => {
+    setSnackbarOpen(false);
+    };
+
+    const action = (
+        <React.Fragment>
+            <IconButton
+                size="small"
+                aria-label="close"
+                color="inherit"
+                onClick={handleSnackbarClose}
+            >
+                <CloseIcon fontSize="small" />
+            </IconButton>
+        </React.Fragment>
+    );
 
     const fantasyScoringTooltip = (
         <Typography variant="body2">
@@ -138,7 +186,7 @@ export default function LeagueDashboard() {
                     }}
                     >
                     {/* Stack formats vertical spacing between title and subtitle */}            
-                    <Stack spacing= {2} >
+                    <Stack justifyContent={'space-between'}>
                         <Stack spacing={1}>
                             {/* Page title using h2 variant from theme */}
                             <Typography 
@@ -159,6 +207,69 @@ export default function LeagueDashboard() {
                                     League Owner
                                 </Typography>
                             </Stack>
+                            <Box>
+                                <Button 
+                                    variant="contained" 
+                                    color='brandAlpha50'
+                                    onClick={handleJoinCodeOpen}
+                                    sx={{ 
+                                        borderColor: 'brand.light',
+                                        '&:hover': {
+                                            borderColor: 'brand.main'
+                                        }                        
+                                    }}
+                                    >
+                                        Invite Friends
+                                </Button>
+                                <Popover
+                                    open={joinCodeOpen}
+                                    anchorEl={joinCodeAnchorEl}
+                                    onClose={handleJoinCodeClose}
+                                    anchorOrigin={{
+                                        vertical: 'bottom',
+                                        horizontal: 'left',
+                                    }}
+                                > 
+                                <Stack 
+                                    direction={'row'}
+                                    sx={{
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        p: 1,
+                                        gap: 1
+                                    }}
+                                >
+                                    <Typography> Join key: </Typography>
+                                        <Stack direction={'row'}>
+                                        <Typography alignSelf={'center'}>
+                                                {data.league.join_key}
+                                            </Typography>                        
+                                            <IconButton
+                                                onClick={handleCopyClipboard}
+                                                  sx={{
+                                                    '&:hover': {
+                                                    backgroundColor: 'hsla(0, 91%, 43%, 0.10)',
+                                                    },
+                                                }}
+                                                >
+                                                <ContentCopyIcon
+                                                fontSize='small'
+                                                    sx={{
+                                                        color: 'white'
+                                                    }}
+                                                />
+                                            </IconButton>
+                                        </Stack>
+                                    </Stack>
+                                </Popover>
+                                <Snackbar
+                                    open={snackbarOpen}
+                                    autoHideDuration={2000}
+                                    onClose={handleSnackbarClose}
+                                    message="Copied to clipboard"
+                                    action={action}
+                                />
+                            </Box>
                         </Stack>
                         <ClickAwayListener onClickAway={handleTooltipClose}>
                             <Tooltip
