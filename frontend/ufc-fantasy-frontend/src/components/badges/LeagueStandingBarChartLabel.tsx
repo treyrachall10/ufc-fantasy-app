@@ -3,11 +3,13 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
+import { Link } from "react-router-dom";
 
 interface TeamStanding {
   team: string;
   pts: number;
   standing: number;
+  id: number;
 }
 
 interface LeagueStandingBarChartLabelProps {
@@ -72,6 +74,7 @@ export default function LeagueStandingBarChartLabel({ teams }: LeagueStandingBar
                   variant="contained"
                   color="whiteAlpha20"
                   size="small"
+                  component={Link} to={`/team/${team.id}`}
                   sx={{
                     fontSize: '0.75rem',
                     fontWeight: 400,

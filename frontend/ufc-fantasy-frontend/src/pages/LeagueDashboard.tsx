@@ -126,7 +126,8 @@ export default function LeagueDashboard() {
     const rowData = data.teams.map((team) => ({
         team: team.name,
         pts: 184,
-        standing: 0
+        standing: 0,
+        id: team.id
     }))
 
     const labelData = rowData.map((row) => ({
@@ -239,9 +240,16 @@ export default function LeagueDashboard() {
                                         gap: 1
                                     }}
                                 >
-                                    <Typography> Join key: </Typography>
+                                    <Typography fontWeight={'600'}> Join key: </Typography>
                                         <Stack direction={'row'}>
-                                        <Typography alignSelf={'center'}>
+                                        <Typography
+                                            sx={{
+                                                alignSelf: 'center',
+                                                bgcolor: 'hsla(0, 0%, 21%, 0.50)',
+                                                p: 1,
+                                                borderRadius: 2
+                                            }}
+                                        >
                                                 {data.league.join_key}
                                             </Typography>                        
                                             <IconButton
