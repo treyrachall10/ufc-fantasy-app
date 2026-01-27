@@ -22,4 +22,5 @@ urlpatterns = [
     path('leagues', views.GetUserLeaguesAndTeams),
     path('league/<int:league_id>', views.GetLeagueData),
     path('league/<league_id>/draft/schedule', views.SetDraftDate),
+    path('league/join', views.CreateLeagueMember),
 ]

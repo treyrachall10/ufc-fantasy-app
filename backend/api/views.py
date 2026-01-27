@@ -74,12 +74,13 @@ def CreateLeague(request):
         },
         status=201
     )
-    
+
+@transaction.atomic
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def CreateLeagueMember(request):
     try:
-        league = League.objects.get(join_key=request.data['joinKey'])
+        league = League.objects.get(join_key=request.data['join_key'])
     except League.DoesNotExist:
         return Response(
             {"detail": "Invalid join code"},
@@ -90,56 +91,40 @@ def CreateLeagueMember(request):
         return Response(
             {"detail": "You are already a member of this league"},
             status=409
-        ) 
+        )
     # Create league member with player role
     league_member = LeagueMember.objects.create(
         owner=request.user,
         league=league,
         role=LeagueMember.Role.PLAYER
     )
-    return Response(
-        { "member_id": league_member.id},
-        status=201  
-    )
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def CreateTeam(request):
-    # Checks if league exists
-    try:
-        league = League.objects.get(id=request.data['id'])
-    except League.DoesNotExist:
-        return Response({"detail": "League not found"}, status=404)
-    # Checks if user is a member of the league
-    try:
-        league_member = LeagueMember.objects.get(owner=request.user, league=league)
-    except LeagueMember.DoesNotExist:
-        return Response({"detail": "You are not a member of this league"}, status=403)
-    # If user already has team
-    if Team.objects.filter(owner=league_member).exists():
-       return Response(
-            {"detail": "You already have a team in this league"},
-            status=409
-        )
-    # If team name already taken
-    if Team.objects.filter(owner__league=league, name=request.data["teamName"]).exists():
-        return Response(
-            {"detail": "Team name already taken in this league"},
-            status=409
-        )
     # Create Team
     try:
         team = Team.objects.create(
                             owner=league_member,
-                            name=request.data['teamName'],
+                            name=f"{request.user.username}'s Team",
                             )
     except IntegrityError:
         return Response(
             {"detail": "You already have a team in this league"},
             status=409
         )
+    draft = Draft.objects.get(league=league)
     return Response(
-        {"team_id": team.id},
+        {
+            "league_id": league.id,
+            "join_key": league.join_key,
+            "draft_id": draft.id,
+            "member": {
+                "id": league_member.id,
+                "role": league_member.role,
+            },
+            "team": {
+                "id": team.id,
+                "name": team.name,
+            },
+            "draft_status": draft.status,
+        },
         status=201
     )
 

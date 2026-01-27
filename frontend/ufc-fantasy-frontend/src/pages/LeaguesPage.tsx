@@ -100,6 +100,7 @@ export default function LeaguesPage() {
                     <Button 
                             variant="contained" 
                             color='brandAlpha50'
+                            component={RouterLink} to='/join'
                             sx={{ 
 
                                 borderColor: 'brand.light',
@@ -108,7 +109,7 @@ export default function LeaguesPage() {
                                 }                        
                             }}
                         >
-                            Join League
+                            Join a League
                     </Button>
                     <Button 
                         variant="contained" 

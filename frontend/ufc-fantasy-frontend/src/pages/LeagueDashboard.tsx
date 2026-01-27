@@ -312,7 +312,7 @@ const DraftScheduled = () => {
             Enter Draft Room
             </Button>
             <Typography fontSize="0.75rem" color="text.secondary" alignSelf={'center'}>
-                Draft is set for {data.draft.draft_date}
+                Draft is set for {dayjs(data.draft.draft_date).format("MMM D, YYYY h:mm A")}
             </Typography>
         </Stack>
     )

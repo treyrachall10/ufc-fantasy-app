@@ -7,6 +7,7 @@ import EventsListPage from './pages/EventsListPage'
 import FightsListPage from './pages/FightsListPage';
 import AthleteStatsPage from './pages/AthleteStatsPage';
 import LeagueDashboard from './pages/LeagueDashboard';
+import JoinLeague from './pages/JoinLeague';
 import HomePage from './pages/Home';
 import Navbar from './components/layout/Navbar';
 import SignIn from './pages/SignIn';
@@ -55,6 +56,7 @@ function App() {
                 <Route path="/fighter/:id" element={<AthleteStatsPage />} />
                 <Route path="/team/:teamId" element={<UserTeamPage />} />
                 <Route path="/leagues" element={<LeaguesPage />} />
+                <Route path="/join" element={<JoinLeague />} />
                 <Route path="/draft" element={<DraftLobbyPage />} />
                 <Route path="/leagues/create-league" element={<LeagueCreation />} />
                 <Route element={<ProtectedRoute />}>

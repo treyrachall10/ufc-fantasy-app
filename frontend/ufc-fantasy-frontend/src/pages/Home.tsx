@@ -136,6 +136,7 @@ export default function HomePage() {
                 <Button 
                     variant="contained" 
                     color='brandAlpha50' 
+                    component={Link} to='/join'
                     sx={{ 
                         borderColor: 'brand.light',
                         '&:hover': {

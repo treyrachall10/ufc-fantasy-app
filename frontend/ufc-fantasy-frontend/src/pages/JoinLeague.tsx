@@ -15,26 +15,21 @@ import ToggleButtonGroup, {
 } from '@mui/material/ToggleButtonGroup';
 import { authFetch } from '../auth/authFetch';
 
-type LeaguePayload = {
-    leagueName: string,
-    teams: number
+type JoinPayload = {
+    join_key: string,
 }
 
-export default function LeagueCreation(){
+export default function JoinLeague(){
     const navigate = useNavigate();
     const queryClient = useQueryClient()
 
-    const [leagueNameError, setLeagueNameError] = React.useState(false)
-    const [leagueNameErrorMessage, setLeagueNameErrorMessage] = React.useState('')
-
-    const [teams, setTeams] = React.useState<string | null>(null)
-    const [teamError, setTeamError] = React.useState(false)
-    const [teamErrorMessage, setTeamErrorMessage] = React.useState('')
+    const [joinKeyError, setJoinKeyError] = React.useState(false)
+    const [joinKeyErrorMessage, setJoinKeyErrorMessage] = React.useState('')
 
     // POST request to login a user
       const createLeagueMutation = useMutation({
-        mutationFn: async (payload: LeaguePayload) => {
-          const response = await authFetch('http://localhost:8000/create-league', {
+        mutationFn: async (payload: JoinPayload) => {
+          const response = await authFetch('http://localhost:8000/league/join', {
             method: 'POST',
             body: JSON.stringify(payload),
           })
@@ -51,10 +46,8 @@ export default function LeagueCreation(){
         // Do something if fails
         onError: (error: any) => {
           if (error){
-            setLeagueNameError(true);
-            setLeagueNameErrorMessage(error.detail);        
-            setTeamError(true);
-            setTeamErrorMessage(error.detail);
+            setJoinKeyError(true);
+            setJoinKeyErrorMessage(error.detail);        
           }
         },
     
@@ -71,14 +64,14 @@ export default function LeagueCreation(){
             queryClient.setQueryData(["team", data.team.id],
                 data.team
             )
-            navigate('/leagues');
+            navigate(`/league/${data.league_id}`);
         }
       })
 
     // Handles form submission when submit button is clicked
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
-        console.log(teams)
+
         if (!validateInputs()) {
             return;
         }
@@ -86,41 +79,23 @@ export default function LeagueCreation(){
         const data = new FormData(event.currentTarget)
 
         const payload = {
-            leagueName: data.get('league') as string ,
-            teams: Number(teams),
+            join_key: data.get('key') as string ,
         }
         createLeagueMutation.mutate(payload)
     }
 
-    // Handles team selection
-    const handleChange = (event: React.MouseEvent<HTMLElement>, value: string | null) => {
-        console.log(value)
-        if (value !== null) {
-            setTeams(value);
-        }
-    }
-
     // Validates inputs in form
     const validateInputs = () => {
-        const league = document.getElementById('league') as HTMLInputElement
+        const key = document.getElementById('key') as HTMLInputElement
 
         let isValid = true;
-        if (league.value.length > 64) {
-            setLeagueNameError(true);
-            setLeagueNameErrorMessage('Name must be less than 64 characters.');
+        if (key.value.length != 8) {
+            setJoinKeyError(true);
+            setJoinKeyErrorMessage('Join key must be exactly 8 characters.');
             isValid = false;
         } else {
-            setLeagueNameError(false);
-            setLeagueNameErrorMessage('');
-        }
-
-        if (teams === null) {
-            setTeamError(true);
-            setTeamErrorMessage('Must choose number of teams in league.');
-            isValid = false;
-        } else {
-            setTeamError(false);
-            setTeamErrorMessage('');
+            setJoinKeyError(false);
+            setJoinKeyErrorMessage('');
         }
         return isValid;
     }
@@ -132,6 +107,7 @@ export default function LeagueCreation(){
                 width: '100%',
                 display: 'flex',
                 justifyContent: 'center',
+                pt: 6
             }}>
             <Box sx={{
                 display: 'flex',
@@ -139,7 +115,7 @@ export default function LeagueCreation(){
                 width: '50%',
                 gap: 2
             }}>
-            <Typography variant='h2'>Create League</Typography>
+            <Typography variant='h2'>Join a League</Typography>
             {/* League creation card container*/}
             <Box sx={{
                     bgcolor: 'dashboardBlack.main',
@@ -163,61 +139,22 @@ export default function LeagueCreation(){
                             }}
                         >
                             <FormControl>
-                                <FormLabel htmlFor='leagueName' sx={{color: 'white', fontSize: '1.3rem'}}>League Name</FormLabel>
+                                <FormLabel htmlFor='joinKey' sx={{color: 'white', fontSize: '1.3rem'}}>Join Key</FormLabel>
                                 <TextField
-                                error={leagueNameError}
-                                helperText={leagueNameErrorMessage}
-                                id="league"
-                                type="league"
-                                name="league"
-                                placeholder="Real Fight Fans League"
+                                error={joinKeyError}
+                                helperText={joinKeyErrorMessage}
+                                id="key"
+                                type="key"
+                                name="key"
+                                placeholder="League key (e.g. ABC123XY)"
                                 autoComplete="email"
                                 autoFocus
                                 required
                                 fullWidth
                                 variant="outlined"
-                                color={leagueNameError ? 'error' : 'primary'}
+                                color={joinKeyError ? 'error' : 'primary'}
                                 />
                           </FormControl>
-                          <FormControl> 
-                            <FormLabel htmlFor='teamSelect' sx={{color: 'white', alignSelf: 'center', fontSize: '1.3rem'}}>Number of Teams</FormLabel>     
-                                <ToggleButtonGroup
-                                    exclusive
-                                    value={teams}
-                                    color='primary'
-                                    onChange={handleChange}
-                                    sx={{
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        gap: 2, 
-                                    }}
-                                    >
-                                    {['4','6','8','10'].map(v => (
-                                        <ToggleButton
-                                        key={v}
-                                        value={v}
-                                        sx={{
-                                            width: 56,
-                                            height: 56,
-                                            p: 0,
-                                            fontSize: '1rem',
-                                            color: 'white',
-                                        }}
-                                        >
-                                        {v}
-                                        </ToggleButton>
-                                    ))}
-                                    </ToggleButtonGroup>
-                                      {teamError && (
-                                        <Typography
-                                        variant="caption"
-                                        color="error"
-                                        sx={{ mt: 1, textAlign: 'center' }}
-                                        >
-                                        {teamErrorMessage}
-                                        </Typography>
-                                    )}
-                            </FormControl>
                     <Button
                         type='submit'
                         variant="contained" 

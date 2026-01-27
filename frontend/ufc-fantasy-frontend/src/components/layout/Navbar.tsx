@@ -214,7 +214,8 @@ export default function Navbar(){
                         )}
                         <Button 
                             variant="contained" 
-                            color='brandAlpha50' 
+                            color='brandAlpha50'
+                            component={Link} to='/join'
                             sx={{
                                 display: {xs: 'none', md:'flex'},
                                 borderColor: 'brand.light',
