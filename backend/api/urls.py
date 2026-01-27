@@ -18,4 +18,9 @@ urlpatterns = [
     path('dj-rest-auth/registration/', include('dj_rest_auth.registration.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('create-league', views.CreateLeague),
+    path('leagues', views.GetUserLeaguesAndTeams),
+    path('league/<int:league_id>', views.GetLeagueData),
+    path('league/<league_id>/draft/schedule', views.SetDraftDate),
+    path('league/join', views.CreateLeagueMember),
 ]

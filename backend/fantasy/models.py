@@ -208,6 +208,7 @@ class League(models.Model):
     name=models.CharField(max_length=64)
     creator=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     status=models.CharField(choices=Status.choices, default=Status.SETUP)
+    capacity = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(null=True, blank=True)
     join_key = models.CharField(unique=True, max_length=12)
@@ -224,14 +225,15 @@ class LeagueMember(models.Model):
     joined_at=models.DateTimeField(auto_now_add=True)
 
 class Team(models.Model):
-    member=models.ForeignKey(LeagueMember, on_delete=models.CASCADE)
+    owner=models.ForeignKey(LeagueMember, on_delete=models.CASCADE)
     name=models.CharField(max_length=64)
     created_at=models.DateTimeField(auto_now_add=True)
 
 class Roster(models.Model):
 
     class SlotType(models.TextChoices):
-        # Men
+        
+        STRAWWEIGHT = "STRAWWEIGHT", "Strawweight"
         FLYWEIGHT = "FLYWEIGHT", "Flyweight"
         BANTAMWEIGHT = "BANTAMWEIGHT", "Bantamweight"
         FEATHERWEIGHT = "FEATHERWEIGHT", "Featherweight"
@@ -240,13 +242,7 @@ class Roster(models.Model):
         MIDDLEWEIGHT = "MIDDLEWEIGHT", "Middleweight"
         LIGHT_HEAVYWEIGHT = "LIGHT_HEAVYWEIGHT", "Light Heavyweight"
         HEAVYWEIGHT = "HEAVYWEIGHT", "Heavyweight"
-
-        # Women
-        WOMENS_STRAWWEIGHT = "WOMENS_STRAWWEIGHT", "Women’s Strawweight"
-        WOMENS_FLYWEIGHT = "WOMENS_FLYWEIGHT", "Women’s Flyweight"
-        WOMENS_BANTAMWEIGHT = "WOMENS_BANTAMWEIGHT", "Women’s Bantamweight"
-        WOMENS_FEATHERWEIGHT = "WOMENS_FEATHERWEIGHT", "Women’s Featherweight"
-
+        
         # Special
         FLEX = "FLEX", "Flex"
 
@@ -277,6 +273,7 @@ class DraftOrder(models.Model):
                 fields=['draft', 'pick_num'], 
                 name="unique_draft_pick_in_draft")
         ]
+        ordering = ['pick_num']
 
 class DraftPick(models.Model):
     fighter=models.ForeignKey(Fighters, on_delete=models.CASCADE)
@@ -284,7 +281,7 @@ class DraftPick(models.Model):
     pick_num=models.IntegerField()
     draft=models.ForeignKey(Draft, on_delete=models.CASCADE)
     class Meta:
-        # Ensures only one draft pick per draft
+        # Ensures only one draft pick and fighter per draft
         constraints = [
             models.UniqueConstraint(
                 fields=['fighter', 'draft'], 

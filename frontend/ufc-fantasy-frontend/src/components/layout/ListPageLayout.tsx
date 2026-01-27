@@ -5,7 +5,7 @@ export default function ListPageLayout(props: { children: ReactNode, sx?: SxProp
     return (
         <>
             <Container maxWidth="desktop" sx={{ ...props.sx }}>
-                <Stack direction="column">
+                <Stack direction="column" pt={6}>
                     {props.children}
                 </Stack>
             </Container>

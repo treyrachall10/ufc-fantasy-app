@@ -2,7 +2,7 @@
     Contains serializers for django views
 '''
 from rest_framework import serializers
-from fantasy.models import Fighters, FighterCareerStats, Events, Fights, FightScore, FightStats, RoundScore
+from fantasy.models import Fighters, FighterCareerStats, Events, Fights, FightScore, FightStats, RoundScore, Team, League, Draft
 
 class WinSerializer(serializers.HyperlinkedModelSerializer):
     total = serializers.IntegerField(source='wins', read_only=True)
@@ -438,3 +438,63 @@ class HeadToHeadStatsSerializer(serializers.Serializer):
     bout = serializers.CharField(source='fight.bout', read_only=True)
     fighterAFantasy = FantasyScoreSerializer()
     fighterBFantasy = FantasyScoreSerializer()
+
+
+
+class UserLeaguesAndTeamsListSerializer(serializers.Serializer):
+    """
+        -   Serializers league members set to return users leagues and teams information
+    """
+    league_id = serializers.IntegerField(source="league.id")
+    league_name = serializers.CharField(source="league.name")
+
+    team_id = serializers.SerializerMethodField()
+    team_name = serializers.SerializerMethodField()
+    
+    def get_team_id(self, obj):
+        print(obj.team_set.all()[0].__dict__)
+        team = obj.team_set.all()[0]
+        return team.id
+    
+    def get_team_name(self, obj):
+        team = obj.team_set.all()[0]
+        return team.name
+    class Meta:
+        fields = [
+            "league_id",
+            "league_name",
+            "team_id",
+            "team_name"
+        ]
+
+class TeamSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Team
+        fields = [
+            'id',
+            'owner',
+            'name',
+            'created_at'
+        ]
+
+class LeagueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = League
+        fields = [
+            "id",
+            "name",
+            "status",
+            "capacity",
+            "join_key",
+            "created_at",
+            "creator"
+        ]
+
+class DraftSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Draft
+        fields = [
+            "id",
+            "status",
+            "draft_date"
+        ]

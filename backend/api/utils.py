@@ -2,9 +2,10 @@
     - Utility functions for api file
 """
 
-from fantasy.models import RoundScore, FightScore
+from fantasy.models import RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick
 import secrets
 import string
+import random
 
 def create_fantasy_for_fighter(fight, fighter,  round_stats):
     """
@@ -54,3 +55,84 @@ def generate_join_code(length=8):
     """
     alphabet = string.ascii_uppercase + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+def weight_to_slot(weight):
+    """
+    - Maps a fighter's weight (lbs) to a roster slot type
+
+    :param weight: Integer (fighter weight in lbs)
+    :return: Roster.SlotType
+    """
+    if weight <= 115:
+        return Roster.SlotType.STRAWWEIGHT
+    elif weight <= 125:
+        return Roster.SlotType.FLYWEIGHT
+    elif weight <= 135:
+        return Roster.SlotType.BANTAMWEIGHT
+    elif weight <= 145:
+        return Roster.SlotType.FEATHERWEIGHT
+    elif weight <= 155:
+        return Roster.SlotType.LIGHTWEIGHT
+    elif weight <= 170:
+        return Roster.SlotType.WELTERWEIGHT
+    elif weight <= 185:
+        return Roster.SlotType.MIDDLEWEIGHT
+    elif weight <= 205:
+        return Roster.SlotType.LIGHT_HEAVYWEIGHT
+    else:
+        return Roster.SlotType.HEAVYWEIGHT
+    
+def generate_draft_order(league, draft):
+    """
+    Generates a full snake-style draft order for a league by creating
+    DraftOrder entries for each team and round.
+
+    :param league: Instance of League model object
+    :param draft: Instance of Draft model object
+    """
+    teams = Team.objects.filter(owner__league=league) # Get teams by following team owner relation and inserting league as the filter
+    if teams.count() == 0:
+        raise ValueError("Cannot generate draft order: league has no teams")
+    if teams.count() < 2:
+        raise ValueError("Draft requires at least 2 teams")
+    
+    teams_list = list(teams) # Converts teams to list
+    forward_teams = random.sample(teams_list, k=len(teams_list)) # Shuffles teams randomly
+    reversed_teams = forward_teams[::-1] # Reverses picks for odd rounds
+
+    rounds = 10
+    pick = 1
+    # Snake draft iterate over rounds;
+    for i in range(rounds):
+        if i%2 == 0:
+            for team in forward_teams:
+               DraftOrder.objects.create(team=team, draft=draft, pick_num=pick)
+               pick += 1
+        else:
+            for team in reversed_teams:
+                DraftOrder.objects.create(team=team, draft=draft, pick_num=pick)
+                pick += 1
+
+def execute_draft_pick(team, fighter, slot_type, draft, pick_num, current_pick):
+    """
+    Executes a draft pick by recording the pick, assigning the fighter to the roster, and advancing the draft order
+    
+    :param team: Instance of Team model object
+    :param fighter: Instance of Fighter model object
+    :param slot_type: Instance of slot_type class object
+    :param draft: Instance of Draft model object
+    :param pick_num: Integer indicating the pick number of current pick
+    :param current_pick: Instance of DraftOrder model object
+    """
+    Roster.objects.create(team=team, fighter=fighter, slot_type=slot_type)
+    DraftPick.objects.create(fighter=fighter, team=team, draft=draft, pick_num=pick_num)
+    current_pick.delete()
+
+def get_current_pick(draft):
+    """
+    Returns current 
+    
+    :param draft: Istance of Draft model
+    """
+    current_pick = DraftOrder.objects.select_for_update().filter(draft=draft).first()
+    return current_pick

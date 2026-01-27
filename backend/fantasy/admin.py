@@ -10,6 +10,13 @@ from .models import (
     FighterCareerStats,
     RoundScore,
     FightScore,
+    League, 
+    Draft, 
+    LeagueMember, 
+    Team, 
+    Roster, 
+    DraftPick, 
+    DraftOrder
 )
 
 # Register your models here.
@@ -22,3 +29,10 @@ admin.site.register(FighterCareerStats)
 admin.site.register(RoundScore)
 admin.site.register(FightScore)
 admin.site.register(User, UserAdmin)
+admin.site.register(League)
+admin.site.register(Draft)
+admin.site.register(LeagueMember)
+admin.site.register(Team)
+admin.site.register(Roster)
+admin.site.register(DraftPick)
+admin.site.register(DraftOrder)
