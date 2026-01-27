@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db import IntegrityError
 from django.db import transaction
 from django.utils import timezone
+from dateutil.parser import parse
 
 from .serializers import *
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
@@ -321,8 +322,14 @@ def SetDraftStatus(request):
             )
         draft_status = draft.status
         if draft_status == Draft.Status.NOT_SCHEDULED:
+            # Only let user set draft with full league
+            if league.leaguemember_set.count() != league.capacity:
+                return Response(
+                    {"detail": "League is not full"},
+                    status=409
+                )
             try:
-                draft.status = Draft.Status.SCHEDULED
+                draft.status = Draft.Status.PENDING
                 draft.date = request.data['date']
                 generate_draft_order(league=league, draft=draft)
                 draft.save()
@@ -337,7 +344,7 @@ def SetDraftStatus(request):
             else:
                 return Response(
                     {
-                        'detail': 'Draft has not reached it scheduled start time yet.'
+                        'detail': 'Draft has not reached its scheduled start time yet.'
                     },
                     status=409
                 )
@@ -364,7 +371,74 @@ def SetDraftStatus(request):
         },
         status=403
     )
-            
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def SetDraftDate(request, league_id):
+    # Determine if league exist
+    try:
+        league = League.objects.get(id=league_id)
+    except League.DoesNotExist:
+        return Response(
+            {"detail": "League not found."},
+            status=404
+        )
+    # Ensure date is passed
+    if not request.data.get("draft_date"):
+        return Response(
+            {"detail": "draft_date is required"},
+            status=400
+        )
+    draft_date = request.data["draft_date"]
+    if parse(draft_date) <= timezone.now():
+        return Response(
+            {"detail": "Draft must be in the future"}, 
+            status=400
+        )
+    # Allow only league creator to set draft status
+    if league.creator != request.user:
+        return Response(
+            {
+                "detail": "You don't have correct permissions to change draft status",   
+            },
+            status=403
+        )
+    try:
+        draft = Draft.objects.get(league=league)
+    except Draft.DoesNotExist:
+        return Response(
+        {"detail": "Draft not found."},
+            status=404
+        )
+    draft_status = draft.status
+    if draft_status != Draft.Status.NOT_SCHEDULED:
+        return Response(
+            {"detail": "Draft has already been scheduled"},
+            status=409
+        )
+    # Only let user set draft with full league
+    if league.leaguemember_set.count() != league.capacity:
+        return Response(
+            {"detail": "League is not full"},
+            status=409
+        )
+    try:
+        draft.status = Draft.Status.PENDING
+        draft.draft_date = request.data['draft_date']
+        generate_draft_order(league=league, draft=draft)
+        draft.save()
+    except ValueError as e:
+        return Response(
+            {"detail": str(e)},
+            status=400
+        )
+    return Response(
+        {
+            "detail": f"Draft set to {draft.status}",
+            "draft_status": draft.status
+        },
+        status=200 
+        )
 
 '''
     -   GET METHODS
@@ -466,7 +540,9 @@ def GetLeagueData(request, league_id):
         )
     league = League.objects.get(id=league_id)
     teams = Team.objects.filter(owner__league_id=league_id)
+    draft = Draft.objects.get(league=league)
     return Response({
         "league": LeagueSerializer(league).data,
-        "teams": TeamSerializer(teams, many=True).data
+        "teams": TeamSerializer(teams, many=True).data,
+        "draft": DraftSerializer(draft).data
     })

@@ -217,6 +217,11 @@ const theme = createTheme({
           borderRadius: '.5rem',
           textTransform: 'none',
           color: 'white',
+          '&.Mui-disabled': {
+            backgroundColor: 'hsla(0, 91%, 43%, 0.05)',
+            color: 'hsla(0, 0%, 100%, 0.25)',
+            border: '1px solid hsla(0, 91%, 43%, 0.15)',
+          }
         },
         contained: {
           border: '1px solid',

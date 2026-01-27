@@ -23,6 +23,13 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import type { Dayjs } from 'dayjs';
+import { useMutation } from '@tanstack/react-query';
+import dayjs from 'dayjs'
+import { Link as RouterLink } from 'react-router-dom';
+
+interface SetDraftSatePayload {
+    draft_date: string,
+}
 
 interface LeagueInfo {
     league: {
@@ -32,14 +39,19 @@ interface LeagueInfo {
         capacity: number
         join_key: string
         created_at: string
-        creator: number // User id
+        creator: number
         },
     teams: {
         id: number
-        owner: number   // LeagueMember id
+        owner: number
         name: string
-        created_at: string  // ISO datetime
+        created_at: string 
     }[],
+    draft: {
+        id: number,
+        status: "NOT_SCHEDULED" | "PENDING" | "IN_PROGRESS" | "COMPLETED",
+        draft_date: string | null
+    }
 }
 
 export interface ScheduleDraftDialogProps {
@@ -51,6 +63,13 @@ export interface ScheduleDraftDialogProps {
 function ScheduleDraftDialogue(props: ScheduleDraftDialogProps) {
     const { onClose, open, onSubmit} = props;
     const [draftDate, setDraftDate] = React.useState<Dayjs | null>(null)
+    const isInvalid = !!draftDate && draftDate.isBefore(dayjs());
+
+    // Ensure draft date in future
+    const validateDraftDate = () => {
+        if (!draftDate) return false;
+        return draftDate.isAfter(dayjs());
+    };
 
     const handleClose = () => {
         onClose('')
@@ -76,11 +95,18 @@ function ScheduleDraftDialogue(props: ScheduleDraftDialogProps) {
                 sx={{
                     margin: 1
                 }}
+                slotProps={{
+                    textField: {
+                        error: Boolean(isInvalid),
+                        helperText: isInvalid ? "Date must be in the future" : "",
+                    }
+                }}
                 />
             </LocalizationProvider>
             <Button 
                 variant="contained" 
                 color='brandAlpha50'
+                disabled={!draftDate || isInvalid}
                 onClick={() => {
                     if (!draftDate) return;
                     onSubmit(draftDate);
@@ -101,23 +127,58 @@ function ScheduleDraftDialogue(props: ScheduleDraftDialogProps) {
 
 export default function LeagueDashboard() {   
     const auth = useContext(AuthContext)!
-    
+    const params = useParams();
+
     const [open, setOpen] = React.useState(false);
     const [dialogueOpen, setDialogueOpen] = React.useState(false);
     const [joinCodeAnchorEl, setJoinCodeAnchorEl] = React.useState<HTMLButtonElement | null>(null);
     const [snackbarOpen, setSnackbarOpen] = React.useState(false);
-    const params = useParams();
 
     const { data, isPending, error} = useQuery<LeagueInfo>({
         queryKey: ['League', params.leagueId],
         queryFn: () => authFetch(`http://localhost:8000/league/${params.leagueId}`).then(r => r.json()),
     })
 
+    const scheduleDraftMutation = useMutation({
+        mutationFn: async (payload: SetDraftSatePayload) => {
+        const response = await authFetch(`http://localhost:8000/league/${params.leagueId}/draft/schedule`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        })
+    
+        const data = await response.json()
+    
+        if (!response.ok) {
+            throw data
+        }
+    
+        return data
+        },
+    
+        // Do something if fails
+        onError: (error: any) => {
+        },
+    
+        onSuccess: (data) => {
+            console.log('SUCCESS');
+        }
+    })  
+
     if (isPending) return <span>Loading...</span>
     if (error) return <span>Oops!</span>
 
-    const isCreator = auth.user?.pk === data.league.creator
-    
+    const isCreator = auth.user?.pk === data.league.creator;
+    const teams = data.teams.length; // Number of teams in league
+    const capacity = data.league.capacity; // Max capacity for league
+    const isLeagueOpen = capacity > 0
+    const missing = capacity - teams; // Number of teams left to reach max capacity
+    const draftStatus = data.draft.status
+
+    const canScheduleDraft = isCreator && draftStatus === "NOT_SCHEDULED";
+    const isDraftScheduled = draftStatus === "PENDING";
+    const nonCreatorDraftNotScheduled = !isCreator && draftStatus === "NOT_SCHEDULED";
+    const isDraftLive = draftStatus === "IN_PROGRESS";
+
     const handleTooltipClose = () => {
         setOpen(false);
     }
@@ -135,8 +196,10 @@ export default function LeagueDashboard() {
     }
 
     const handleDialogueSubmit = (date: Dayjs) => {
-        
-    }
+        scheduleDraftMutation.mutate({
+            draft_date: date.toISOString(),
+        });
+    };
 
     const handleJoinCodeOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
         setJoinCodeAnchorEl(event.currentTarget);
@@ -203,6 +266,65 @@ export default function LeagueDashboard() {
             • Early Finish Bonus: +0.03 points per second remaining in the round
         </Typography>
 );
+
+const ScheduleDraft = () => {
+    return (
+        <Stack spacing={0.5}>
+            <Button
+                variant="contained"
+                color="whiteAlpha20"
+                disabled={missing > 0}
+                onClick={handleDialogueOpen}
+                sx={{
+                    '&.Mui-disabled': {
+                        backgroundColor: 'hsla(0, 0%, 21%, 0.20)',
+                        color: 'text.secondary',
+                        borderColor: 'gray800.main',
+                    },
+                }}
+            >
+            Set Draft Date
+            </Button>
+            {missing > 0 && (
+            <Typography fontSize="0.75rem" color="text.secondary" alignSelf={'center'}>
+                Waiting for {missing} more teams
+            </Typography>
+            )}
+        </Stack>
+    )
+}
+
+const DraftScheduled = () => {
+    return (
+        <Stack spacing={0.5}>
+            <Button
+                variant="contained"
+                color="whiteAlpha20"
+                component={RouterLink} to='/draft'
+                sx={{
+                    '&.Mui-disabled': {
+                        backgroundColor: 'hsla(0, 0%, 21%, 0.20)',
+                        color: 'text.secondary',
+                        borderColor: 'gray800.main',
+                    },
+                }}
+            >
+            Enter Draft Room
+            </Button>
+            <Typography fontSize="0.75rem" color="text.secondary" alignSelf={'center'}>
+                Draft is set for {data.draft.draft_date}
+            </Typography>
+        </Stack>
+    )
+}
+
+const NonCreatorDraftNotScheduled = () => {
+    return (
+        <Typography fontSize="0.75rem" color="text.secondary" alignSelf={'center'}>
+            Draft has not yet been scheduled
+        </Typography>
+    )
+}
 
     const rowData = data.teams.map((team) => ({
         team: team.name,
@@ -289,81 +411,75 @@ export default function LeagueDashboard() {
                                     League Owner
                                 </Typography>
                             </Stack>
-                            <Stack direction={'row'} gap={1}>
-                                <Button 
-                                    variant="contained" 
-                                    color='brandAlpha50'
-                                    onClick={handleJoinCodeOpen}
-                                    sx={{ 
-                                        borderColor: 'brand.light',
-                                        '&:hover': {
-                                            borderColor: 'brand.main'
-                                        }                        
-                                    }}
-                                    >
-                                        Invite Friends
-                                </Button>
-                                <Popover
-                                    open={joinCodeOpen}
-                                    anchorEl={joinCodeAnchorEl}
-                                    onClose={handleJoinCodeClose}
-                                    anchorOrigin={{
-                                        vertical: 'bottom',
-                                        horizontal: 'left',
-                                    }}
-                                > 
-                                <Stack 
-                                    direction={'row'}
-                                    sx={{
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        p: 1,
-                                        gap: 1
-                                    }}
-                                >
-                                    <Typography fontWeight={'600'}> Join key: </Typography>
-                                        <Stack direction={'row'}>
-                                        <Typography
-                                            sx={{
-                                                alignSelf: 'center',
-                                                bgcolor: 'hsla(0, 0%, 21%, 0.50)',
-                                                p: 1,
-                                                borderRadius: 2
-                                            }}
-                                        >
-                                                {data.league.join_key}
-                                            </Typography>                        
-                                            <IconButton
-                                                onClick={handleCopyClipboard}
-                                                  sx={{
-                                                    '&:hover': {
-                                                    backgroundColor: 'hsla(0, 91%, 43%, 0.10)',
-                                                    },
-                                                }}
-                                                >
-                                                <ContentCopyIcon
-                                                fontSize='small'
-                                                    sx={{
-                                                        color: 'white'
-                                                    }}
-                                                />
-                                            </IconButton>
-                                        </Stack>
-                                    </Stack>
-                                </Popover>
-                                {isCreator && <Button 
+                            <Stack direction={'row'} gap={1} alignItems={'flex-start'}>
+                                {isLeagueOpen && (
+                                <>
+                                    <Button 
                                         variant="contained" 
-                                        color="whiteAlpha20"
-                                        onClick={handleDialogueOpen}
-                                        sx={{
-                                            borderColor: 'gray900.main',
+                                        color='brandAlpha50'
+                                        onClick={handleJoinCodeOpen}
+                                        sx={{ 
+                                            borderColor: 'brand.light',
                                             '&:hover': {
-                                                borderColor: 'gray800.main'
-                                            }
+                                                borderColor: 'brand.main'
+                                            }                        
                                         }}
                                     >
-                                        Set Draft Date
-                                </Button>}
+                                            Invite Friends
+                                    </Button>
+                                    <Popover
+                                        open={joinCodeOpen}
+                                        anchorEl={joinCodeAnchorEl}
+                                        onClose={handleJoinCodeClose}
+                                        anchorOrigin={{
+                                            vertical: 'bottom',
+                                            horizontal: 'left',
+                                        }}
+                                    > 
+                                    <Stack 
+                                        direction={'row'}
+                                        sx={{
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            p: 1,
+                                            gap: 1
+                                        }}
+                                    >
+                                        <Typography fontWeight={'600'}> Join key: </Typography>
+                                            <Stack direction={'row'}>
+                                            <Typography
+                                                sx={{
+                                                    alignSelf: 'center',
+                                                    bgcolor: 'hsla(0, 0%, 21%, 0.50)',
+                                                    p: 1,
+                                                    borderRadius: 2
+                                                }}
+                                            >
+                                                    {data.league.join_key}
+                                                </Typography>                        
+                                                <IconButton
+                                                    onClick={handleCopyClipboard}
+                                                    sx={{
+                                                        '&:hover': {
+                                                        backgroundColor: 'hsla(0, 91%, 43%, 0.10)',
+                                                        },
+                                                    }}
+                                                    >
+                                                    <ContentCopyIcon
+                                                    fontSize='small'
+                                                        sx={{
+                                                            color: 'white'
+                                                        }}
+                                                    />
+                                                </IconButton>
+                                            </Stack>
+                                        </Stack>
+                                    </Popover>
+                                </>
+                            )}
+                                {canScheduleDraft && <ScheduleDraft/>}
+                                {isDraftScheduled && <DraftScheduled/>}
+                                {nonCreatorDraftNotScheduled && <NonCreatorDraftNotScheduled/>}
                                 <ScheduleDraftDialogue
                                     onClose={handleDialogueClose}
                                     open={dialogueOpen}
@@ -413,7 +529,6 @@ export default function LeagueDashboard() {
                                 </Box>
                             </Tooltip>
                         </ClickAwayListener>
-                        
                     </Stack>
                 </Grid>
                 {/* League Image*/}
