@@ -550,7 +550,7 @@ def GetTeamListData(request, team_id):
                 "team": {
                     "id": team.id,
                     "name": team.name,
-                    "owner": request.user.username
+                    "owner": team.owner.owner.username
                 },
                 "has_roster": False,
                 "roster": [
@@ -587,7 +587,7 @@ def GetTeamListData(request, team_id):
             "team": {
                 "id": team.id,
                 "name": team.name,
-                "owner": request.user.username
+                "owner": team.owner.owner.username
             },
             "has_roster": True,
             "roster": response_roster
