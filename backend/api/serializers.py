@@ -498,3 +498,12 @@ class DraftSerializer(serializers.ModelSerializer):
             "status",
             "draft_date"
         ]
+
+class TeamListFighterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Fighters
+        fields = [
+            'fighter_id',
+            'full_name',
+            'weight',
+        ]

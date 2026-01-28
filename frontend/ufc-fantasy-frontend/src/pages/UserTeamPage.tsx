@@ -1,8 +1,45 @@
 import ListPageLayout from "../components/layout/ListPageLayout";
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, Typography, Stack } from '@mui/material';
+import { AuthContext } from "../auth/AuthProvider";
+import { useContext } from "react";
+import { useParams } from "react-router-dom";
+import { authFetch } from "../auth/authFetch";
+import { useQuery } from "@tanstack/react-query";
+
+export interface TeamListFighter {
+    fighter_id: number;
+    full_name: string;
+    weight: number;
+}
+
+export interface TeamRosterSlot {
+    slot: string;
+    fighter: TeamListFighter | null;
+}
+
+export interface TeamDataResponse {
+    team: {
+        id: number;
+        name: string;
+        owner: string;
+    };
+    has_roster: boolean;
+    roster: TeamRosterSlot[];
+}
 
 export default function UserTeamPage() {
+    const auth = useContext(AuthContext)!
+    const params = useParams();
+
+    const { data, isPending, error} = useQuery<TeamDataResponse>({
+        queryKey: ['Team', params.teamid],
+        queryFn: () => authFetch(`http://localhost:8000/team/${params.teamid}`).then(r => r.json()),
+    })
+
+    if (isPending) return <span>Loading...</span>
+    if (error) return <span>Oops!</span>
+
     // Define the columns for the data grid
     // Each column needs: field (matches the data property name), headerName (what users see), and width
     const columns = [
@@ -35,7 +72,7 @@ export default function UserTeamPage() {
               
                 {/* Page title using h2 variant from theme */}
                 <Typography variant = "h2" color= "text.primary"> 
-                    Your Team
+                    {data.team.name}
                 </Typography>
 
                 {/* Subtitle with points and owner  - horizontal layout */}
@@ -47,7 +84,7 @@ export default function UserTeamPage() {
                         |
                     </Typography>
                     <Typography variant= "body" color="text.secondary">
-                        Team Owner
+                        {data.team.owner}
                     </Typography>
                 </Stack>
             </Stack>

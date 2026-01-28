@@ -531,3 +531,66 @@ def GetLeagueData(request, league_id):
         "teams": TeamSerializer(teams, many=True).data,
         "draft": DraftSerializer(draft).data
     })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def GetTeamListData(request, team_id):
+    try:
+        team = Team.objects.get(id=team_id)
+    except Team.DoesNotExist:
+        return Response(
+            {"detail": "Team does not exist." },
+            status=404
+        )
+    # League may not have drafted. Let continue if haven't
+    roster_rows = Roster.objects.filter(team=team)
+    if not roster_rows.exists():
+        return Response(
+            {
+                "team": {
+                    "id": team.id,
+                    "name": team.name,
+                    "owner": request.user.username
+                },
+                "has_roster": False,
+                "roster": [
+                    { "slot": "STRAWWEIGHT", "fighter": None },
+                    { "slot": "FLYWEIGHT", "fighter": None },
+                    { "slot": "BANTAMWEIGHT", "fighter": None },
+                    { "slot": "FEATHERWEIGHT", "fighter": None },
+                    { "slot": "LIGHTWEIGHT", "fighter": None },
+                    { "slot": "WELTERWEIGHT", "fighter": None },
+                    { "slot": "MIDDLEWEIGHT", "fighter": None },
+                    { "slot": "LIGHT_HEAVYWEIGHT", "fighter": None },
+                    { "slot": "HEAVYWEIGHT", "fighter": None },
+                    { "slot": "FLEX", "fighter": None }
+                ]
+            },
+            status=200
+        )
+    # Creates clean dict, fighter is None if empty, fetches incomplete teams
+    slot_to_fighter = {
+        row.slot_type: row.fighter
+        for row in roster_rows
+    }
+    response_roster = []
+    for slot in Roster.SlotType.values:
+        fighter = slot_to_fighter.get(slot)
+        response_roster.append(
+        {
+            "slot": slot,
+            "fighter": (TeamListFighterSerializer(fighter) if fighter is not None else None) # Returns none if empty 
+        })
+    # Iterate over slots in roster rows
+    return Response(
+        {
+            "team": {
+                "id": team.id,
+                "name": team.name,
+                "owner": request.user.username
+            },
+            "has_roster": True,
+            "roster": response_roster
+        },
+        status=200
+    )

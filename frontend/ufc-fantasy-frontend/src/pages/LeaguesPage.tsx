@@ -37,7 +37,7 @@ export default function LeaguesPage() {
         ), flex: 1 },
         { field: 'team', headerName: 'Team', renderCell: (params: any) => (
             <Link 
-                href={`/team/${params.team_id}`} 
+                href={`/team/${params.row.team_id}`} 
                 sx={{
                     textDecoration: 'underline',
                     color: 'text.primary'
