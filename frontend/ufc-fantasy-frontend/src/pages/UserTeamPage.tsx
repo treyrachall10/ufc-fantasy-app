@@ -24,7 +24,6 @@ export interface TeamDataResponse {
         name: string;
         owner: string;
     };
-    has_roster: boolean;
     roster: TeamRosterSlot[];
 }
 

@@ -552,7 +552,6 @@ def GetTeamListData(request, team_id):
                     "name": team.name,
                     "owner": team.owner.owner.username
                 },
-                "has_roster": False,
                 "roster": [
                     { "slot": "STRAWWEIGHT", "fighter": None },
                     { "slot": "FLYWEIGHT", "fighter": None },
@@ -589,7 +588,6 @@ def GetTeamListData(request, team_id):
                 "name": team.name,
                 "owner": team.owner.owner.username
             },
-            "has_roster": True,
             "roster": response_roster
         },
         status=200
