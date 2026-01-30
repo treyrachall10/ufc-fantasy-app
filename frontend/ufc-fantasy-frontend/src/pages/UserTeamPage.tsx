@@ -53,15 +53,17 @@ export default function UserTeamPage() {
     
     // Each row object must have an 'id' property and properties that match the 'field' names in columns
     // Will be replaced when API is connected. Tests out fighters with long name
-    const rows =[
-        { id: 1, weightClass: 'HW', fighter: 'Israel Adesanya', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-        { id: 2, weightClass: 'HW', fighter: 'Alexander Volkanovski', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-        { id: 3, weightClass: 'HW', fighter: 'Khabib Nurmagomedov', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-        { id: 4, weightClass: 'HW', fighter: 'Zabit Magomedsharipov', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-        { id: 5, weightClass: 'HW', fighter: 'Zabit Magomedsharipov', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-        { id: 6, weightClass: 'HW', fighter: 'Adan Torres', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-        { id: 7, weightClass: 'HW', fighter: 'Trey Rachel ', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-    ];
+
+    const rows = data.roster.map((slot, index) => ({
+        id: slot.fighter?.fighter_id || index,
+        weightClass: slot.slot,
+        fighter: slot.fighter?.full_name || 'Empty',
+        status: 'Booked',
+        projected: '321',
+        year: '2026',
+        average: '86',
+        last: '86'
+    }))
     
     return (
         <ListPageLayout>
