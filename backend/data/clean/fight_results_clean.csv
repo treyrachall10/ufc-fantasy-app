@@ -1,4 +1,70 @@
 event,bout,weight_class,method,round,round_format,time,winner
+UFC 325: Volkanovski vs. Lopes 2 ,Alexander Volkanovski vs. Diego Lopes,UFC Featherweight Title Bout,Decision - Unanimous ,5,5 Rnd (5-5-5-5-5),300,Alexander Volkanovski 
+UFC 325: Volkanovski vs. Lopes 2 ,Dan Hooker vs. Benoit Saint Denis,Lightweight Bout,KO/TKO ,2,3 Rnd (5-5-5),285,Benoit Saint Denis 
+UFC 325: Volkanovski vs. Lopes 2 ,Rafael Fiziev vs. Mauricio Ruffy,Lightweight Bout,KO/TKO ,2,3 Rnd (5-5-5),270,Mauricio Ruffy 
+UFC 325: Volkanovski vs. Lopes 2 ,Tai Tuivasa vs. Tallison Teixeira,Heavyweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Tallison Teixeira 
+UFC 325: Volkanovski vs. Lopes 2 ,Quillan Salkilld vs. Jamie Mullarkey,Lightweight Bout,Submission ,1,3 Rnd (5-5-5),182,Quillan Salkilld 
+UFC 325: Volkanovski vs. Lopes 2 ,Junior Tafa vs. Billy Elekana,Light Heavyweight Bout,Submission ,2,3 Rnd (5-5-5),198,Billy Elekana 
+UFC 325: Volkanovski vs. Lopes 2 ,Cam Rowston vs. Cody Brundage,Middleweight Bout,KO/TKO ,2,3 Rnd (5-5-5),248,Cam Rowston 
+UFC 325: Volkanovski vs. Lopes 2 ,Jacob Malkoun vs. Torrez Finney,Middleweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Jacob Malkoun 
+UFC 325: Volkanovski vs. Lopes 2 ,Jonathan Micallef vs. Oban Elliott,Welterweight Bout,Submission ,2,3 Rnd (5-5-5),211,Jonathan Micallef 
+UFC 325: Volkanovski vs. Lopes 2 ,Kaan Ofli vs. Yizha,Featherweight Bout,Decision - Majority ,3,3 Rnd (5-5-5),300,Kaan Ofli 
+UFC 325: Volkanovski vs. Lopes 2 ,Sangwook Kim vs. Dom Mar Fan,Road to UFC 4 Lightweight Tournament Title Bout,Decision - Unanimous ,3,3 Rnd + OT (5-5-5-5),300,Dom Mar Fan 
+UFC 325: Volkanovski vs. Lopes 2 ,Keiichiro Nakamura vs. Sebastian Szalay,Road to UFC 4 Featherweight Tournament Title Bout,KO/TKO ,3,3 Rnd + OT (5-5-5-5),228,Keiichiro Nakamura 
+UFC 325: Volkanovski vs. Lopes 2 ,Sulangrangbo vs. Lawrence Lui,Road to UFC 4 Bantamweight Tournament Title Bout,Decision - Split ,3,3 Rnd + OT (5-5-5-5),300,Lawrence Lui 
+UFC 324: Gaethje vs. Pimblett ,Justin Gaethje vs. Paddy Pimblett,UFC Interim Lightweight Title Bout,Decision - Unanimous ,5,5 Rnd (5-5-5-5-5),300,Justin Gaethje 
+UFC 324: Gaethje vs. Pimblett ,Sean O'Malley vs. Song Yadong,Bantamweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Sean O'Malley 
+UFC 324: Gaethje vs. Pimblett ,Waldo Cortes Acosta vs. Derrick Lewis,Heavyweight Bout,KO/TKO ,2,3 Rnd (5-5-5),194,Waldo Cortes Acosta 
+UFC 324: Gaethje vs. Pimblett ,Natalia Silva vs. Rose Namajunas,Women's Flyweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Natalia Silva 
+UFC 324: Gaethje vs. Pimblett ,Arnold Allen vs. Jean Silva,Featherweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Jean Silva 
+UFC 324: Gaethje vs. Pimblett ,Umar Nurmagomedov vs. Deiveson Figueiredo,Bantamweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Umar Nurmagomedov 
+UFC 324: Gaethje vs. Pimblett ,Ateba Gautier vs. Andrey Pulyaev,Middleweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Ateba Gautier 
+UFC 324: Gaethje vs. Pimblett ,Nikita Krylov vs. Modestas Bukauskas,Light Heavyweight Bout,KO/TKO ,3,3 Rnd (5-5-5),297,Nikita Krylov 
+UFC 324: Gaethje vs. Pimblett ,Alex Perez vs. Charles Johnson,Flyweight Bout,KO/TKO ,1,3 Rnd (5-5-5),196,Alex Perez 
+UFC 324: Gaethje vs. Pimblett ,Josh Hokit vs. Denzel Freeman,Heavyweight Bout,KO/TKO ,1,3 Rnd (5-5-5),299,Josh Hokit 
+UFC 324: Gaethje vs. Pimblett ,Adam Fugitt vs. Ty Miller,Welterweight Bout,KO/TKO ,1,3 Rnd (5-5-5),299,Ty Miller 
+UFC Fight Night: Royval vs. Kape ,Brandon Royval vs. Manel Kape,Flyweight Bout,KO/TKO ,1,5 Rnd (5-5-5-5-5),198,Manel Kape 
+UFC Fight Night: Royval vs. Kape ,Giga Chikadze vs. Kevin Vallejos,Featherweight Bout,KO/TKO ,2,3 Rnd (5-5-5),89,Kevin Vallejos 
+UFC Fight Night: Royval vs. Kape ,Cesar Almeida vs. Cezary Oleksiejczuk,Middleweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Cezary Oleksiejczuk 
+UFC Fight Night: Royval vs. Kape ,Melquizael Costa vs. Morgan Charriere,Featherweight Bout,KO/TKO ,1,3 Rnd (5-5-5),74,Melquizael Costa 
+UFC Fight Night: Royval vs. Kape ,Kennedy Nzechukwu vs. Marcus Buchecha,Heavyweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,
+UFC Fight Night: Royval vs. Kape ,King Green vs. Lance Gibson Jr.,Catch Weight Bout,Decision - Split ,3,3 Rnd (5-5-5),300,King Green 
+UFC Fight Night: Royval vs. Kape ,Neil Magny vs. Yaroslav Amosov,Welterweight Bout,Submission ,1,3 Rnd (5-5-5),194,Yaroslav Amosov 
+UFC Fight Night: Royval vs. Kape ,Joanderson Brito vs. Isaac Thomson,Featherweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Joanderson Brito 
+UFC Fight Night: Royval vs. Kape ,Sean Sharaf vs. Steven Asplund,Heavyweight Bout,KO/TKO ,2,3 Rnd (5-5-5),229,Steven Asplund 
+UFC Fight Night: Royval vs. Kape ,Melissa Croden vs. Luana Santos,Women's Bantamweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Luana Santos 
+UFC Fight Night: Royval vs. Kape ,Allen Frye Jr. vs. Guilherme Pat,Heavyweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Guilherme Pat 
+UFC Fight Night: Royval vs. Kape ,Jamey-Lyn Horth vs. Tereza Bleda,Women's Flyweight Bout,KO/TKO ,1,3 Rnd (5-5-5),125,Jamey-Lyn Horth 
+UFC 323: Dvalishvili vs. Yan 2 ,Merab Dvalishvili vs. Petr Yan,UFC Bantamweight Title Bout,Decision - Unanimous ,5,5 Rnd (5-5-5-5-5),300,Petr Yan 
+UFC 323: Dvalishvili vs. Yan 2 ,Alexandre Pantoja vs. Joshua Van,UFC Flyweight Title Bout,KO/TKO ,1,5 Rnd (5-5-5-5-5),26,Joshua Van 
+UFC 323: Dvalishvili vs. Yan 2 ,Brandon Moreno vs. Tatsuro Taira,Flyweight Bout,KO/TKO ,2,3 Rnd (5-5-5),144,Tatsuro Taira 
+UFC 323: Dvalishvili vs. Yan 2 ,Henry Cejudo vs. Payton Talbott,Bantamweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Payton Talbott 
+UFC 323: Dvalishvili vs. Yan 2 ,Jan Blachowicz vs. Bogdan Guskov,Light Heavyweight Bout,Decision - Majority ,3,3 Rnd (5-5-5),300,
+UFC 323: Dvalishvili vs. Yan 2 ,Grant Dawson vs. Manuel Torres,Lightweight Bout,KO/TKO ,1,3 Rnd (5-5-5),145,Manuel Torres 
+UFC 323: Dvalishvili vs. Yan 2 ,Terrance McKinney vs. Chris Duncan,Lightweight Bout,Submission ,1,3 Rnd (5-5-5),150,Chris Duncan 
+UFC 323: Dvalishvili vs. Yan 2 ,Maycee Barber vs. Karine Silva,Women's Flyweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Maycee Barber 
+UFC 323: Dvalishvili vs. Yan 2 ,Nazim Sadykhov vs. Fares Ziam,Lightweight Bout,KO/TKO ,2,3 Rnd (5-5-5),299,Fares Ziam 
+UFC 323: Dvalishvili vs. Yan 2 ,Marvin Vettori vs. Brunno Ferreira,Middleweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Brunno Ferreira 
+UFC 323: Dvalishvili vs. Yan 2 ,Edson Barboza vs. Jalin Turner,Lightweight Bout,KO/TKO ,1,3 Rnd (5-5-5),144,Jalin Turner 
+UFC 323: Dvalishvili vs. Yan 2 ,Iwo Baraniewski vs. Ibo Aslan,Light Heavyweight Bout,KO/TKO ,1,3 Rnd (5-5-5),89,Iwo Baraniewski 
+UFC 323: Dvalishvili vs. Yan 2 ,Mansur Abdul-Malik vs. Antonio Trocoli,Middleweight Bout,Submission ,1,3 Rnd (5-5-5),69,Mansur Abdul-Malik 
+UFC 323: Dvalishvili vs. Yan 2 ,Muhammad Naimov vs. Mairon Santos,Featherweight Bout,KO/TKO ,3,3 Rnd (5-5-5),21,Mairon Santos 
+UFC Fight Night: Tsarukyan vs. Hooker ,Arman Tsarukyan vs. Dan Hooker,Lightweight Bout,Submission ,2,5 Rnd (5-5-5-5-5),214,Arman Tsarukyan 
+UFC Fight Night: Tsarukyan vs. Hooker ,Belal Muhammad vs. Ian Machado Garry,Welterweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Ian Machado Garry 
+UFC Fight Night: Tsarukyan vs. Hooker ,Volkan Oezdemir vs. Alonzo Menifield,Light Heavyweight Bout,KO/TKO ,1,3 Rnd (5-5-5),87,Volkan Oezdemir 
+UFC Fight Night: Tsarukyan vs. Hooker ,Jack Hermansson vs. Myktybek Orolbai,Welterweight Bout,KO/TKO ,1,3 Rnd (5-5-5),166,Myktybek Orolbai 
+UFC Fight Night: Tsarukyan vs. Hooker ,Waldo Cortes Acosta vs. Shamil Gaziev,Heavyweight Bout,KO/TKO ,1,3 Rnd (5-5-5),82,Waldo Cortes Acosta 
+UFC Fight Night: Tsarukyan vs. Hooker ,Tagir Ulanbekov vs. Kyoji Horiguchi,Flyweight Bout,Submission ,3,3 Rnd (5-5-5),138,Kyoji Horiguchi 
+UFC Fight Night: Tsarukyan vs. Hooker ,Bogdan Grad vs. Luke Riley,Featherweight Bout,KO/TKO ,2,3 Rnd (5-5-5),30,Luke Riley 
+UFC Fight Night: Tsarukyan vs. Hooker ,Nicolas Dalby vs. Saygid Izagakhmaev,Welterweight Bout,Decision - Split ,3,3 Rnd (5-5-5),300,Nicolas Dalby 
+UFC Fight Night: Tsarukyan vs. Hooker ,Alex Perez vs. Asu Almabayev,Flyweight Bout,Submission ,3,3 Rnd (5-5-5),22,Asu Almabayev 
+UFC Fight Night: Tsarukyan vs. Hooker ,Abdul Rakhman Yakhyaev vs. Rafael Cerqueira,Light Heavyweight Bout,Submission ,1,3 Rnd (5-5-5),33,Abdul Rakhman Yakhyaev 
+UFC Fight Night: Tsarukyan vs. Hooker ,Bekzat Almakhan vs. Aleksandre Topuria,Bantamweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Aleksandre Topuria 
+UFC Fight Night: Tsarukyan vs. Hooker ,Ismail Naurdiev vs. Ryan Loder,Middleweight Bout,KO/TKO ,1,3 Rnd (5-5-5),86,Ismail Naurdiev 
+UFC Fight Night: Tsarukyan vs. Hooker ,Nurullo Aliev vs. Shem Rock,Lightweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Nurullo Aliev 
+UFC Fight Night: Tsarukyan vs. Hooker ,Marek Bujlo vs. Denzel Freeman,Heavyweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Denzel Freeman 
+UFC - Road to UFC 4.6 ,Shi Ming vs. Bruna Brasil,Women's Strawweight Bout,Decision - Unanimous ,3,3 Rnd (5-5-5),300,Bruna Brasil 
+UFC - Road to UFC 4.6 ,Nyamjargal Tumendemberel vs. Terrance Saeteurn,Flyweight Bout,Submission ,1,3 Rnd (5-5-5),173,Nyamjargal Tumendemberel 
 UFC 322: Della Maddalena vs. Makhachev ,Jack Della Maddalena vs. Islam Makhachev,UFC Welterweight Title Bout,Decision - Unanimous ,5,5 Rnd (5-5-5-5-5),300,Islam Makhachev 
 UFC 322: Della Maddalena vs. Makhachev ,Valentina Shevchenko vs. Zhang Weili,UFC Women's Flyweight Title Bout,Decision - Unanimous ,5,5 Rnd (5-5-5-5-5),300,Valentina Shevchenko 
 UFC 322: Della Maddalena vs. Makhachev ,Sean Brady vs. Michael Morales,Welterweight Bout,KO/TKO ,1,3 Rnd (5-5-5),207,Michael Morales 

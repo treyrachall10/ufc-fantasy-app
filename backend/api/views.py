@@ -454,7 +454,7 @@ def GetCareerStatsViewSet(request, id):
 
 @api_view(['GET'])
 def GetFighterFightsViewSet(request, id):
-    fights = Fights.objects.filter(fightstats__fighter_id=id).prefetch_related('fightstats_set').distinct() # Prefetch related gets fields related to fights and stores in memory
+    fights = Fights.objects.filter(fightstats__fighter_id=id).prefetch_related('fightstats_set').distinct().order_by('-event__date') # Prefetch related gets fields related to fights and stores in memory
     serializer = FighterFightSerializer(fights, many=True, context={'fighter_id': id, 'request': request}) # Passing context allows for further logic in serializer
     return Response(serializer.data)
 

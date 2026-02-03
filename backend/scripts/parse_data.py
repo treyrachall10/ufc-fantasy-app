@@ -450,5 +450,3 @@ def parse_all_data():
     parse_fight_data()
     parse_total_fight_stats()
     parse_career_stats()
-
-parse_all_data()
