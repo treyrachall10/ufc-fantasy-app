@@ -543,7 +543,7 @@ def GetTeamListData(request, team_id):
             {"detail": "Team does not exist." },
             status=404
         )
-    # Load roster row, related fighter, and their latest fight score
+    # Load roster rows with fighters and their fight scores; uses select/prefetch related for efficiency
     roster_rows = (
         Roster.objects.filter(team=team)
         .select_related('fighter')
@@ -552,10 +552,9 @@ def GetTeamListData(request, team_id):
                 'fighter__fightscore_set',
                 queryset=(
                     FightScore.objects.select_related('fight__event')
-                    .order_by('fighter_id', '-fight__event__date')
-                    .distinct('fighter_id')
+                    .order_by('-fight__event__date')
                 ),
-                to_attr='latest_fight_scores'
+                to_attr='all_fight_scores'
             )
         )
     )
@@ -591,14 +590,23 @@ def GetTeamListData(request, team_id):
     # Iterate over all possible slots, build fighter data or None
     for slot in Roster.SlotType.values:
         fighter = slot_to_fighter.get(slot)
-        latest_fantasy = None
-        if fighter is not None and getattr(fighter, 'latest_fight_scores', None):
-            latest_fantasy = fighter.latest_fight_scores[0]
+        fantasy_payload = None
+        # Build fantasy payload if fighter has fight scores
+        if fighter is not None and getattr(fighter, 'all_fight_scores', None):
+            all_scores = fighter.all_fight_scores
+            latest_fantasy = all_scores[0] if all_scores else None
+            score_values = [score.fight_total_points for score in all_scores if score.fight_total_points is not None]
+            average_fight_points = (sum(score_values) / len(score_values)) if score_values else None
+            if latest_fantasy is not None:
+                fantasy_payload = {
+                    "last_fight_points": latest_fantasy.fight_total_points,
+                    "average_fight_points": average_fight_points
+                }
         response_roster.append(
         {
             "slot": slot,
             "fighter": TeamListFighterSerializer(fighter).data if fighter is not None else None, # Returns none if empty
-            "fantasy": TeamListFantasyScoreSerializer(latest_fantasy).data if latest_fantasy is not None else None # Returns none if no fights yet
+            "fantasy": TeamListFantasyScoreSerializer(fantasy_payload).data if fantasy_payload is not None else None # Returns none if no fights yet
         })
     # Iterate over slots in roster rows
     return Response(
