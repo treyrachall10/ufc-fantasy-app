@@ -15,6 +15,7 @@ export interface TeamListFighter {
 
 export interface TeamFighterFantasyStats {
     last_fight_points: number;
+    average_fight_points: number;
 }
 
 export interface TeamRosterSlot {
@@ -63,10 +64,10 @@ export default function UserTeamPage() {
         id: slot.fighter?.fighter_id || index,
         weightClass: slot.slot,
         fighter: slot.fighter?.full_name || 'Empty',
-        status: 'Booked',
-        projected: '321',
+        status: 'Coming Soon',
+        projected: 'Coming Soon',
         year: '2026',
-        average: '86',
+        average: slot.fantasy ? slot.fantasy.average_fight_points.toFixed(1) : '0.0',
         last: slot.fantasy ? slot.fantasy.last_fight_points.toFixed(1) : '0.0',
     }))
     
