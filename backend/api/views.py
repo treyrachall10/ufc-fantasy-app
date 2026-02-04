@@ -6,12 +6,13 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db import IntegrityError
 from django.db import transaction
+from django.db.models import Prefetch
 from django.utils import timezone
 from dateutil.parser import parse
 
 from .serializers import *
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
-                            FightStats, RoundStats, League, LeagueMember, 
+                            FightStats, RoundStats, FightScore, League, LeagueMember, 
                             Team, Roster, Draft, DraftPick, DraftOrder)
 from .utils import (create_fantasy_for_fighter, generate_join_code, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
@@ -542,8 +543,22 @@ def GetTeamListData(request, team_id):
             {"detail": "Team does not exist." },
             status=404
         )
-    # League may not have drafted. Let continue if haven't
-    roster_rows = Roster.objects.filter(team=team)
+    # Load roster row, related fighter, and their latest fight score
+    roster_rows = (
+        Roster.objects.filter(team=team)
+        .select_related('fighter')
+        .prefetch_related(
+            Prefetch(
+                'fighter__fightscore_set',
+                queryset=(
+                    FightScore.objects.select_related('fight__event')
+                    .order_by('fighter_id', '-fight__event__date')
+                    .distinct('fighter_id')
+                ),
+                to_attr='latest_fight_scores'
+            )
+        )
+    )
     if not roster_rows.exists():
         return Response(
             {
@@ -553,16 +568,16 @@ def GetTeamListData(request, team_id):
                     "owner": team.owner.owner.username
                 },
                 "roster": [
-                    { "slot": "STRAWWEIGHT", "fighter": None },
-                    { "slot": "FLYWEIGHT", "fighter": None },
-                    { "slot": "BANTAMWEIGHT", "fighter": None },
-                    { "slot": "FEATHERWEIGHT", "fighter": None },
-                    { "slot": "LIGHTWEIGHT", "fighter": None },
-                    { "slot": "WELTERWEIGHT", "fighter": None },
-                    { "slot": "MIDDLEWEIGHT", "fighter": None },
-                    { "slot": "LIGHT_HEAVYWEIGHT", "fighter": None },
-                    { "slot": "HEAVYWEIGHT", "fighter": None },
-                    { "slot": "FLEX", "fighter": None }
+                    { "slot": "STRAWWEIGHT", "fighter": None, "fantasy": None}, 
+                    { "slot": "FLYWEIGHT", "fighter": None, "fantasy": None},
+                    { "slot": "BANTAMWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "FEATHERWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "LIGHTWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "WELTERWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "MIDDLEWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "LIGHT_HEAVYWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "HEAVYWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "FLEX", "fighter": None, "fantasy": None }
                 ]
             },
             status=200
@@ -573,12 +588,17 @@ def GetTeamListData(request, team_id):
         for row in roster_rows
     }
     response_roster = []
+    # Iterate over all possible slots, build fighter data or None
     for slot in Roster.SlotType.values:
         fighter = slot_to_fighter.get(slot)
+        latest_fantasy = None
+        if fighter is not None and getattr(fighter, 'latest_fight_scores', None):
+            latest_fantasy = fighter.latest_fight_scores[0]
         response_roster.append(
         {
             "slot": slot,
-            "fighter": (TeamListFighterSerializer(fighter) if fighter is not None else None) # Returns none if empty 
+            "fighter": TeamListFighterSerializer(fighter).data if fighter is not None else None, # Returns none if empty
+            "fantasy": TeamListFantasyScoreSerializer(latest_fantasy).data if latest_fantasy is not None else None # Returns none if no fights yet
         })
     # Iterate over slots in roster rows
     return Response(

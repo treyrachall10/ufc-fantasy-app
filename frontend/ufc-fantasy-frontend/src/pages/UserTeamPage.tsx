@@ -13,9 +13,14 @@ export interface TeamListFighter {
     weight: number;
 }
 
+export interface TeamFighterFantasyStats {
+    last_fight_points: number;
+}
+
 export interface TeamRosterSlot {
     slot: string;
     fighter: TeamListFighter | null;
+    fantasy: TeamFighterFantasyStats | null;
 }
 
 export interface TeamDataResponse {
@@ -62,7 +67,7 @@ export default function UserTeamPage() {
         projected: '321',
         year: '2026',
         average: '86',
-        last: '86'
+        last: slot.fantasy ? slot.fantasy.last_fight_points.toFixed(1) : '0.0',
     }))
     
     return (

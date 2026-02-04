@@ -507,3 +507,6 @@ class TeamListFighterSerializer(serializers.ModelSerializer):
             'full_name',
             'weight',
         ]
+
+class TeamListFantasyScoreSerializer(serializers.Serializer):
+    last_fight_points = serializers.FloatField(source='fight_total_points', read_only=True)
