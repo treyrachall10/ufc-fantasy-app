@@ -498,3 +498,16 @@ class DraftSerializer(serializers.ModelSerializer):
             "status",
             "draft_date"
         ]
+
+class TeamListFighterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Fighters
+        fields = [
+            'fighter_id',
+            'full_name',
+            'weight',
+        ]
+
+class TeamListFantasyScoreSerializer(serializers.Serializer):
+    last_fight_points = serializers.FloatField(read_only=True)
+    average_fight_points = serializers.FloatField(read_only=True)

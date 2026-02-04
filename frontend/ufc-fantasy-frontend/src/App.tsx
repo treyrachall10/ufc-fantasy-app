@@ -54,7 +54,7 @@ function App() {
                 <Route path="/events" element={<EventsListPage />} />
                 <Route path="/events/:id" element={<FightsListPage />} />
                 <Route path="/fighter/:id" element={<AthleteStatsPage />} />
-                <Route path="/team/:teamId" element={<UserTeamPage />} />
+                <Route path="/team/:teamid" element={<UserTeamPage />} />
                 <Route path="/leagues" element={<LeaguesPage />} />
                 <Route path="/join" element={<JoinLeague />} />
                 <Route path="/draft" element={<DraftLobbyPage />} />

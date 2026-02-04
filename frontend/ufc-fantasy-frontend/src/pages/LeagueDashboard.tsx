@@ -355,7 +355,7 @@ const NonCreatorDraftNotScheduled = () => {
         {field: 'standing', headerName: 'Standing', flex: .75},
         {field: 'team', headerName: 'Team', flex: 1, renderCell: (params: any) => (
             <Link 
-                href={`/form/${params.value}`} 
+                href={`/team/${params.id}`} 
                 sx={{
                     textDecoration: 'underline',
                     color: 'text.primary'
@@ -368,7 +368,7 @@ const NonCreatorDraftNotScheduled = () => {
     // Each row object must have an 'id' property and properties that match the 'field' names in columns
     // Will be replaced when API is connected. Tests out fighters with long name
     const rows = rowData.map((team, index) => ({
-    id: index + 1,   // required by MUI DataGrid
+    id: team.id,
     standing: team.standing,
     team: team.team,
     pts: team.pts,

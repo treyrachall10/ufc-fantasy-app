@@ -37,7 +37,7 @@ export default function LeaguesPage() {
         ), flex: 1 },
         { field: 'team', headerName: 'Team', renderCell: (params: any) => (
             <Link 
-                href={`/team`} 
+                href={`/team/${params.row.team_id}`} 
                 sx={{
                     textDecoration: 'underline',
                     color: 'text.primary'
@@ -54,6 +54,7 @@ export default function LeaguesPage() {
         id: data.league_id,
         league: data.league_name,
         team: data.team_name,
+        team_id: data.team_id,
         points: 200,
         standing: '1'
     }))

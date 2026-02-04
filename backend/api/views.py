@@ -6,12 +6,13 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db import IntegrityError
 from django.db import transaction
+from django.db.models import Prefetch
 from django.utils import timezone
 from dateutil.parser import parse
 
 from .serializers import *
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
-                            FightStats, RoundStats, League, LeagueMember, 
+                            FightStats, RoundStats, FightScore, League, LeagueMember, 
                             Team, Roster, Draft, DraftPick, DraftOrder)
 from .utils import (create_fantasy_for_fighter, generate_join_code, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
@@ -454,7 +455,7 @@ def GetCareerStatsViewSet(request, id):
 
 @api_view(['GET'])
 def GetFighterFightsViewSet(request, id):
-    fights = Fights.objects.filter(fightstats__fighter_id=id).prefetch_related('fightstats_set').distinct() # Prefetch related gets fields related to fights and stores in memory
+    fights = Fights.objects.filter(fightstats__fighter_id=id).prefetch_related('fightstats_set').distinct().order_by('-event__date') # Prefetch related gets fields related to fights and stores in memory
     serializer = FighterFightSerializer(fights, many=True, context={'fighter_id': id, 'request': request}) # Passing context allows for further logic in serializer
     return Response(serializer.data)
 
@@ -531,3 +532,91 @@ def GetLeagueData(request, league_id):
         "teams": TeamSerializer(teams, many=True).data,
         "draft": DraftSerializer(draft).data
     })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def GetTeamListData(request, team_id):
+    try:
+        team = Team.objects.get(id=team_id)
+    except Team.DoesNotExist:
+        return Response(
+            {"detail": "Team does not exist." },
+            status=404
+        )
+    # Load roster rows with fighters and their fight scores; uses select/prefetch related for efficiency
+    roster_rows = (
+        Roster.objects.filter(team=team)
+        .select_related('fighter')
+        .prefetch_related(
+            Prefetch(
+                'fighter__fightscore_set',
+                queryset=(
+                    FightScore.objects.select_related('fight__event')
+                    .order_by('-fight__event__date')
+                ),
+                to_attr='all_fight_scores'
+            )
+        )
+    )
+    if not roster_rows.exists():
+        return Response(
+            {
+                "team": {
+                    "id": team.id,
+                    "name": team.name,
+                    "owner": team.owner.owner.username
+                },
+                "roster": [
+                    { "slot": "STRAWWEIGHT", "fighter": None, "fantasy": None}, 
+                    { "slot": "FLYWEIGHT", "fighter": None, "fantasy": None},
+                    { "slot": "BANTAMWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "FEATHERWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "LIGHTWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "WELTERWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "MIDDLEWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "LIGHT_HEAVYWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "HEAVYWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "FLEX", "fighter": None, "fantasy": None }
+                ]
+            },
+            status=200
+        )
+    # Creates clean dict, fighter is None if empty, fetches incomplete teams
+    slot_to_fighter = {
+        row.slot_type: row.fighter
+        for row in roster_rows
+    }
+    response_roster = []
+    # Iterate over all possible slots, build fighter data or None
+    for slot in Roster.SlotType.values:
+        fighter = slot_to_fighter.get(slot)
+        fantasy_payload = None
+        # Build fantasy payload if fighter has fight scores
+        if fighter is not None and getattr(fighter, 'all_fight_scores', None):
+            all_scores = fighter.all_fight_scores
+            latest_fantasy = all_scores[0] if all_scores else None
+            score_values = [score.fight_total_points for score in all_scores if score.fight_total_points is not None]
+            average_fight_points = (sum(score_values) / len(score_values)) if score_values else None
+            if latest_fantasy is not None:
+                fantasy_payload = {
+                    "last_fight_points": latest_fantasy.fight_total_points,
+                    "average_fight_points": average_fight_points
+                }
+        response_roster.append(
+        {
+            "slot": slot,
+            "fighter": TeamListFighterSerializer(fighter).data if fighter is not None else None, # Returns none if empty
+            "fantasy": TeamListFantasyScoreSerializer(fantasy_payload).data if fantasy_payload is not None else None # Returns none if no fights yet
+        })
+    # Iterate over slots in roster rows
+    return Response(
+        {
+            "team": {
+                "id": team.id,
+                "name": team.name,
+                "owner": team.owner.owner.username
+            },
+            "roster": response_roster
+        },
+        status=200
+    )

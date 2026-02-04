@@ -1,8 +1,50 @@
 import ListPageLayout from "../components/layout/ListPageLayout";
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, Typography, Stack } from '@mui/material';
+import { AuthContext } from "../auth/AuthProvider";
+import { useContext } from "react";
+import { useParams } from "react-router-dom";
+import { authFetch } from "../auth/authFetch";
+import { useQuery } from "@tanstack/react-query";
+
+export interface TeamListFighter {
+    fighter_id: number;
+    full_name: string;
+    weight: number;
+}
+
+export interface TeamFighterFantasyStats {
+    last_fight_points: number;
+    average_fight_points: number;
+}
+
+export interface TeamRosterSlot {
+    slot: string;
+    fighter: TeamListFighter | null;
+    fantasy: TeamFighterFantasyStats | null;
+}
+
+export interface TeamDataResponse {
+    team: {
+        id: number;
+        name: string;
+        owner: string;
+    };
+    roster: TeamRosterSlot[];
+}
 
 export default function UserTeamPage() {
+    const auth = useContext(AuthContext)!
+    const params = useParams();
+
+    const { data, isPending, error} = useQuery<TeamDataResponse>({
+        queryKey: ['Team', params.teamid],
+        queryFn: () => authFetch(`http://localhost:8000/team/${params.teamid}`).then(r => r.json()),
+    })
+
+    if (isPending) return <span>Loading...</span>
+    if (error) return <span>Oops!</span>
+
     // Define the columns for the data grid
     // Each column needs: field (matches the data property name), headerName (what users see), and width
     const columns = [
@@ -17,15 +59,17 @@ export default function UserTeamPage() {
     
     // Each row object must have an 'id' property and properties that match the 'field' names in columns
     // Will be replaced when API is connected. Tests out fighters with long name
-    const rows =[
-        { id: 1, weightClass: 'HW', fighter: 'Israel Adesanya', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-        { id: 2, weightClass: 'HW', fighter: 'Alexander Volkanovski', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-        { id: 3, weightClass: 'HW', fighter: 'Khabib Nurmagomedov', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-        { id: 4, weightClass: 'HW', fighter: 'Zabit Magomedsharipov', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-        { id: 5, weightClass: 'HW', fighter: 'Zabit Magomedsharipov', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-        { id: 6, weightClass: 'HW', fighter: 'Adan Torres', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-        { id: 7, weightClass: 'HW', fighter: 'Trey Rachel ', status: 'Booked', projected: '321', year: '2026', average: '86', last: '86'},
-    ];
+
+    const rows = data.roster.map((slot, index) => ({
+        id: slot.fighter?.fighter_id || index,
+        weightClass: slot.slot,
+        fighter: slot.fighter?.full_name || 'Empty',
+        status: 'Coming Soon',
+        projected: 'Coming Soon',
+        year: '2026',
+        average: slot.fantasy ? slot.fantasy.average_fight_points.toFixed(1) : '0.0',
+        last: slot.fantasy ? slot.fantasy.last_fight_points.toFixed(1) : '0.0',
+    }))
     
     return (
         <ListPageLayout>
@@ -35,7 +79,7 @@ export default function UserTeamPage() {
               
                 {/* Page title using h2 variant from theme */}
                 <Typography variant = "h2" color= "text.primary"> 
-                    Your Team
+                    {data.team.name}
                 </Typography>
 
                 {/* Subtitle with points and owner  - horizontal layout */}
@@ -47,7 +91,7 @@ export default function UserTeamPage() {
                         |
                     </Typography>
                     <Typography variant= "body" color="text.secondary">
-                        Team Owner
+                        {data.team.owner}
                     </Typography>
                 </Stack>
             </Stack>

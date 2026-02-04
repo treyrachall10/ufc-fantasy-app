@@ -248,5 +248,3 @@ def populate_database():
     populate_fighter_stats_tables()
     populate_round_score()
     populate_fight_score()
-
-populate_database()
