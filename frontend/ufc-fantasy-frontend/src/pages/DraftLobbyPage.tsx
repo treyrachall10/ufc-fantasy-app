@@ -4,8 +4,25 @@ import FighterTable from '../components/dataGrid/FighterTable';
 import DraftPlayerCard from '../components/Draftcards/DraftPlayerCard';
 import { useState } from 'react';
 import AnimatedList from '../components/Animations/AnimatedList';
+import { useQuery } from '@tanstack/react-query';
+import { authFetch } from '../auth/authFetch';
+import { useParams } from 'react-router-dom';
+
+// TypeScript interface for draft state
+interface DraftState {
+    draft_status: string;
+    current_pick: number;
+    pick_start_time: string;
+}
 
 export default function DraftLobbyPage() {
+    const params = useParams<{ leagueId: string; draftId: string }>();
+
+    // Fetch Draft State Data
+    const { data, isPending, error} = useQuery<DraftState>({
+        queryKey: ['draft', params.draftId, 'state'],
+        queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/state`).then(r => r.json()),
+    })
 
     // Mock Roster Data (1 per Weight Class)
     const ROSTER_SLOTS = [
@@ -86,7 +103,7 @@ export default function DraftLobbyPage() {
     };
 
     return (
-        <ListPageLayout sx={{ mt: -6 }}>
+        <ListPageLayout sx={{ mt: 6 }}>
 
             {/* TOP COLUMN */}
             {/* Contains the Timer, "On The Clock", and "Upcoming Picks" list */}

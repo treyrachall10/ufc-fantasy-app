@@ -260,6 +260,8 @@ class Draft(models.Model):
     league=models.ForeignKey(League, on_delete=models.CASCADE)
     status=models.CharField(choices=Status.choices, default=Status.NOT_SCHEDULED, max_length=16)
     draft_date=models.DateTimeField(null=True, blank=True)
+    current_pick=models.IntegerField(default=0)
+    pick_start_time=models.DateTimeField(null=True, blank=True)
 
 class DraftOrder(models.Model):
     team=models.ForeignKey(Team, on_delete=models.CASCADE)
