@@ -22,7 +22,7 @@ interface DraftableFighter {
     fighter: {
         fighter_id: number;
         full_name: string;
-        weight: string;
+        weight: number;
     };
     fantasy: {
         last_fight_points: number;
@@ -63,6 +63,9 @@ export default function DraftLobbyPage() {
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/draftableFighters`).then(r => r.json()),
     })
 
+    // State for weight class filter - holds the selected weight class number or empty string for all
+    const [selectedWeightClass, setSelectedWeightClass] = useState('');
+
     // Time derived from server to show countdowns, current pick, etc.
     //get current time in seconds
     const now = () => Math.floor(Date.now() / 1000);
@@ -97,13 +100,26 @@ export default function DraftLobbyPage() {
         { id: 101, round: 1, pick: 1, user: 'Team Trey', fighter: 'Jon Jones', wc: 'HW' },
     ]);
 
-    const rows = draftableFightersData?.map((item, index) => ({
+    // Transform raw API data into row format for the DataGrid
+    // Convert weight class names to numeric values using the weightClassMap
+    const allRows = draftableFightersData?.map((item, index) => ({
         id: item.fighter.fighter_id,
         weightClass: item.fighter.weight,
         fighter: item.fighter.full_name,
         last: item.fantasy?.last_fight_points.toFixed(1) ?? '0',
         average: item.fantasy?.average_points.toFixed(1) ?? '0',
     })) || [];
+
+    // Filter rows based on selected weight class
+    // If selectedWeightClass is empty string, show all fighters
+    // Otherwise, only show fighters matching the selected weight class number
+    const filteredRows = selectedWeightClass === '' 
+        ? allRows 
+        : allRows.filter(row => row.weightClass === Number(selectedWeightClass));
+
+    console.log('Selected Weight Class:', selectedWeightClass);
+    console.log('Total Fighters:', allRows.length);
+    console.log('Filtered Fighters:', filteredRows.length);
 
     const handleDraftPick = (fighterId: number) => {
         console.log(`Drafting fighter with ID: ${fighterId}`);
@@ -360,7 +376,9 @@ export default function DraftLobbyPage() {
                                 {/* Right Side: Filter Dropdown */}
                                 <FormControl size="small">
                                     <Select
-                                        value="all"
+                                        displayEmpty
+                                        value={selectedWeightClass}
+                                        onChange={(e) => setSelectedWeightClass(e.target.value)}
                                         sx={{
                                             minWidth: 160,
                                             borderRadius: 2,
@@ -371,18 +389,28 @@ export default function DraftLobbyPage() {
                                             '& .MuiSvgIcon-root': { color: 'white' }
                                         }}
                                     >
-                                        <MenuItem value="all">All Weight Classes</MenuItem>
-                                        <MenuItem value="hw">Heavyweight</MenuItem>
-                                        <MenuItem value="lhw">Light Heavyweight</MenuItem>
+                                        {/* "All Weight Classes" menu item - resets filter to show all fighters */}
+                                        <MenuItem value="">All Weight Classes</MenuItem>
+                                        
+                                        {/* Individual weight class menu items with numeric values - clicking updates selectedWeightClass state */}
+                                        <MenuItem value="265">Heavyweight (265)</MenuItem>
+                                        <MenuItem value="205">Light Heavyweight (205)</MenuItem>
+                                        <MenuItem value="185">Middleweight (185)</MenuItem>
+                                        <MenuItem value="170">Welterweight (170)</MenuItem>
+                                        <MenuItem value="155">Lightweight (155)</MenuItem>
+                                        <MenuItem value="145">Featherweight (145)</MenuItem>
+                                        <MenuItem value="135">Bantamweight (135)</MenuItem>
+                                        <MenuItem value="125">Flyweight (125)</MenuItem>
                                     </Select>
                                 </FormControl>
                             </Box>
 
                             {/* Available Fighters */}
                             <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                                {/* DataGrid displays filtered fighter rows based on selected weight class */}
                                 <DataGrid //displays the table 
-                                        rows= {rows} 
-                                        columns= {columns} 
+                                        rows={filteredRows} 
+                                        columns={columns} 
                                         
                                         disableRowSelectionOnClick // removes checkboxes
                                         disableVirtualization // renders all rows on a page, prevents scrolling the grid to see rows
