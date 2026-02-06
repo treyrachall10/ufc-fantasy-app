@@ -813,23 +813,32 @@ def GetDraftableFighters(request, draft_id):
             average_points = 0
             last_points = 0
         
-        # Create object with fighter and fantasy data
+        # Convert fighter weight to roster slot type
+        slot_type = weight_to_slot(fighter_stats.fighter.weight) if fighter_stats.fighter.weight is not None else None
+        
+        # Create object with fighter, fantasy data, and slot type
         fighter_obj = fighter_stats.fighter
         draftable_fighters_list.append({
             'fighter': fighter_obj,
             'fantasy': {
                     'last_fight_points': last_points,
                     'average_points': average_points,
-                }
+                },
+            'slot_type': slot_type,
         })
     
-    # Serialize each with fighter and fantasy_score (TeamListFantasySerializer)
+    # Serialize each with fighter, fantasy score, and slot type
     serialized_data = []
     for item in draftable_fighters_list:
         fighter_serializer = TeamListFighterSerializer(item['fighter'])
         fantasy_serializer = TeamListFantasyScoreSerializer(item['fantasy'])
+        
+        # Add slot_type to fighter serialized data since it's part of fighter identity
+        fighter_data = fighter_serializer.data
+        fighter_data['slot_type'] = item['slot_type']
+        
         serialized_data.append({
-            'fighter': fighter_serializer.data,
+            'fighter': fighter_data,
             'fantasy': fantasy_serializer.data,
         })
     

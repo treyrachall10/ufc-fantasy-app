@@ -23,6 +23,7 @@ interface DraftableFighter {
         fighter_id: number;
         full_name: string;
         weight: number;
+        slot_type: string;
     };
     fantasy: {
         last_fight_points: number;
@@ -104,7 +105,7 @@ export default function DraftLobbyPage() {
     // Convert weight class names to numeric values using the weightClassMap
     const allRows = draftableFightersData?.map((item, index) => ({
         id: item.fighter.fighter_id,
-        weightClass: item.fighter.weight,
+        weightClass: item.fighter.slot_type,
         fighter: item.fighter.full_name,
         last: item.fantasy?.last_fight_points.toFixed(1) ?? '0',
         average: item.fantasy?.average_points.toFixed(1) ?? '0',
@@ -115,7 +116,7 @@ export default function DraftLobbyPage() {
     // Otherwise, only show fighters matching the selected weight class number
     const filteredRows = selectedWeightClass === '' 
         ? allRows 
-        : allRows.filter(row => row.weightClass === Number(selectedWeightClass));
+        : allRows.filter(row => row.weightClass === selectedWeightClass);
 
     console.log('Selected Weight Class:', selectedWeightClass);
     console.log('Total Fighters:', allRows.length);
@@ -393,14 +394,14 @@ export default function DraftLobbyPage() {
                                         <MenuItem value="">All Weight Classes</MenuItem>
                                         
                                         {/* Individual weight class menu items with numeric values - clicking updates selectedWeightClass state */}
-                                        <MenuItem value="265">Heavyweight (265)</MenuItem>
-                                        <MenuItem value="205">Light Heavyweight (205)</MenuItem>
-                                        <MenuItem value="185">Middleweight (185)</MenuItem>
-                                        <MenuItem value="170">Welterweight (170)</MenuItem>
-                                        <MenuItem value="155">Lightweight (155)</MenuItem>
-                                        <MenuItem value="145">Featherweight (145)</MenuItem>
-                                        <MenuItem value="135">Bantamweight (135)</MenuItem>
-                                        <MenuItem value="125">Flyweight (125)</MenuItem>
+                                        <MenuItem value="HW">Heavyweight (265)</MenuItem>
+                                        <MenuItem value="LHW">Light Heavyweight (205)</MenuItem>
+                                        <MenuItem value="MW">Middleweight (185)</MenuItem>
+                                        <MenuItem value="WW">Welterweight (170)</MenuItem>
+                                        <MenuItem value="LW">Lightweight (155)</MenuItem>
+                                        <MenuItem value="FW">Featherweight (145)</MenuItem>
+                                        <MenuItem value="BW">Bantamweight (135)</MenuItem>
+                                        <MenuItem value="FLW">Flyweight (125)</MenuItem>
                                     </Select>
                                 </FormControl>
                             </Box>
