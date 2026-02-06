@@ -627,15 +627,15 @@ def GetTeamListData(request, team_id):
                     "owner": team.owner.owner.username
                 },
                 "roster": [
-                    { "slot": "STRAWWEIGHT", "fighter": None, "fantasy": None}, 
-                    { "slot": "FLYWEIGHT", "fighter": None, "fantasy": None},
-                    { "slot": "BANTAMWEIGHT", "fighter": None, "fantasy": None },
-                    { "slot": "FEATHERWEIGHT", "fighter": None, "fantasy": None },
-                    { "slot": "LIGHTWEIGHT", "fighter": None, "fantasy": None },
-                    { "slot": "WELTERWEIGHT", "fighter": None, "fantasy": None },
-                    { "slot": "MIDDLEWEIGHT", "fighter": None, "fantasy": None },
-                    { "slot": "LIGHT_HEAVYWEIGHT", "fighter": None, "fantasy": None },
-                    { "slot": "HEAVYWEIGHT", "fighter": None, "fantasy": None },
+                    { "slot": "SW", "fighter": None, "fantasy": None}, 
+                    { "slot": "FLW", "fighter": None, "fantasy": None},
+                    { "slot": "BW", "fighter": None, "fantasy": None },
+                    { "slot": "FW", "fighter": None, "fantasy": None },
+                    { "slot": "LW", "fighter": None, "fantasy": None },
+                    { "slot": "WW", "fighter": None, "fantasy": None },
+                    { "slot": "MW", "fighter": None, "fantasy": None },
+                    { "slot": "LHW", "fighter": None, "fantasy": None },
+                    { "slot": "HW", "fighter": None, "fantasy": None },
                     { "slot": "FLEX", "fighter": None, "fantasy": None }
                 ]
             },
