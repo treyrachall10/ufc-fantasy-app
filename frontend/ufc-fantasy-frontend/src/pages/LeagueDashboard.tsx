@@ -160,7 +160,6 @@ export default function LeagueDashboard() {
         },
     
         onSuccess: (data) => {
-            console.log('SUCCESS');
         }
     })  
 
@@ -177,7 +176,7 @@ export default function LeagueDashboard() {
     const canScheduleDraft = isCreator && draftStatus === "NOT_SCHEDULED";
     const isDraftScheduled = draftStatus === "PENDING";
     const nonCreatorDraftNotScheduled = !isCreator && draftStatus === "NOT_SCHEDULED";
-    const isDraftLive = draftStatus === "IN_PROGRESS";
+    const isDraftInProgress = draftStatus === "IN_PROGRESS";
 
     const handleTooltipClose = () => {
         setOpen(false);
@@ -300,7 +299,7 @@ const DraftScheduled = () => {
             <Button
                 variant="contained"
                 color="whiteAlpha20"
-                component={RouterLink} to='/draft'
+                component={RouterLink} to={`/league/${data.league.id}/draft/${data.draft.id}`}
                 sx={{
                     '&.Mui-disabled': {
                         backgroundColor: 'hsla(0, 0%, 21%, 0.20)',
@@ -478,7 +477,7 @@ const NonCreatorDraftNotScheduled = () => {
                                 </>
                             )}
                                 {canScheduleDraft && <ScheduleDraft/>}
-                                {isDraftScheduled && <DraftScheduled/>}
+                                {(isDraftScheduled || isDraftInProgress) && <DraftScheduled/>}
                                 {nonCreatorDraftNotScheduled && <NonCreatorDraftNotScheduled/>}
                                 <ScheduleDraftDialogue
                                     onClose={handleDialogueClose}

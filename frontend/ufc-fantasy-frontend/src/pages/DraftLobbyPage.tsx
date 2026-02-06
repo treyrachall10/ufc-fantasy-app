@@ -2,10 +2,63 @@ import { Box, Grid, Paper, Stack, Typography, FormControl, Select, MenuItem, Ava
 import ListPageLayout from '../components/layout/ListPageLayout';
 import FighterTable from '../components/dataGrid/FighterTable';
 import DraftPlayerCard from '../components/Draftcards/DraftPlayerCard';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AnimatedList from '../components/Animations/AnimatedList';
+import { useQuery } from '@tanstack/react-query';
+import { authFetch } from '../auth/authFetch';
+import { useParams } from 'react-router-dom';
+
+// TypeScript interface for draft state
+interface DraftState {
+    draft_status: string;
+    current_pick: number;
+    pick_start_time: string;
+    team_to_pick_id: number;
+}
+
+// TypeScript interface for draftable fighters
+interface DraftableFighter {
+    fighter: {
+        id: number;
+        name: string;
+        weight_class: string;
+    };
+    fantasy: {
+        lastFightPoints: number;
+        averagePoints: number;
+    };
+}
 
 export default function DraftLobbyPage() {
+    const params = useParams<{ leagueId: string; draftId: string }>();
+    
+
+
+
+    // Fetch Draft State Data in rolling intervals using refetchinterval to keep the timer, current pick, and status updated in real-time.
+    const { data: draftStateData, isPending: isDraftStatePending, error: draftStateError} = useQuery<DraftState>({
+        queryKey: ['draft', params.draftId, 'state'],
+        queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/state`).then(r => r.json()),
+        refetchInterval: 1000, // Refetch every 1000 milliseconds (1 second)
+    })
+
+    // Fetch Draftable Fighters for Draft Board
+    const { data: draftableFightersData, isPending: isDraftableFightersPending, error: draftableFightersError} = useQuery<DraftableFighter[]>({
+        queryKey: ['draft', params.draftId, 'draftableFighters'],
+        queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/draftableFighters`).then(r => r.json()),
+    })
+
+    // Time derived from server to show countdowns, current pick, etc.
+    //get current time in seconds
+    const now = () => Math.floor(Date.now() / 1000);
+    const [currentTime, setCurrentTime] = useState(now());
+    useEffect(() => {
+        setInterval(() => setCurrentTime(now()), 1000);
+    }, []);
+    const elapsedTime = currentTime - Math.floor(new Date(draftStateData?.pick_start_time || '').getTime() / 1000);
+    console.log('Elapsed Time:', elapsedTime);
+    const timeLeft = 60 - elapsedTime;
+    console.log('Time Left:', timeLeft);
 
     // Mock Roster Data (1 per Weight Class)
     const ROSTER_SLOTS = [
@@ -86,7 +139,7 @@ export default function DraftLobbyPage() {
     };
 
     return (
-        <ListPageLayout sx={{ mt: -6 }}>
+        <ListPageLayout sx={{ mt: 6 }}>
 
             {/* TOP COLUMN */}
             {/* Contains the Timer, "On The Clock", and "Upcoming Picks" list */}
