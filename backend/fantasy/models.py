@@ -233,15 +233,15 @@ class Roster(models.Model):
 
     class SlotType(models.TextChoices):
         
-        STRAWWEIGHT = "STRAWWEIGHT", "Strawweight"
-        FLYWEIGHT = "FLYWEIGHT", "Flyweight"
-        BANTAMWEIGHT = "BANTAMWEIGHT", "Bantamweight"
-        FEATHERWEIGHT = "FEATHERWEIGHT", "Featherweight"
-        LIGHTWEIGHT = "LIGHTWEIGHT", "Lightweight"
-        WELTERWEIGHT = "WELTERWEIGHT", "Welterweight"
-        MIDDLEWEIGHT = "MIDDLEWEIGHT", "Middleweight"
-        LIGHT_HEAVYWEIGHT = "LIGHT_HEAVYWEIGHT", "Light Heavyweight"
-        HEAVYWEIGHT = "HEAVYWEIGHT", "Heavyweight"
+        STRAWWEIGHT = "SW", "Strawweight"
+        FLYWEIGHT = "FLW", "Flyweight"
+        BANTAMWEIGHT = "BW", "Bantamweight"
+        FEATHERWEIGHT = "FW", "Featherweight"
+        LIGHTWEIGHT = "LW", "Lightweight"
+        WELTERWEIGHT = "WW", "Welterweight"
+        MIDDLEWEIGHT = "MW", "Middleweight"
+        LIGHT_HEAVYWEIGHT = "LHW", "Light Heavyweight"
+        HEAVYWEIGHT = "HW", "Heavyweight"
         
         # Special
         FLEX = "FLEX", "Flex"
