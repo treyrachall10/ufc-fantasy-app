@@ -723,11 +723,13 @@ def GetDraftState(request, draft_id):
         )
     # Draft is live return draft status and current pick info 
     if draft.status == Draft.Status.IN_PROGRESS:
+        team_to_pick = DraftOrder.objects.get(draft=draft, pick_num=draft.current_pick).team
         return Response(
             {
                 "draft_status": draft.status,
                 "current_pick": draft.current_pick,
-                "pick_start_time": draft.pick_start_time
+                "pick_start_time": draft.pick_start_time,
+                "team_to_pick_id": team_to_pick.id,
             },
             status=200
         )
@@ -775,14 +777,64 @@ def GetDraftableFighters(request, draft_id):
         )
     # use DraftPick to get drafted fighters in league using draft as lookup
     drafted_fighter_ids = DraftPick.objects.filter(draft=draft).values_list('fighter__fighter_id', flat=True)
+    
     # get fighters not in drafted list from career stats based on passed weightclass because these are the fighters with complete info
     if not weight_class:
-        draftable_fighters = FighterCareerStats.objects.exclude(fighter_id__in=drafted_fighter_ids)
+        draftable_fighters = FighterCareerStats.objects.exclude(
+            fighter_id__in=drafted_fighter_ids
+        ).prefetch_related(
+            Prefetch(
+                'fighter__fightscore_set',
+                queryset=FightScore.objects.select_related('fight__event').order_by('-fight__event__date')
+            )
+        )
     else:
-        draftable_fighters = FighterCareerStats.objects.exclude(fighter_id__in=drafted_fighter_ids).filter(weight_class=weight_class)
-    serializer = DraftableFighterSerializer(draftable_fighters, many=True)
+        draftable_fighters = FighterCareerStats.objects.exclude(
+            fighter_id__in=drafted_fighter_ids
+        ).filter(
+            weight_class=weight_class
+        ).prefetch_related(
+            Prefetch(
+                'fighter__fightscore_set',
+                queryset=FightScore.objects.select_related('fight__event').order_by('-fight__event__date')
+            )
+        )
+    
+    # Build list of objects with fighter info and fantasy info
+    draftable_fighters_list = []
+    for fighter_stats in draftable_fighters:
+        fight_scores = fighter_stats.fighter.fightscore_set.all()
+        
+        # Calculate average and last fight points
+        if fight_scores.exists():
+            avg_points = sum(fs.fight_total_points for fs in fight_scores) / len(fight_scores)
+            last_points = fight_scores.first().fight_total_points  # First because already ordered by date desc
+        else:
+            avg_points = 0
+            last_points = 0
+        
+        # Create object with fighter and fantasy data
+        fighter_obj = fighter_stats.fighter
+        draftable_fighters_list.append({
+            'fighter': fighter_obj,
+            'fantasy': {
+                    'last_fight_points': last_points,
+                    'average_fight_points': avg_points,
+                }
+        })
+    
+    # Serialize each with fighter and fantasy_score (TeamListFantasySerializer)
+    serialized_data = []
+    for item in draftable_fighters_list:
+        fighter_serializer = TeamListFighterSerializer(item['fighter'])
+        fantasy_serializer = TeamListFantasyScoreSerializer(item['fantasy'])
+        serialized_data.append({
+            'fighter': fighter_serializer.data,
+            'fantasy_score': fantasy_serializer.data,
+        })
+    
     return Response(
-        serializer.data,
+        serialized_data,
         status=200
     )
 
