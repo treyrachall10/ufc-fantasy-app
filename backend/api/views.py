@@ -807,10 +807,10 @@ def GetDraftableFighters(request, draft_id):
         
         # Calculate average and last fight points
         if fight_scores.exists():
-            avg_points = sum(fs.fight_total_points for fs in fight_scores) / len(fight_scores)
+            average_points = sum(fs.fight_total_points for fs in fight_scores) / len(fight_scores)
             last_points = fight_scores.first().fight_total_points  # First because already ordered by date desc
         else:
-            avg_points = 0
+            average_points = 0
             last_points = 0
         
         # Create object with fighter and fantasy data
@@ -819,7 +819,7 @@ def GetDraftableFighters(request, draft_id):
             'fighter': fighter_obj,
             'fantasy': {
                     'last_fight_points': last_points,
-                    'average_fight_points': avg_points,
+                    'average_points': average_points,
                 }
         })
     
@@ -830,7 +830,7 @@ def GetDraftableFighters(request, draft_id):
         fantasy_serializer = TeamListFantasyScoreSerializer(item['fantasy'])
         serialized_data.append({
             'fighter': fighter_serializer.data,
-            'fantasy_score': fantasy_serializer.data,
+            'fantasy': fantasy_serializer.data,
         })
     
     return Response(

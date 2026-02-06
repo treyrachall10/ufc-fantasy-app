@@ -510,7 +510,7 @@ class TeamListFighterSerializer(serializers.ModelSerializer):
 
 class TeamListFantasyScoreSerializer(serializers.Serializer):
     last_fight_points = serializers.FloatField(read_only=True)
-    average_fight_points = serializers.FloatField(read_only=True)
+    average_points = serializers.FloatField(read_only=True)
 
 class DraftOrderSerializer(serializers.ModelSerializer):
     team = TeamSerializer(many=False, read_only=True)

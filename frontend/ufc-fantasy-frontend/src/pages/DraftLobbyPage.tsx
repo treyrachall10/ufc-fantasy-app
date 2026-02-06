@@ -7,6 +7,7 @@ import AnimatedList from '../components/Animations/AnimatedList';
 import { useQuery } from '@tanstack/react-query';
 import { authFetch } from '../auth/authFetch';
 import { useParams } from 'react-router-dom';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 
 // TypeScript interface for draft state
 interface DraftState {
@@ -19,22 +20,36 @@ interface DraftState {
 // TypeScript interface for draftable fighters
 interface DraftableFighter {
     fighter: {
-        id: number;
-        name: string;
-        weight_class: string;
+        fighter_id: number;
+        full_name: string;
+        weight: string;
     };
     fantasy: {
-        lastFightPoints: number;
-        averagePoints: number;
+        last_fight_points: number;
+        average_points: number;
     };
 }
 
 export default function DraftLobbyPage() {
     const params = useParams<{ leagueId: string; draftId: string }>();
     
-
-
-
+    // Draft Button Renderer for DataGrid - Calls the handleDraftPick function with the fighter's ID when clicked.
+    const DraftButton = (params: GridRenderCellParams) => {
+        return (
+            <Button
+                variant="contained"
+                color="whiteAlpha20"
+                onClick={() => handleDraftPick(Number(params.id))}
+                sx={{
+                    textWrap: 'nowrap',
+                    borderColor: 'gray900.main',
+                    '&:hover': { borderColor: 'gray800.main' },
+                }}
+            >
+                Draft
+            </Button>
+        )
+    }
     // Fetch Draft State Data in rolling intervals using refetchinterval to keep the timer, current pick, and status updated in real-time.
     const { data: draftStateData, isPending: isDraftStatePending, error: draftStateError} = useQuery<DraftState>({
         queryKey: ['draft', params.draftId, 'state'],
@@ -81,6 +96,39 @@ export default function DraftLobbyPage() {
         { id: 102, round: 1, pick: 2, user: 'Team Adan', fighter: 'Alex Pereira', wc: 'LHW' },
         { id: 101, round: 1, pick: 1, user: 'Team Trey', fighter: 'Jon Jones', wc: 'HW' },
     ]);
+
+    const rows = draftableFightersData?.map((item, index) => ({
+        id: item.fighter.fighter_id,
+        weightClass: item.fighter.weight,
+        fighter: item.fighter.full_name,
+        last: item.fantasy?.last_fight_points.toFixed(1) ?? '0',
+        average: item.fantasy?.average_points.toFixed(1) ?? '0',
+    })) || [];
+
+    const handleDraftPick = (fighterId: number) => {
+        console.log(`Drafting fighter with ID: ${fighterId}`);
+    };
+
+    const columns: GridColDef[] = [
+        { field: 'weightClass', headerName: 'WC', flex: 0.5, minWidth: 50 },
+        { field: 'fighter', headerName: 'Fighter', flex: 2, minWidth: 150 },
+        { field: 'last', headerName: 'Last Fight', flex: 1, minWidth: 100 },
+        { field: 'average', headerName: 'Average', flex: 1, minWidth: 100 },
+        {
+            field: 'draft',
+            headerName: '',
+            flex: 0.9,
+            minWidth: 110,
+            sortable: false,
+            filterable: false,
+            disableColumnMenu: true,
+            align: 'center',
+            headerAlign: 'center',
+            headerClassName: 'draft-action-header',
+            renderHeader: () => null,
+            renderCell: DraftButton,
+        },
+    ];
 
     // 3. Helper Functions
     // This function adds a new mock pick to the TOP of the history list.
@@ -332,9 +380,37 @@ export default function DraftLobbyPage() {
 
                             {/* Available Fighters */}
                             <Box sx={{ flex: 1, overflow: 'hidden' }}>
-                                <FighterTable
-                                    variant="draft" // Turns on the specific Draft Board styling
-                                    showStatus={false} // Hides the 'Status' column
+                                <DataGrid //displays the table 
+                                        rows= {rows} 
+                                        columns= {columns} 
+                                        
+                                        disableRowSelectionOnClick // removes checkboxes
+                                        disableVirtualization // renders all rows on a page, prevents scrolling the grid to see rows
+                                        disableColumnSorting // removes sorting. (if adding filtering remove this)
+                                        
+                                        //Allows alternating colored rows
+                                        getRowClassName={(params) =>
+                                            params.indexRelativeToCurrentPage % 2 === 0 ? "even-row" : "odd-row"
+                                        }
+                                        
+                                        // STYLING
+                                        sx={(theme) => ({
+                                            //Alternating row colors
+                                            "& .MuiDataGrid-row.even-row":{
+                                                backgroundColor: (theme.palette.brand as any).dark,
+                                            },
+                                            "& .MuiDataGrid-row.odd-row":{
+                                                backgroundColor: "transparent",
+                                            },
+
+                                            //Text Styling     
+                                            // Hides Unwanted parts of the grid
+                                            // Sort Icons and Interactive elements from them
+                                            "& .MuiDataGrid-iconButtonContainer": {display: "none"},
+                                            "& .MuiDataGrid-sortIcon": {display: "none"},
+                                            "& .draft-action-header .MuiDataGrid-columnHeaderTitle": {display: "none"},
+                            
+                                        })}      
                                 />
                             </Box>
                         </Stack>
