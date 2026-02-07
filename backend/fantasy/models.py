@@ -233,15 +233,15 @@ class Roster(models.Model):
 
     class SlotType(models.TextChoices):
         
-        STRAWWEIGHT = "STRAWWEIGHT", "Strawweight"
-        FLYWEIGHT = "FLYWEIGHT", "Flyweight"
-        BANTAMWEIGHT = "BANTAMWEIGHT", "Bantamweight"
-        FEATHERWEIGHT = "FEATHERWEIGHT", "Featherweight"
-        LIGHTWEIGHT = "LIGHTWEIGHT", "Lightweight"
-        WELTERWEIGHT = "WELTERWEIGHT", "Welterweight"
-        MIDDLEWEIGHT = "MIDDLEWEIGHT", "Middleweight"
-        LIGHT_HEAVYWEIGHT = "LIGHT_HEAVYWEIGHT", "Light Heavyweight"
-        HEAVYWEIGHT = "HEAVYWEIGHT", "Heavyweight"
+        STRAWWEIGHT = "SW", "Strawweight"
+        FLYWEIGHT = "FLW", "Flyweight"
+        BANTAMWEIGHT = "BW", "Bantamweight"
+        FEATHERWEIGHT = "FW", "Featherweight"
+        LIGHTWEIGHT = "LW", "Lightweight"
+        WELTERWEIGHT = "WW", "Welterweight"
+        MIDDLEWEIGHT = "MW", "Middleweight"
+        LIGHT_HEAVYWEIGHT = "LHW", "Light Heavyweight"
+        HEAVYWEIGHT = "HW", "Heavyweight"
         
         # Special
         FLEX = "FLEX", "Flex"
@@ -260,6 +260,8 @@ class Draft(models.Model):
     league=models.ForeignKey(League, on_delete=models.CASCADE)
     status=models.CharField(choices=Status.choices, default=Status.NOT_SCHEDULED, max_length=16)
     draft_date=models.DateTimeField(null=True, blank=True)
+    current_pick=models.IntegerField(default=0)
+    pick_start_time=models.DateTimeField(null=True, blank=True)
 
 class DraftOrder(models.Model):
     team=models.ForeignKey(Team, on_delete=models.CASCADE)

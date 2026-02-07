@@ -2,7 +2,7 @@
     Contains serializers for django views
 '''
 from rest_framework import serializers
-from fantasy.models import Fighters, FighterCareerStats, Events, Fights, FightScore, FightStats, RoundScore, Team, League, Draft
+from fantasy.models import DraftOrder, DraftPick, Fighters, FighterCareerStats, Events, Fights, FightScore, FightStats, RoundScore, Team, League, Draft
 
 class WinSerializer(serializers.HyperlinkedModelSerializer):
     total = serializers.IntegerField(source='wins', read_only=True)
@@ -510,4 +510,39 @@ class TeamListFighterSerializer(serializers.ModelSerializer):
 
 class TeamListFantasyScoreSerializer(serializers.Serializer):
     last_fight_points = serializers.FloatField(read_only=True)
-    average_fight_points = serializers.FloatField(read_only=True)
+    average_points = serializers.FloatField(read_only=True)
+
+class DraftOrderSerializer(serializers.ModelSerializer):
+    team = TeamSerializer(many=False, read_only=True)
+    user = serializers.CharField(source='team.owner.owner.username', read_only=True)
+
+    class Meta:
+        model = DraftOrder
+        fields = [
+            'pick_num',
+            'team',
+            'user',
+        ]
+
+class DraftableFighterSerializer(serializers.ModelSerializer):
+    fighter = TeamListFighterSerializer(source='*', many=False, read_only=True)
+    fantasy_score = TeamListFantasyScoreSerializer(source='*', many=False, read_only=True)
+
+    class Meta:
+        model = FighterCareerStats
+        fields = [
+            'fighter',
+            'fantasy_score',
+        ]
+
+class DraftPickHistorySerializer(serializers.ModelSerializer):
+    team = TeamSerializer(many=False, read_only=True)
+    fighter = TeamListFighterSerializer(many=False, read_only=True)
+    
+    class Meta:
+        model = DraftPick
+        fields = [
+            'pick_num',
+            'team',
+            'fighter',
+        ]

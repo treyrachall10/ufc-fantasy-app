@@ -2,7 +2,8 @@
     - Utility functions for api file
 """
 
-from fantasy.models import RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick
+from datetime import timezone
+from fantasy.models import Draft, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick
 import secrets
 import string
 import random
@@ -113,7 +114,7 @@ def generate_draft_order(league, draft):
                 DraftOrder.objects.create(team=team, draft=draft, pick_num=pick)
                 pick += 1
 
-def execute_draft_pick(team, fighter, slot_type, draft, pick_num, current_pick):
+def execute_draft_pick(team, fighter, slot_type, draft, pick_num):
     """
     Executes a draft pick by recording the pick, assigning the fighter to the roster, and advancing the draft order
     
@@ -122,17 +123,9 @@ def execute_draft_pick(team, fighter, slot_type, draft, pick_num, current_pick):
     :param slot_type: Instance of slot_type class object
     :param draft: Instance of Draft model object
     :param pick_num: Integer indicating the pick number of current pick
-    :param current_pick: Instance of DraftOrder model object
     """
     Roster.objects.create(team=team, fighter=fighter, slot_type=slot_type)
     DraftPick.objects.create(fighter=fighter, team=team, draft=draft, pick_num=pick_num)
-    current_pick.delete()
-
-def get_current_pick(draft):
-    """
-    Returns current 
-    
-    :param draft: Istance of Draft model
-    """
-    current_pick = DraftOrder.objects.select_for_update().filter(draft=draft).first()
-    return current_pick
+    draft.current_pick += 1
+    draft.pick_start_time = timezone.now()
+    draft.save()
