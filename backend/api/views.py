@@ -10,6 +10,7 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.utils import timezone
 from dateutil.parser import parse
+from django.db.models import Max
 
 from .serializers import *
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
@@ -761,7 +762,8 @@ def GetDraftOrder(request, draft_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def GetDraftableFighters(request, draft_id):
-    weight_class = request.query_params.get("weight_class")
+    cutoff = timezone.now() - timezone.timedelta(days=365*2) # 2 year cutoff for fighter activity, can adjust as needed
+    
     try:
         draft = Draft.objects.get(id=draft_id)
     except Draft.DoesNotExist:
@@ -778,28 +780,14 @@ def GetDraftableFighters(request, draft_id):
     # use DraftPick to get drafted fighters in league using draft as lookup
     drafted_fighter_ids = DraftPick.objects.filter(draft=draft).values_list('fighter__fighter_id', flat=True)
     
-    # get fighters not in drafted list from career stats based on passed weightclass because these are the fighters with complete info
-    if not weight_class:
-        draftable_fighters = FighterCareerStats.objects.exclude(
-            fighter_id__in=drafted_fighter_ids
-        ).prefetch_related(
-            Prefetch(
-                'fighter__fightscore_set',
-                queryset=FightScore.objects.select_related('fight__event').order_by('-fight__event__date')
-            )
+    # get fighters that haven't been drafted, have fought in last 2 yeard, and prefetch fightscores for fantasy calculations
+    draftable_fighters = FighterCareerStats.objects.annotate(last_fight=Max('fighter__fightscore__fight__event__date')).exclude(
+        fighter_id__in=drafted_fighter_ids).exclude(last_fight__lt=cutoff).prefetch_related(
+        Prefetch(
+            'fighter__fightscore_set',
+            queryset=FightScore.objects.select_related('fight__event').order_by('-fight__event__date')
         )
-    else:
-        draftable_fighters = FighterCareerStats.objects.exclude(
-            fighter_id__in=drafted_fighter_ids
-        ).filter(
-            weight_class=weight_class
-        ).prefetch_related(
-            Prefetch(
-                'fighter__fightscore_set',
-                queryset=FightScore.objects.select_related('fight__event').order_by('-fight__event__date')
-            )
-        )
-    
+    )
     # Build list of objects with fighter info and fantasy info
     draftable_fighters_list = []
     for fighter_stats in draftable_fighters:

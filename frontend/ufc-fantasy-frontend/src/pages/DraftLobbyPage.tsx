@@ -402,6 +402,7 @@ export default function DraftLobbyPage() {
                                         <MenuItem value="FW">Featherweight (145)</MenuItem>
                                         <MenuItem value="BW">Bantamweight (135)</MenuItem>
                                         <MenuItem value="FLW">Flyweight (125)</MenuItem>
+                                        <MenuItem value="SW">Strawweight (115)</MenuItem>
                                     </Select>
                                 </FormControl>
                             </Box>
