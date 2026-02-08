@@ -235,4 +235,28 @@ export interface FightStats {
     fighterAFantasy: DetailedFantasyScore,
     fighterBFantasy: DetailedFantasyScore
   }
+
+  export interface LeagueInfo {
+    league: {
+        id: number
+        name: string
+        status: "SETUP" | "DRAFTING" | "LIVE" | "COMPLETED"
+        capacity: number
+        join_key: string
+        created_at: string
+        creator: number
+        },
+    teams: {
+        id: number
+        owner: number
+        name: string
+        created_at: string 
+    }[],
+    draft: {
+        id: number,
+        status: "NOT_SCHEDULED" | "PENDING" | "IN_PROGRESS" | "COMPLETED",
+        draft_date: string | null
+    }
+}
+
   
