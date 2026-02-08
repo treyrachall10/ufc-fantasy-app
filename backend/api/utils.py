@@ -3,7 +3,7 @@
 """
 
 from datetime import timezone
-from fantasy.models import Draft, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick
+from fantasy.models import Draft, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick, LeagueMember
 import secrets
 import string
 import random
@@ -129,3 +129,14 @@ def execute_draft_pick(team, fighter, slot_type, draft, pick_num):
     draft.current_pick += 1
     draft.pick_start_time = timezone.now()
     draft.save()
+
+def is_user_in_league(user, league_id):
+    """
+    Checks if a user is in a league by checking if they own a team in the league
+
+    :param user: Instance of User model object
+    :param league: Instance of League model object
+    :return: none; raises PermissionError if user is not in league
+    """
+    if not LeagueMember.objects.filter(owner=user, league__id=league_id).exists():
+        raise PermissionError("User is not in league")

@@ -19,6 +19,7 @@ from fantasy.models import (Fighters, Events, Fights, FighterCareerStats,
                             Team, Roster, Draft, DraftPick, DraftOrder)
 from .utils import (create_fantasy_for_fighter, generate_join_code, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
+                    is_user_in_league
                     )
 
 '''
@@ -251,14 +252,8 @@ def AddRosterSlot(request, draft_id):
 @permission_classes([IsAuthenticated])
 def DraftFlexSlot(request):
     # Checks if team exists in league and get team plus league
-    try:
-        team = Team.objects.get(id=request.data['id'], owner=request.user)
-        league = team.owner.league
-    except Team.DoesNotExist:
-        return Response(
-            {"detail": "Team does not exist in this league."},
-            status=404
-        )
+    team = get_object_or_404(Team, id=request.data['id'], owner=request.user)
+    league = team.owner.league
     # Verify draft has been created for league
     draft = get_object_or_404(Draft, league=league)
     # Verify draft in drafting state
@@ -276,13 +271,7 @@ def DraftFlexSlot(request):
             status=409
         )
     # Checks if fighter exists
-    try:
-        fighter = Fighters.objects.get(fighter_id=request.data['fighter_id'])
-    except Fighters.DoesNotExist:
-        return Response(
-            {"detail": "Couldn't find fighter in database."},
-            status=404
-        )
+    fighter = get_object_or_404(Fighters, fighter_id=request.data['fighter_id'])
     if Roster.objects.filter(
         fighter=fighter,
         team__league=league
@@ -316,13 +305,7 @@ def DraftFlexSlot(request):
 @permission_classes([IsAuthenticated])
 def SetDraftStatus(request):
     # Determine if league exist
-    try:
-        league = League.objects.get(id=request.data['id'])
-    except League.DoesNotExist:
-        return Response(
-            {"detail": "League not found."},
-            status=404
-        )
+    league = get_object_or_404(League, id=request.data['id'])
     # Allow only league creator to set draft status
     if league.creator == request.user:
         draft = Draft.objects.get(league=league)
@@ -382,13 +365,7 @@ def SetDraftStatus(request):
 @permission_classes([IsAuthenticated])
 def SetDraftDate(request, league_id):
     # Determine if league exist
-    try:
-        league = League.objects.get(id=league_id)
-    except League.DoesNotExist:
-        return Response(
-            {"detail": "League not found."},
-            status=404
-        )
+    league = get_object_or_404(League, id=league_id)
     # Ensure date is passed
     if not request.data.get("draft_date"):
         return Response(
@@ -469,7 +446,7 @@ def GetFightViewSet(request):
 
 @api_view(['GET'])
 def GetCareerStatsViewSet(request, id):
-    stats = FighterCareerStats.objects.get(fighter_id=id)
+    stats = get_object_or_404(FighterCareerStats, fighter_id=id)
     serializer = FighterCareerStatsSerializer(stats)
     return Response(serializer.data)
 
@@ -481,7 +458,7 @@ def GetFighterFightsViewSet(request, id):
 
 @api_view(['GET'])
 def GetLastFiveFantasyScoresViewSet(request, id):
-    fighter = Fighters.objects.get(fighter_id=id)
+    fighter = get_object_or_404(Fighters, fighter_id=id)
     fightScore = FightScore.objects.filter(fighter=fighter).order_by('-fight__event__date')[:5]
     fightScore = reversed(fightScore)
     serializer = FantasyFightScoreSerializer(fightScore, many=True)
@@ -499,7 +476,7 @@ from django.forms.models import model_to_dict
 @api_view(['GET'])
 def GetHeadToHeadStatsViewSet(request, id):    
 
-    fight = Fights.objects.get(fight_id=id)
+    fight = get_object_or_404(Fights, fight_id=id)
     fightStats = FightStats.objects.filter(fight=fight)
     fighterAFightStats, fighterBFightStats = [stat for stat in fightStats]
 
@@ -539,11 +516,7 @@ def GetUserLeaguesAndTeams(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def GetLeagueData(request, league_id):
-    if not LeagueMember.objects.filter(owner=request.user, league_id=league_id).exists():
-        return Response(
-            {"detail": "You are not apart of this league"},
-            status=403
-        )
+    is_user_in_league(request.user, league_id)
     league = get_object_or_404(League, id=league_id)
     teams = Team.objects.filter(owner__league_id=league_id)
     draft = Draft.objects.get(league=league)
@@ -556,13 +529,7 @@ def GetLeagueData(request, league_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def GetTeamListData(request, team_id):
-    try:
-        team = Team.objects.get(id=team_id)
-    except Team.DoesNotExist:
-        return Response(
-            {"detail": "Team does not exist." },
-            status=404
-        )
+    team = get_object_or_404(Team, id=team_id)
     # Load roster rows with fighters and their fight scores; uses select/prefetch related for efficiency
     roster_rows = (
         Roster.objects.filter(team=team)
@@ -646,11 +613,7 @@ def GetTeamListData(request, team_id):
 def GetDraftState(request, draft_id):
     draft=get_object_or_404(Draft, id=draft_id)
     league = draft.league
-    if not LeagueMember.objects.filter(owner=request.user, league=league).exists():
-        return Response(
-            {"detail": "You are not apart of this league"},
-            status=403
-        )
+    is_user_in_league(request.user, league.id) # Determine if user in league; raises error if not
     # check if draft status is pending and if date has passed set to live
     if draft.status == Draft.Status.PENDING and timezone.now() >= draft.draft_date:
         draft.status = Draft.Status.IN_PROGRESS
@@ -693,11 +656,7 @@ def GetDraftState(request, draft_id):
 def GetDraftOrder(request, draft_id):
     draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
-    if not LeagueMember.objects.filter(owner=request.user, league=league).exists():
-        return Response(
-            {"detail": "You are not apart of this league"},
-            status=403
-        )
+    is_user_in_league(request.user, league.id) # Determine if user in league; raises error if not
     # Get draft order for league
     draft_order = DraftOrder.objects.filter(league=league).select_related('team').order_by('pick_num')
     serializer = DraftOrderSerializer(draft_order, many=True)
@@ -713,11 +672,7 @@ def GetDraftableFighters(request, draft_id):
     
     draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
-    if not LeagueMember.objects.filter(owner=request.user, league=league).exists():
-        return Response(
-            {"detail": "You are not apart of this league"},
-            status=403
-        )
+    is_user_in_league(request.user, league.id) # Determine if user in league; raises error if not
     # use DraftPick to get drafted fighters in league using draft as lookup
     drafted_fighter_ids = DraftPick.objects.filter(draft=draft).values_list('fighter__fighter_id', flat=True)
     
@@ -781,11 +736,7 @@ def GetDraftableFighters(request, draft_id):
 def GetDraftPickHistory(request, draft_id):
     draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
-    if not LeagueMember.objects.filter(owner=request.user, league=league).exists():
-        return Response(
-            {"detail": "You are not apart of this league"},
-            status=403
-        )
+    is_user_in_league(request.user, league.id) # Determine if user in league; raises error if not
     draft_picks = DraftPick.objects.filter(draft=draft).select_related('fighter', 'team').order_by('pick_num')
     serializer = DraftPickHistorySerializer(draft_picks, many=True)
     return Response(
