@@ -26,32 +26,10 @@ import type { Dayjs } from 'dayjs';
 import { useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs'
 import { Link as RouterLink } from 'react-router-dom';
+import { LeagueInfo } from '../types/types';
 
 interface SetDraftSatePayload {
     draft_date: string,
-}
-
-interface LeagueInfo {
-    league: {
-        id: number
-        name: string
-        status: "SETUP" | "DRAFTING" | "LIVE" | "COMPLETED"
-        capacity: number
-        join_key: string
-        created_at: string
-        creator: number
-        },
-    teams: {
-        id: number
-        owner: number
-        name: string
-        created_at: string 
-    }[],
-    draft: {
-        id: number,
-        status: "NOT_SCHEDULED" | "PENDING" | "IN_PROGRESS" | "COMPLETED",
-        draft_date: string | null
-    }
 }
 
 export interface ScheduleDraftDialogProps {

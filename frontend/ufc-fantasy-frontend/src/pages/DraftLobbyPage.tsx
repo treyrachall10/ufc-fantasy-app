@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { authFetch } from '../auth/authFetch';
 import { useParams } from 'react-router-dom';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { LeagueInfo } from '../types/types';
 
 // TypeScript interface for draft state
 interface DraftState {
@@ -64,6 +65,11 @@ export default function DraftLobbyPage() {
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/draftableFighters`).then(r => r.json()),
     })
 
+    const { data: leagueData, isPending: isLeagueDataPending, error: leagueDataError} = useQuery<LeagueInfo>({
+        queryKey: ['League', params.leagueId],
+        queryFn: () => authFetch(`http://localhost:8000/league/${params.leagueId}`).then(r => r.json()),
+    })
+
     // State for weight class filter - holds the selected weight class number or empty string for all
     const [selectedWeightClass, setSelectedWeightClass] = useState('');
 
@@ -75,11 +81,9 @@ export default function DraftLobbyPage() {
         setInterval(() => setCurrentTime(now()), 1000);
     }, []);
     const elapsedTime = currentTime - Math.floor(new Date(draftStateData?.pick_start_time || '').getTime() / 1000);
-    console.log('Elapsed Time:', elapsedTime);
     const timeLeft = 60 - elapsedTime;
-    console.log('Time Left:', timeLeft);
-
-    // Mock Roster Data (1 per Weight Class)
+    // get current round from current pick and league capacity
+    const currentRound = Math.ceil((draftStateData?.current_pick || 0) / (leagueData?.league.capacity || 1));    // Mock Roster Data (1 per Weight Class)
     const ROSTER_SLOTS = [
         { id: 8, wc: 'HW', name: 'Jon Jones', round: 'R1', pick: 'P1' },
         { id: 7, wc: 'LHW', name: 'Alex Pereira', round: 'R2', pick: 'P1' },
@@ -221,11 +225,11 @@ export default function DraftLobbyPage() {
                     <Grid size={{ xs: 12, md: 3, lg: 2 }}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                             <Typography variant="caption" sx={{ color: 'white', display: 'block', mb: -0.5, fontWeight: 600, fontSize: '0.85rem' }}>
-                                ROUND {draftState.round} OF {draftState.totalRounds}
+                                ROUND {currentRound} OF {10}
                             </Typography>
                             <Box sx={{ width: 'fit-content' }}>
                                 <Typography variant="h2" sx={{ color: 'brand.main', fontSize: '2.5rem', lineHeight: 1 }}>
-                                    {draftState.timer}
+                                    {timeLeft > 0 ? timeLeft : '00:00'}
                                 </Typography>
                                 <Box sx={{ height: 2, width: '100%', bgcolor: 'brand.main', mt: 1 }} />
                             </Box>
