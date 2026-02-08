@@ -11,6 +11,7 @@ from django.db.models import Prefetch
 from django.utils import timezone
 from dateutil.parser import parse
 from django.db.models import Max
+from django.shortcuts import get_object_or_404
 
 from .serializers import *
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
@@ -81,13 +82,7 @@ def CreateLeague(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def CreateLeagueMember(request):
-    try:
-        league = League.objects.get(join_key=request.data['join_key'])
-    except League.DoesNotExist:
-        return Response(
-            {"detail": "Invalid join code"},
-            status=404
-        )
+    league = get_object_or_404(League, join_key=request.data['join_key'])
     # Check if user in league
     if LeagueMember.objects.filter(owner=request.user, league=league).exists():
         return Response(
@@ -135,22 +130,10 @@ def CreateLeagueMember(request):
 @permission_classes([IsAuthenticated])
 def AddRosterSlot(request, draft_id):
     # Verify draft has been created for league
-    try:
-        draft = Draft.objects.get(id=draft_id)
-    except Draft.DoesNotExist:
-        return Response(
-            {"detail": "Draft hasn't been created for this league."},
-            status=500
-        )
+    draft = get_object_or_404(Draft, id=draft_id)
     # Gets League and team
     league = draft.league
-    try:
-        team = Team.objects.get(league=league, owner=request.user)
-    except Team.DoesNotExist:
-        return Response(
-            {"detail": "Team does not exist in this league."},
-            status=404
-        )
+    team = get_object_or_404(Team, id = request.data['team_id'], owner=request.user)
     # Verify draft in drafting state
     if draft.status != Draft.Status.IN_PROGRESS:
         return Response(
@@ -209,13 +192,7 @@ def AddRosterSlot(request, draft_id):
             fighter = random.choice(eligible_fighters)
     else:
         # Checks if fighter exists
-        try:
-            fighter = Fighters.objects.get(fighter_id=request.data['fighter_id'])
-        except Fighters.DoesNotExist:
-            return Response(
-                {"detail": "Couldn't find fighter in database."},
-                status=404
-            )
+        fighter = get_object_or_404(Fighters, fighter_id=request.data['fighter_id'])
         # Check if fighter already drafted in league
         if Roster.objects.filter(
             fighter=fighter,
@@ -283,21 +260,15 @@ def DraftFlexSlot(request):
             status=404
         )
     # Verify draft has been created for league
-    try:
-        draft = Draft.objects.get(league=league)
-    except Draft.DoesNotExist:
-        return Response(
-            {"detail": "Draft hasn't been created for this league."},
-            status=500
-        )
+    draft = get_object_or_404(Draft, league=league)
     # Verify draft in drafting state
     if draft.Status != Draft.Status.IN_PROGRESS:
         return Response(
             {"detail": "Draft has not yet started."},
             status=409,
         )
-    current_pick = get_current_pick(draft=draft)
-    current_pick_team = current_pick.team
+    current_pick = draft.current_pick
+    current_pick_team = DraftOrder.objects.get(draft=draft, pick_num=current_pick).team
     # Check if users turn to draft
     if team != current_pick_team:
         return Response(
@@ -354,13 +325,7 @@ def SetDraftStatus(request):
         )
     # Allow only league creator to set draft status
     if league.creator == request.user:
-        try:
-            draft = Draft.objects.get(league=league)
-        except Draft.DoesNotExist:
-            return Response(
-            {"detail": "Draft not found."},
-                status=404
-            )
+        draft = Draft.objects.get(league=league)
         draft_status = draft.status
         if draft_status == Draft.Status.NOT_SCHEDULED:
             # Only let user set draft with full league
@@ -444,13 +409,7 @@ def SetDraftDate(request, league_id):
             },
             status=403
         )
-    try:
-        draft = Draft.objects.get(league=league)
-    except Draft.DoesNotExist:
-        return Response(
-        {"detail": "Draft not found."},
-            status=404
-        )
+    draft = get_object_or_404(Draft, league=league)
     draft_status = draft.status
     if draft_status != Draft.Status.NOT_SCHEDULED:
         return Response(
@@ -585,7 +544,7 @@ def GetLeagueData(request, league_id):
             {"detail": "You are not apart of this league"},
             status=403
         )
-    league = League.objects.get(id=league_id)
+    league = get_object_or_404(League, id=league_id)
     teams = Team.objects.filter(owner__league_id=league_id)
     draft = Draft.objects.get(league=league)
     return Response({
@@ -685,13 +644,7 @@ def GetTeamListData(request, team_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def GetDraftState(request, draft_id):
-    try:
-        draft = Draft.objects.get(id=draft_id)
-    except Draft.DoesNotExist:
-        return Response(
-            {"detail": "Draft does not exist."},
-            status=404
-        )
+    draft=get_object_or_404(Draft, id=draft_id)
     league = draft.league
     if not LeagueMember.objects.filter(owner=request.user, league=league).exists():
         return Response(
@@ -738,13 +691,7 @@ def GetDraftState(request, draft_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def GetDraftOrder(request, draft_id):
-    try:
-        draft = Draft.objects.get(id=draft_id)
-    except Draft.DoesNotExist:
-        return Response(
-            {"detail": "Draft does not exist."},
-            status=404
-        )
+    draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
     if not LeagueMember.objects.filter(owner=request.user, league=league).exists():
         return Response(
@@ -764,13 +711,7 @@ def GetDraftOrder(request, draft_id):
 def GetDraftableFighters(request, draft_id):
     cutoff = timezone.now() - timezone.timedelta(days=365*2) # 2 year cutoff for fighter activity, can adjust as needed
     
-    try:
-        draft = Draft.objects.get(id=draft_id)
-    except Draft.DoesNotExist:
-        return Response(
-            {"detail": "Draft does not exist."},
-            status=404
-        )
+    draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
     if not LeagueMember.objects.filter(owner=request.user, league=league).exists():
         return Response(
@@ -838,13 +779,7 @@ def GetDraftableFighters(request, draft_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def GetDraftPickHistory(request, draft_id):
-    try:
-        draft = Draft.objects.get(id=draft_id)
-    except Draft.DoesNotExist:
-        return Response(
-            {"detail": "Draft does not exist."},
-            status=404
-        )
+    draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
     if not LeagueMember.objects.filter(owner=request.user, league=league).exists():
         return Response(
