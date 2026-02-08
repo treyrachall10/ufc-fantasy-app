@@ -529,6 +529,13 @@ def GetLeagueData(request, league_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def GetTeamListData(request, team_id):
+    """
+    Gets team list data for a given team, including fighter info and fantasy scores.  
+    Returns complete roster with None for empty slots and fantasy scores if available.
+
+    :param team_id: Integer id for team
+    :return: Response with team info, roster with fighter data or None, and fantasy scores
+    """
     team = get_object_or_404(Team, id=team_id)
     # Load roster rows with fighters and their fight scores; uses select/prefetch related for efficiency
     roster_rows = (
@@ -614,6 +621,8 @@ def GetDraftState(request, draft_id):
     draft=get_object_or_404(Draft, id=draft_id)
     league = draft.league
     is_user_in_league(request.user, league.id) # Determine if user in league; raises error if not
+    team = Team.objects.get(owner__owner=request.user, owner__league=league)
+    team_id = team.id
     # check if draft status is pending and if date has passed set to live
     if draft.status == Draft.Status.PENDING and timezone.now() >= draft.draft_date:
         draft.status = Draft.Status.IN_PROGRESS
@@ -647,6 +656,7 @@ def GetDraftState(request, draft_id):
                 "current_pick": draft.current_pick,
                 "pick_start_time": draft.pick_start_time,
                 "team_to_pick_id": team_to_pick.id,
+                "user_team_id": team_id,
             },
             status=200
         )

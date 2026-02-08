@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { authFetch } from '../auth/authFetch';
 import { useParams } from 'react-router-dom';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { LeagueInfo } from '../types/types';
+import { LeagueInfo, TeamDataResponse } from '../types/types';
 
 // TypeScript interface for draft state
 interface DraftState {
@@ -16,6 +16,7 @@ interface DraftState {
     current_pick: number;
     pick_start_time: string;
     team_to_pick_id: number;
+    user_team_id: number;
 }
 
 // TypeScript interface for draftable fighters
@@ -73,6 +74,14 @@ export default function DraftLobbyPage() {
     const { data: pastPicksData, isPending: isPastPicksPending, error: pastPicksError} = useQuery({
         queryKey: ['draft', params.draftId, 'pastPicks'],
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/pastPicks`).then(r => r.json()),
+    })
+
+    const user_team_id = draftStateData?.user_team_id;
+
+    const {data: teamData, isPending: isTeamDataPending, error: teamDataError} = useQuery<TeamDataResponse>({
+        queryKey: ['team', user_team_id],
+        queryFn: () => authFetch(`http://localhost:8000/team/${user_team_id}`).then(r => r.json()),
+        enabled: !!user_team_id, // Only run this query if user_team_id is available
     })
 
     // State for weight class filter - holds the selected weight class number or empty string for all

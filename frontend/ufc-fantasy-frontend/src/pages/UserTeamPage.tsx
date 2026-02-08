@@ -6,32 +6,7 @@ import { useContext } from "react";
 import { useParams } from "react-router-dom";
 import { authFetch } from "../auth/authFetch";
 import { useQuery } from "@tanstack/react-query";
-
-export interface TeamListFighter {
-    fighter_id: number;
-    full_name: string;
-    weight: number;
-}
-
-export interface TeamFighterFantasyStats {
-    last_fight_points: number;
-    average_fight_points: number;
-}
-
-export interface TeamRosterSlot {
-    slot: string;
-    fighter: TeamListFighter | null;
-    fantasy: TeamFighterFantasyStats | null;
-}
-
-export interface TeamDataResponse {
-    team: {
-        id: number;
-        name: string;
-        owner: string;
-    };
-    roster: TeamRosterSlot[];
-}
+import { TeamDataResponse } from "../types/types";
 
 export default function UserTeamPage() {
     const auth = useContext(AuthContext)!
