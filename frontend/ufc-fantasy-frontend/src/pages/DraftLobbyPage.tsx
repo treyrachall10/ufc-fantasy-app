@@ -70,6 +70,11 @@ export default function DraftLobbyPage() {
         queryFn: () => authFetch(`http://localhost:8000/league/${params.leagueId}`).then(r => r.json()),
     })
 
+    const { data: pastPicksData, isPending: isPastPicksPending, error: pastPicksError} = useQuery({
+        queryKey: ['draft', params.draftId, 'pastPicks'],
+        queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/pastPicks`).then(r => r.json()),
+    })
+
     // State for weight class filter - holds the selected weight class number or empty string for all
     const [selectedWeightClass, setSelectedWeightClass] = useState('');
 
