@@ -122,7 +122,7 @@ export default function DraftLobbyPage() {
     const timeLeft = 60 - elapsedTime;
     // get current round from current pick and league capacity
     const currentRound = Math.ceil((draftStateData?.current_pick || 0) / (leagueData?.league.capacity || 1));    // Mock Roster Data (1 per Weight Class)
-    const COLUMN_HEIGHT = '80vh';
+    const COLUMN_HEIGHT = '885px';
 
     // Mock Draft History (Not really in use atm)
     const [draftHistory, setDraftHistory] = useState([
@@ -252,7 +252,7 @@ export default function DraftLobbyPage() {
     );
 
     return (
-        <ListPageLayout sx={{ mt: 6 }}>
+        <ListPageLayout>
             <Stack spacing={1}>
             {/* TOP COLUMN */}
             {/* Contains the Timer, "On The Clock", and "Upcoming Picks" list */}
@@ -473,7 +473,12 @@ export default function DraftLobbyPage() {
                                 flex: 1,
                                 height: '100%',
                                 minHeight: 0,
-                                overflow: 'hidden',
+                                overflowY: 'auto',
+                                scrollbarWidth: 'none', // Firefox
+                                '&::-webkit-scrollbar': {
+                                    display: 'none', // Chrome, Safari, Edge
+                                },
+                                msOverflowStyle: 'none', // IE
                             }}
                         >
                             {rosterData?.roster.map((slot, index) => (
@@ -590,9 +595,9 @@ export default function DraftLobbyPage() {
                                         columns={columns} 
                                         
                                         pagination
-                                        pageSizeOptions={[10]}
+                                        pageSizeOptions={[15]}
                                         initialState={{
-                                            pagination: { paginationModel: { pageSize: 10, page: 0 } },
+                                            pagination: { paginationModel: { pageSize: 15, page: 0 } },
                                         }}
                                         
                                         disableRowSelectionOnClick // removes checkboxes
@@ -668,7 +673,16 @@ export default function DraftLobbyPage() {
                             2. 'renderItem' tells it how to draw EACH box (using DraftPlayerCard).
                             3. The component handles all the slide-in/fade-out animations automatically!
                         */}
-                        <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                        <Box sx={{ 
+                            flex: 1, 
+                            minHeight: 0, 
+                            overflowY: 'auto',
+                            scrollbarWidth: 'none', // Firefox
+                            '&::-webkit-scrollbar': {
+                                display: 'none', // Chrome, Safari, Edge
+                            },
+                            msOverflowStyle: 'none', // IE
+                        }}>
                             <AnimatedList
                                 items={draftHistory}
                                 gap={8}
