@@ -1,4 +1,4 @@
-import { Box, Grid, Paper, Stack, Typography, FormControl, Select, MenuItem, Avatar, Button, } from '@mui/material';
+import { Box, Grid, Paper, Stack, Typography, FormControl, Select, MenuItem, Avatar, Button, Menu, } from '@mui/material';
 import ListPageLayout from '../components/layout/ListPageLayout';
 import FighterTable from '../components/dataGrid/FighterTable';
 import DraftPlayerCard from '../components/Draftcards/DraftPlayerCard';
@@ -76,12 +76,25 @@ export default function DraftLobbyPage() {
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/pastPicks`).then(r => r.json()),
     })
 
-    const user_team_id = draftStateData?.user_team_id;
+    const [selectedTeamId, setSelectedTeamId] = useState<number | undefined>();
+    
+    // Set default team to user's own team when draft state loads
+    useEffect(() => {
+        if (draftStateData?.user_team_id) {
+            setSelectedTeamId(draftStateData.user_team_id);
+        }
+    }, [draftStateData?.user_team_id]);
+
+    // Log when selected team changes
+    const selectedTeamName = leagueData?.teams.find((team) => team.id === selectedTeamId)?.name || 'Your Team';
+    useEffect(() => {
+        console.log("Selected Team:", selectedTeamName);
+    }, [selectedTeamName]);
 
     const {data: teamData, isPending: isTeamDataPending, error: teamDataError} = useQuery<TeamDataResponse>({
-        queryKey: ['team', user_team_id],
-        queryFn: () => authFetch(`http://localhost:8000/team/${user_team_id}`).then(r => r.json()),
-        enabled: !!user_team_id, // Only run this query if user_team_id is available
+        queryKey: ['team', selectedTeamId],
+        queryFn: () => authFetch(`http://localhost:8000/team/${selectedTeamId}`).then(r => r.json()),
+        enabled: !!selectedTeamId, // Only run this query if selectedTeamId is available
     })
 
     // State for weight class filter - holds the selected weight class number or empty string for all
@@ -135,10 +148,6 @@ export default function DraftLobbyPage() {
     const filteredRows = selectedWeightClass === '' 
         ? allRows 
         : allRows.filter(row => row.weightClass === selectedWeightClass);
-
-    console.log('Selected Weight Class:', selectedWeightClass);
-    console.log('Total Fighters:', allRows.length);
-    console.log('Filtered Fighters:', filteredRows.length);
 
     const handleDraftPick = (fighterId: number) => {
         console.log(`Drafting fighter with ID: ${fighterId}`);
@@ -347,6 +356,20 @@ export default function DraftLobbyPage() {
                         {/* Header */}
                         <Box sx={{ mb: 2 }}>
                             <Typography variant="h3" sx={{ fontSize: '1rem', color: 'text.secondary' }}>Current Roster:</Typography>
+                            <Select
+                                value={selectedTeamId ?? ''}
+                                onChange={(e) => setSelectedTeamId(Number(e.target.value))}
+                                sx={{
+                                    width: '100%',
+                                    color: 'white',
+                                }}
+                            >
+                                {leagueData?.teams.map((team) => (
+                                    <MenuItem key={team.id} value={team.id}>
+                                        {team.name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
                         </Box>
 
                         {/* List of Players */}
