@@ -10,6 +10,8 @@ interface AnimatedListProps<T> {
     items: T[];
     /** Function to render a single item. */
     renderItem: (item: T, index: number) => React.ReactNode;
+    /** Vertical spacing between items (in px). */
+    gap?: number;
     className?: string;
     itemClassName?: string;
 }
@@ -26,11 +28,15 @@ interface AnimatedListProps<T> {
 export function AnimatedList<T extends { id: string | number }>({
     items,
     renderItem,
+    gap = 8,
     className,
     itemClassName
 }: AnimatedListProps<T>) {
     return (
-        <div className={cn("space-y-2", className)}>
+        <div
+            className={cn(className)}
+            style={{ display: 'flex', flexDirection: 'column', gap }}
+        >
             <AnimatePresence initial={false} mode='popLayout'>
                 {items.map((item, index) => (
                     <motion.div

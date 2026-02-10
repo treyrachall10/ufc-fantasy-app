@@ -590,11 +590,11 @@ def GetTeamListData(request, team_id):
             all_scores = fighter.all_fight_scores
             latest_fantasy = all_scores[0] if all_scores else None
             score_values = [score.fight_total_points for score in all_scores if score.fight_total_points is not None]
-            average_fight_points = (sum(score_values) / len(score_values)) if score_values else None
+            average_points = (sum(score_values) / len(score_values)) if score_values else None
             if latest_fantasy is not None:
                 fantasy_payload = {
                     "last_fight_points": latest_fantasy.fight_total_points,
-                    "average_fight_points": average_fight_points
+                    "average_points": average_points
                 }
         response_roster.append(
         {

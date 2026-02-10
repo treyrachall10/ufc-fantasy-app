@@ -42,7 +42,7 @@ export default function UserTeamPage() {
         status: 'Coming Soon',
         projected: 'Coming Soon',
         year: '2026',
-        average: slot.fantasy ? slot.fantasy.average_fight_points.toFixed(1) : '0.0',
+        average: slot.fantasy ? slot.fantasy.average_points.toFixed(1) : '0.0',
         last: slot.fantasy ? slot.fantasy.last_fight_points.toFixed(1) : '0.0',
     }))
     

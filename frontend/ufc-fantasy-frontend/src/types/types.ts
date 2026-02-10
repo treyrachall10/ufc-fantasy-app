@@ -267,7 +267,7 @@ export interface TeamListFighter {
 
 export interface TeamFighterFantasyStats {
     last_fight_points: number;
-    average_fight_points: number;
+    average_points: number;
 }
 
 export interface TeamRosterSlot {
