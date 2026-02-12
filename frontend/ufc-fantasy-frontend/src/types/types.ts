@@ -259,4 +259,37 @@ export interface FightStats {
     }
 }
 
-  
+export interface TeamListFighter {
+    fighter_id: number;
+    full_name: string;
+    weight: number;
+}
+
+export interface TeamFighterFantasyStats {
+    last_fight_points: number;
+    average_points: number;
+}
+
+export interface TeamRosterSlot {
+    slot: string;
+    fighter: TeamListFighter | null;
+    fantasy: TeamFighterFantasyStats | null;
+}
+
+export interface TeamDataResponse {
+    team: {
+        id: number;
+        name: string;
+        owner: string;
+    };
+    roster: TeamRosterSlot[];
+}
+
+export interface DraftHistoryItem {
+    id: number;
+    round: number;
+    pick: number;
+    user: string;
+    fighter: string;
+    wc: string;
+}

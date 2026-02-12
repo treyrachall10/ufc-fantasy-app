@@ -1,14 +1,23 @@
-import { Box, Grid, Paper, Stack, Typography, FormControl, Select, MenuItem, Avatar, Button, } from '@mui/material';
+import { Box, Grid, Paper, Stack, Typography, FormControl, Select, MenuItem, Avatar, Button, Menu, Dialog, DialogTitle, DialogContent, useMediaQuery } from '@mui/material';
 import ListPageLayout from '../components/layout/ListPageLayout';
 import FighterTable from '../components/dataGrid/FighterTable';
 import DraftPlayerCard from '../components/Draftcards/DraftPlayerCard';
 import { useEffect, useState } from 'react';
 import AnimatedList from '../components/Animations/AnimatedList';
-import { useQuery } from '@tanstack/react-query';
+import { Query, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { authFetch } from '../auth/authFetch';
 import { useParams } from 'react-router-dom';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { LeagueInfo } from '../types/types';
+import { LeagueInfo, TeamDataResponse, DraftHistoryItem } from '../types/types';
+import { useRef } from 'react';
+
+// Payload type for drafting a fighter
+interface DraftFighterPayload {
+    team_id: number;
+    fighter_id: number;
+}
 
 // TypeScript interface for draft state
 interface DraftState {
@@ -16,6 +25,7 @@ interface DraftState {
     current_pick: number;
     pick_start_time: string;
     team_to_pick_id: number;
+    user_team_id: number;
 }
 
 // TypeScript interface for draftable fighters
@@ -34,6 +44,8 @@ interface DraftableFighter {
 
 export default function DraftLobbyPage() {
     const params = useParams<{ leagueId: string; draftId: string }>();
+    const isMobile = useMediaQuery('(max-width: 600px)');
+    const queryClient = useQueryClient();
     
     // Draft Button Renderer for DataGrid - Calls the handleDraftPick function with the fighter's ID when clicked.
     const DraftButton = (params: GridRenderCellParams) => {
@@ -41,23 +53,38 @@ export default function DraftLobbyPage() {
             <Button
                 variant="contained"
                 color="whiteAlpha20"
+                disabled={!canDraft}
                 onClick={() => handleDraftPick(Number(params.id))}
+                size={isMobile ? 'small' : undefined}
                 sx={{
                     textWrap: 'nowrap',
                     borderColor: 'gray900.main',
                     '&:hover': { borderColor: 'gray800.main' },
+                    ...(isMobile && {
+                        padding: '4px 10px',
+                        fontSize: '0.7rem',
+                        fontWeight: 400,
+                    }),
                 }}
             >
                 Draft
             </Button>
         )
     }
-    // Fetch Draft State Data in rolling intervals using refetchinterval to keep the timer, current pick, and status updated in real-time.
+    // Fetch Draft State Data in rolling intervals using refetchinterval to keep the timer, current pick, and status updated in real-time
     const { data: draftStateData, isPending: isDraftStatePending, error: draftStateError} = useQuery<DraftState>({
         queryKey: ['draft', params.draftId, 'state'],
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/state`).then(r => r.json()),
         refetchInterval: 1000, // Refetch every 1000 milliseconds (1 second)
     })
+
+    // Effect to invalidate past picks query when current_pick changes
+    useEffect(() => {
+        if(!draftStateData?.current_pick) return;
+
+        queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
+
+    }, [draftStateData?.current_pick]);
 
     // Fetch Draftable Fighters for Draft Board
     const { data: draftableFightersData, isPending: isDraftableFightersPending, error: draftableFightersError} = useQuery<DraftableFighter[]>({
@@ -65,14 +92,159 @@ export default function DraftLobbyPage() {
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/draftableFighters`).then(r => r.json()),
     })
 
+    // Fetch League Info to get team names, league capacity, etc.
     const { data: leagueData, isPending: isLeagueDataPending, error: leagueDataError} = useQuery<LeagueInfo>({
         queryKey: ['League', params.leagueId],
         queryFn: () => authFetch(`http://localhost:8000/league/${params.leagueId}`).then(r => r.json()),
     })
 
+    // Fetch Past Picks to show draft history on the right column
     const { data: pastPicksData, isPending: isPastPicksPending, error: pastPicksError} = useQuery({
         queryKey: ['draft', params.draftId, 'pastPicks'],
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/pastPicks`).then(r => r.json()),
+    })
+
+    // Effect to update the past picks reference when new picks are added to trigger animations in the AnimatedList component
+
+    useEffect(() => {
+        if(!pastPicksData) return;
+        // filter out picks that are not in reference to only add new picks to the history list and trigger animations for those new picks
+        /*
+        const newPicks = pastPicksData.filter((item: any) => !pastPicksRef.current.some((pick: any) => pick.pick_num === item.pick_num));
+        pastPicksRef.current = [...pastPicksRef.current, ...newPicks];
+        pastPicksDisplayData.push(...newPicks);
+        */
+       setDraftHistory(pastPicksData.map((pick: any) => ({
+            id: pick.pick_num,
+            round: Math.ceil(pick.pick_num / leagueData?.league.capacity!),
+            pick: pick.pick_num,
+            user: pick.team.name || 'Unknown Team',
+            fighter: pick.fighter.full_name,
+            wc: pick.fighter.weight,
+        })) || []);
+    }, [pastPicksData]);
+
+    // Reference for the past picks container to add new picks with an animation when they are added to the history list
+    const pastPicksRef = useRef(pastPicksData || []);
+    const pastPicksDisplayData = pastPicksRef.current;
+
+    const [selectedTeamId, setSelectedTeamId] = useState<number | undefined>();
+    const [rosterDialogOpen, setRosterDialogOpen] = useState(false);
+    const [flexDialogOpen, setFlexDialogOpen] = useState(false);
+    const [pendingFlexFighterId, setPendingFlexFighterId] = useState<number | null>(null);
+    
+    // Set default team to user's own team when draft state loads
+    useEffect(() => {
+        if (draftStateData?.user_team_id) {
+            setSelectedTeamId(draftStateData.user_team_id);
+        }
+    }, [draftStateData?.user_team_id]);
+
+    // Log when selected team changes
+    const selectedTeamName = leagueData?.teams.find((team) => team.id === selectedTeamId)?.name || 'Your Team';
+    useEffect(() => {
+        console.log("Selected Team:", selectedTeamName);
+    }, [selectedTeamName]);
+
+    // Fetch selected team's roster data to show in the left column. This query depends on 'selectedTeamId' and will only run when it's set.
+    const {data: rosterData, isPending: isRosterDataPending, error: rosterDataError} = useQuery<TeamDataResponse>({
+        queryKey: ['team', selectedTeamId],
+        queryFn: () => authFetch(`http://localhost:8000/team/${selectedTeamId}`).then(r => r.json()),
+        enabled: !!selectedTeamId, // Only run this query if selectedTeamId is available
+    })
+
+    const USERTEAMID = rosterData ? rosterData.team.id : undefined;
+    const canDraft = draftStateData?.team_to_pick_id === USERTEAMID;
+
+    // Handles errors that can occur during the drafting process 
+    const handleDraftingErrors = (error: any) => {
+        if (error.code === 'not_your_turn') {
+            alert("It's not your turn to draft!");
+        } else if (error.code === 'weight_class_and_flex_full') {
+            alert(error.detail + " Please choose another fighter in a different weight class.");
+        } else if (error.code === 'fighter_already_drafted') {
+            alert("This fighter has already been drafted by another team.");
+        } else if (error.code === 'no_available_fighters') {
+            alert("No available fighters to draft.");
+        } else if (error.code === 'draft_not_live') {
+            alert("Draft has not yet started.");
+        } else {
+            alert("An unexpected error occurred while drafting. Please try again.");
+        }
+    }
+
+    // Handles successful draft picks and draft completion
+    const handleDraftingSuccess = (data: any) => {
+        if (data.code === 'draft_completed') {
+            alert("Draft is now completed!");
+        } else if (data.code === 'pick_successful') {
+            alert("Pick successful!");
+        }
+    }
+
+    const draftFighterMutation = useMutation({
+        mutationFn: async (payload: DraftFighterPayload) => {
+        const response = await authFetch(`http://localhost:8000/draft/${params.draftId}/pick`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        })
+    
+        const data = await response.json()
+    
+        if (!response.ok) {
+            throw data
+        }
+    
+        return data
+        },
+    
+        // Do something if fails
+        onError: (error: any) => {
+            handleDraftingErrors(error);
+        },
+    
+        onSuccess: (data) => {
+            if (data.action_required === 'confirm_flex') {
+                setPendingFlexFighterId(data.fighter_id);
+                setFlexDialogOpen(true);
+            };
+
+            handleDraftingSuccess(data);
+            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'state'] });
+            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'draftableFighters'] });
+            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
+            queryClient.invalidateQueries({ queryKey: ['team', selectedTeamId] });
+        }
+    })
+
+    const draftFlexMutation = useMutation({
+        mutationFn: async (payload: DraftFighterPayload) => {
+        const response = await authFetch(`http://localhost:8000/draft/${params.draftId}/draftFlex`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        })
+    
+        const data = await response.json()
+    
+        if (!response.ok) {
+            throw data
+        }
+    
+        return data
+        },
+    
+        // Do something if fails
+        onError: (error: any) => {
+            handleDraftingErrors(error);
+        },
+    
+        onSuccess: (data) => {
+            handleDraftingSuccess(data);
+            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'state'] });
+            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'draftableFighters'] });
+            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
+            queryClient.invalidateQueries({ queryKey: ['team', selectedTeamId] });
+        }
     })
 
     // State for weight class filter - holds the selected weight class number or empty string for all
@@ -89,26 +261,19 @@ export default function DraftLobbyPage() {
     const timeLeft = 60 - elapsedTime;
     // get current round from current pick and league capacity
     const currentRound = Math.ceil((draftStateData?.current_pick || 0) / (leagueData?.league.capacity || 1));    // Mock Roster Data (1 per Weight Class)
-    const ROSTER_SLOTS = [
-        { id: 8, wc: 'HW', name: 'Jon Jones', round: 'R1', pick: 'P1' },
-        { id: 7, wc: 'LHW', name: 'Alex Pereira', round: 'R2', pick: 'P1' },
-        { id: 6, wc: 'MW', name: 'Dricus Du Plessis', round: 'R3', pick: 'P1' },
-        { id: 5, wc: 'WW', name: 'Belal Muhammad', round: 'R4', pick: 'P1' },
-        { id: 4, wc: 'LW', name: 'Islam Makhachev', round: 'R5', pick: 'P1' },
-        { id: 3, wc: 'FW', name: 'Ilia Topuria', round: 'R6', pick: 'P1' },
-        { id: 2, wc: 'BW', name: 'Sean O\'Malley', round: 'R7', pick: 'P1' },
-        { id: 1, wc: 'FLW', name: 'Alexandre Pantoja', round: 'R8', pick: 'P1' },
-    ];
+    const COLUMN_HEIGHT = '885px';
 
-    // Mock Draft History (Not really in use atm)
-    const [draftHistory, setDraftHistory] = useState([
-        { id: 106, round: 1, pick: 6, user: 'Team Adan', fighter: 'Sean O\'Malley', wc: 'BW' },
-        { id: 105, round: 1, pick: 5, user: 'Team Trey', fighter: 'Belal Muhammad', wc: 'WW' },
-        { id: 104, round: 1, pick: 4, user: 'Team Chris', fighter: 'Ilia Topuria', wc: 'FW' },
-        { id: 103, round: 1, pick: 3, user: 'Team Matt', fighter: 'Islam Makhachev', wc: 'LW' },
-        { id: 102, round: 1, pick: 2, user: 'Team Adan', fighter: 'Alex Pereira', wc: 'LHW' },
-        { id: 101, round: 1, pick: 1, user: 'Team Trey', fighter: 'Jon Jones', wc: 'HW' },
-    ]);
+    // Draft history to display to animated list of past picks
+    const [draftHistory, setDraftHistory] = useState(
+        pastPicksData?.map((pick: any) => ({
+            id: pick.pick_num,
+            round: Math.ceil(pick.pick_num / leagueData?.league.capacity!),
+            pick: pick.pick_num,
+            user: pick.team.name || 'Unknown Team',
+            fighter: pick.fighter.full_name,
+            wc: pick.fighter.weight,
+        })) || []
+    );
 
     // Transform raw API data into row format for the DataGrid
     // Convert weight class names to numeric values using the weightClassMap
@@ -127,34 +292,65 @@ export default function DraftLobbyPage() {
         ? allRows 
         : allRows.filter(row => row.weightClass === selectedWeightClass);
 
-    console.log('Selected Weight Class:', selectedWeightClass);
-    console.log('Total Fighters:', allRows.length);
-    console.log('Filtered Fighters:', filteredRows.length);
-
     const handleDraftPick = (fighterId: number) => {
         console.log(`Drafting fighter with ID: ${fighterId}`);
+        draftFighterMutation.mutate({
+            team_id: draftStateData?.user_team_id!,
+            fighter_id: fighterId,
+        })
+    };
+    const handleRosterDialogOpen = () => setRosterDialogOpen(true);
+    const handleRosterDialogClose = () => setRosterDialogOpen(false);
+
+    const handleDraftFlex = () => {
+        if (!pendingFlexFighterId) return;
+        setFlexDialogOpen(false);
+        draftFlexMutation.mutate({
+            team_id: draftStateData?.user_team_id!,
+            fighter_id: pendingFlexFighterId,
+        });
+        setPendingFlexFighterId(null);
     };
 
-    const columns: GridColDef[] = [
-        { field: 'weightClass', headerName: 'WC', flex: 0.5, minWidth: 50 },
-        { field: 'fighter', headerName: 'Fighter', flex: 2, minWidth: 150 },
-        { field: 'last', headerName: 'Last Fight', flex: 1, minWidth: 100 },
-        { field: 'average', headerName: 'Average', flex: 1, minWidth: 100 },
-        {
-            field: 'draft',
-            headerName: '',
-            flex: 0.9,
-            minWidth: 110,
-            sortable: false,
-            filterable: false,
-            disableColumnMenu: true,
-            align: 'center',
-            headerAlign: 'center',
-            headerClassName: 'draft-action-header',
-            renderHeader: () => null,
-            renderCell: DraftButton,
-        },
+    const handleFlexDialogCancel = () => {
+        setFlexDialogOpen(false);
+        setPendingFlexFighterId(null);
+    };
+
+    const baseColumns: GridColDef[] = [
+        { field: 'weightClass', headerName: 'WC', flex: 0.6, minWidth: 60 },
+        { field: 'fighter', headerName: 'Fighter', flex: isMobile ? 1.2 : 2, minWidth: 100 },
     ];
+
+    const desktopOnlyColumns: GridColDef[] = [
+        { field: 'last', headerName: 'Lst', flex: 1, minWidth: 80 },
+    ];
+
+    const averageColumn: GridColDef = {
+        field: 'average',
+        headerName: 'Avg',
+        flex: 1,
+        minWidth: 80,
+    };
+
+    const draftColumn: GridColDef = {
+        field: 'draft',
+        headerName: '',
+        flex: isMobile ? 0.75 : 0.9,
+        minWidth: isMobile ? 70 : 110,
+        sortable: false,
+        filterable: false,
+        disableColumnMenu: true,
+        align: 'center',
+        headerAlign: 'center',
+        headerClassName: 'draft-action-header',
+        renderHeader: () => null,
+        renderCell: DraftButton,
+    };
+
+    const columns: GridColDef[] = isMobile
+        ? [...baseColumns, draftColumn]
+        : [...baseColumns, ...desktopOnlyColumns, averageColumn, draftColumn];
 
     // 3. Helper Functions
     // This function adds a new mock pick to the TOP of the history list.
@@ -211,18 +407,86 @@ export default function DraftLobbyPage() {
             { number: 36, team: 'Team Adan', avatarColor: 'brandAlpha50.main' },
         ]
     };
+    const upcomingPickItems = draftState.upcomingPicks.filter(
+        (item: any) => item.type !== 'round_separator'
+    );
 
     return (
-        <ListPageLayout sx={{ mt: 6 }}>
-
+        <ListPageLayout>
+            <Stack spacing={1}>
             {/* TOP COLUMN */}
             {/* Contains the Timer, "On The Clock", and "Upcoming Picks" list */}
             <Box sx={{
-                mb: 3,
+                p: 2,
+                backgroundColor: 'dashboardBlack.main',
+                borderRadius: 4,
+                display: { xs: 'block', md: 'none' },
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, overflow: 'hidden' }}>
+                    <Paper sx={{
+                        width: { xs: 104, sm: 116 },
+                        height: { xs: 96, sm: 104 },
+                        p: 1,
+                        borderRadius: 2,
+                        bgcolor: 'whiteAlpha20.main',
+                        border: '1px solid',
+                        borderColor: 'whiteAlpha20.main',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 0.5,
+                        flexShrink: 0,
+                    }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1 }}>
+                            Pick {draftState.currentPick.number}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'brand.main', fontWeight: 700, lineHeight: 1 }}>
+                            {timeLeft > 0 ? timeLeft : '00:00'}
+                        </Typography>
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                color: 'white',
+                                lineHeight: 1.2,
+                                maxWidth: '100%',
+                                display: '-webkit-box',
+                                WebkitBoxOrient: 'vertical',
+                                WebkitLineClamp: 2,
+                                overflow: 'hidden',
+                                wordBreak: 'break-word',
+                                textAlign: 'center',
+                            }}
+                        >
+                            {draftState.currentPick.team}
+                        </Typography>
+                    </Paper>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
+                        {upcomingPickItems.map((item: any, index: number) => (
+                            <Paper key={item.number} sx={{
+                                width: { xs: 28, sm: 32 },
+                                height: { xs: 96, sm: 104 },
+                                borderRadius: 2,
+                                bgcolor: index % 2 === 0 ? 'gray900.main' : 'whiteAlpha20.main',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                            }}>
+                                <Typography variant="caption" sx={{ color: 'white', fontSize: '0.7rem', textAlign: 'center' }}>
+                                    {item.number}
+                                </Typography>
+                            </Paper>
+                        ))}
+                    </Box>
+                </Box>
+            </Box>
+            <Box sx={{
                 p: 2,
                 py: 4, // Increased vertical padding for height
                 backgroundColor: 'dashboardBlack.main',
                 borderRadius: 4,
+                display: { xs: 'none', md: 'block' },
             }}>
                 <Grid container spacing={2}>
 
@@ -242,7 +506,7 @@ export default function DraftLobbyPage() {
                     </Grid>
 
 
-                    {/* 2. On The Clock Section (Main Highlight) */}
+                    {/* 2. On The Clock Section */}
                     <Grid size={{ xs: 12, md: 3, lg: 3 }}>
                         <Paper sx={{
                             p: 2,
@@ -273,8 +537,8 @@ export default function DraftLobbyPage() {
 
                     {/* Upcoming Picks List */}
                     {/* Uses 'overflowX' to scroll sideways for who picks next */}
-                    <Grid size={{ xs: 12, md: 6, lg: 7 }} sx={{ overflow: 'hidden' }}>
-                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'flex-start', overflowX: 'auto', pb: 1, width: '100%' }}>
+                    <Grid size={{ xs: 12, md: 6, lg: 7 }}>
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'flex-start', overflowX: 'hidden', pb: 1, width: '100%' }}>
                             {draftState.upcomingPicks.map((item: any, index) => {
                                 if (item.type === 'round_separator') {
                                     return (
@@ -322,69 +586,124 @@ export default function DraftLobbyPage() {
 
 
             {/*Splits into 3 columns here: Roster | Draft Board | History */}
-            <Grid container spacing={{ xs: .5, sm: 2 }} >
+            <Grid container spacing={{ xs: .5, sm: 1 }} sx={{ height: COLUMN_HEIGHT, alignItems: 'stretch' }}>
 
 
                 {/* Left Column - Current Roster */}
-                <Grid size={{ xs: 12, sm: 3 }}>
-                    <Paper sx={{
-                        height: '80vh',
+                <Grid size={{ md: 3 }} sx={{ display: { xs: 'none', md: 'flex' }, minHeight: 0 }}>
+                    <Box sx={{
                         borderRadius: 4,
                         backgroundColor: 'dashboardBlack.main',
                         p: 2,
                         display: 'flex',
                         flexDirection: 'column',
+                        height: COLUMN_HEIGHT,
+                        maxHeight: COLUMN_HEIGHT,
+                        minHeight: 0,
+                        width: '100%',
                     }}>
-                        {/* Header */}
-                        <Box sx={{ mb: 2 }}>
-                            <Typography variant="h3" sx={{ fontSize: '1rem', color: 'text.secondary' }}>Current Roster:</Typography>
+                        <Box sx={{ mb: 2, 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                alignItems: 'center', 
+                                gap: 2,
+                                }}>
+                            <Typography variant="h3" sx={{ fontSize: '1rem', color: 'text.secondary'}}>
+                                View Rosters
+                            </Typography>
+                            <Select
+                                value={selectedTeamId ?? ''}
+                                onChange={(e) => setSelectedTeamId(Number(e.target.value))}
+                                sx={{
+                                    width: '100%',
+                                    color: 'white',
+                                }}
+                            >
+                                {leagueData?.teams.map((team) => (
+                                    <MenuItem key={team.id} value={team.id}>
+                                        {team.name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
                         </Box>
-
-                        {/* List of Players */}
-                        <Stack spacing={0} sx={{ flex: 1, justifyContent: 'space-between' }}>
-                            {ROSTER_SLOTS.map((slot) => (
+                        {/* List of roster members */}
+                        <Stack
+                            spacing={1}
+                            sx={{
+                                flex: 1,
+                                height: '100%',
+                                minHeight: 0,
+                                overflowY: 'auto',
+                                scrollbarWidth: 'none', // Firefox
+                                '&::-webkit-scrollbar': {
+                                    display: 'none', // Chrome, Safari, Edge
+                                },
+                                msOverflowStyle: 'none', // IE
+                            }}
+                        >
+                            {rosterData?.roster.map((slot, index) => (
                                 <DraftPlayerCard
-                                    key={slot.id}
-                                    name={slot.name}
-                                    subtitle={`${slot.round}, ${slot.pick} | Team Trey`}
-                                    weightClass={slot.wc}
+                                    key={index}
+                                    name={slot.fighter? slot.fighter.full_name : 'Empty Slot'}
+                                    subtitle={slot.fighter ? `Avg: ${slot.fantasy?.average_points.toFixed(1) ?? '0.0'} | Last: ${slot.fantasy?.last_fight_points.toFixed(1) ?? '0.0'}` : 'No Fighter Drafted'}
+                                    weightClass={slot.slot}
                                     variant="roster"
                                 />
                             ))}
                         </Stack>
-                    </Paper>
+                    </Box>
                 </Grid>
 
-
-
-
                 {/* Center Column - Draft Board */}
-                <Grid size={{ xs: 12, sm: 6 }}>
+                <Grid size={{ xs: 12, sm: 12, md: 6 }} sx={{ display: 'flex', minHeight: 0 }}>
                     <Paper sx={{
-                        height: '80vh',
                         borderRadius: 4,
                         backgroundColor: 'dashboardBlack.main',
                         p: 2, // Internal padding
                         display: 'flex',
-                        flexDirection: 'column'
+                        flexDirection: 'column',
+                        height: COLUMN_HEIGHT,
+                        maxHeight: COLUMN_HEIGHT,
+                        minHeight: 0,
+                        width: '100%',
                     }}>
-                        <Stack spacing={3} sx={{ height: '100%' }}>
+                        <Stack spacing={3} sx={{ height: '100%', minHeight: 0 }}>
 
-                            {/* Info & Filters */}
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-
-                                {/* Left Side: Avatar & upcoming pick */}
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                    <Avatar sx={{ bgcolor: 'brand.main', width: 40, height: 40 }}></Avatar>
-                                    <Box>
-                                        <Typography variant="h3" sx={{ fontSize: '1.2rem', color: 'white' }}>
-                                            You're on the clock: 1 Pick
-                                        </Typography>
-                                    </Box>
+                            {/* On The Clock */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                                <Avatar sx={{ bgcolor: 'brand.main', width: 40, height: 40 }}></Avatar>
+                                <Box>
+                                    <Typography variant="h3" sx={{ fontSize: '1.2rem', color: 'white' }}>
+                                        You're on the clock: 1 Pick
+                                    </Typography>
                                 </Box>
+                            </Box>
 
-                                {/* Right Side: Filter Dropdown */}
-                                <FormControl size="small">
+                            {/* Draftable Fighters Title & Weight Classes Filter & View Roster */}
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                {/* Left Side: Draftable Fighters Title (hidden on xs/sm) */}
+                                <Typography
+                                    variant="h3"
+                                    sx={{
+                                        fontSize: '1rem',
+                                        color: 'text.secondary',
+                                        display: { xs: 'none', md: 'block' },
+                                    }}
+                                >
+                                    Draftable Fighters
+                                </Typography>
+
+                                {/* Right Side: Weight Classes Filter & View Roster Button */}
+                                <Box sx={{ 
+                                    display: 'flex', 
+                                    gap: 2, 
+                                    alignItems: 'center', 
+                                    marginLeft: { xs: 0, md: 'auto' },
+                                    width: { xs: '100%', md: 'auto' },
+                                    justifyContent: { xs: 'space-between', md: 'flex-start' }
+                                }}>
+                                {/* Weight Classes Filter */}
+                                <FormControl size="small" sx={{ width: 'fit-content' }}>
                                     <Select
                                         displayEmpty
                                         value={selectedWeightClass}
@@ -414,17 +733,34 @@ export default function DraftLobbyPage() {
                                         <MenuItem value="SW">Strawweight (115)</MenuItem>
                                     </Select>
                                 </FormControl>
+
+                                {/* View Roster Button (xs/sm only) */}
+                                <Button
+                                    variant="contained"
+                                    color="whiteAlpha20"
+                                    size="small"
+                                    onClick={handleRosterDialogOpen}
+                                    sx={{ display: { xs: 'inline-flex', md: 'none' }, padding: '4px 12px', fontSize: '0.75rem' }}
+                                >
+                                    View Roster
+                                </Button>
+                                </Box>
                             </Box>
 
                             {/* Available Fighters */}
-                            <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                            <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
                                 {/* DataGrid displays filtered fighter rows based on selected weight class */}
                                 <DataGrid //displays the table 
                                         rows={filteredRows} 
                                         columns={columns} 
                                         
+                                        pagination
+                                        pageSizeOptions={[15]}
+                                        initialState={{
+                                            pagination: { paginationModel: { pageSize: 15, page: 0 } },
+                                        }}
+                                        
                                         disableRowSelectionOnClick // removes checkboxes
-                                        disableVirtualization // renders all rows on a page, prevents scrolling the grid to see rows
                                         disableColumnSorting // removes sorting. (if adding filtering remove this)
                                         
                                         //Allows alternating colored rows
@@ -434,6 +770,8 @@ export default function DraftLobbyPage() {
                                         
                                         // STYLING
                                         sx={(theme) => ({
+                                            height: '100%',
+                                            
                                             //Alternating row colors
                                             "& .MuiDataGrid-row.even-row":{
                                                 backgroundColor: (theme.palette.brand as any).dark,
@@ -455,23 +793,29 @@ export default function DraftLobbyPage() {
                         </Stack>
                     </Paper>
                 </Grid>
-
-
-
-
                 {/* Column 3: Past Picks History */}
-                <Grid size={{ xs: 12, sm: 3 }}>
-                    <Paper sx={{
-                        height: '80vh',
+                <Grid size={{ md: 3 }} sx={{ display: { xs: 'none', md: 'flex' }, minHeight: 0 }}>
+                    <Box sx={{
+                        height: COLUMN_HEIGHT,
+                        maxHeight: COLUMN_HEIGHT,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        width: '100%',
                         borderRadius: 4,
                         backgroundColor: 'dashboardBlack.main',
                         p: 2,
-                        overflowY: 'auto'
+                        overflow: 'hidden',
+                        minHeight: 0,
                     }}>
                         {/* Header with Test buttons */}
-                        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box sx={{ mb: 2, 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center', 
+                                overflow: 'hidden' 
+                            }}>
                             <Typography variant="h3" sx={{ fontSize: '1rem', color: 'text.secondary' }}>
-                                Past Picks:
+                                Past Picks
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1 }}>
                                 <Button onClick={clearHistory} variant="text" size="small" color="error" sx={{ minWidth: 'auto', px: 1 }}>
@@ -489,21 +833,132 @@ export default function DraftLobbyPage() {
                             2. 'renderItem' tells it how to draw EACH box (using DraftPlayerCard).
                             3. The component handles all the slide-in/fade-out animations automatically!
                         */}
-                        <AnimatedList
-                            items={draftHistory}
-                            renderItem={(item) => (
-                                <Box sx={{ mb: 2 }}>
+                        <Box sx={{ 
+                            flex: 1, 
+                            minHeight: 0, 
+                            overflowY: 'auto',
+                            scrollbarWidth: 'none', // Firefox
+                            '&::-webkit-scrollbar': {
+                                display: 'none', // Chrome, Safari, Edge
+                            },
+                            msOverflowStyle: 'none', // IE
+                        }}>
+                            <AnimatedList<DraftHistoryItem>
+                                items={draftHistory}
+                                gap={8}
+                                renderItem={(item) => (
                                     <DraftPlayerCard
                                         name={item.fighter}
                                         subtitle={`R${item.round}, P${item.pick} | ${item.user}`}
                                         weightClass={item.wc}
                                         variant="history"
                                     />
-                                </Box>
-                            )}
-                        /></Paper>
+                                )}
+                            />
+                        </Box>
+                        </Box>
                 </Grid>
             </Grid>
+            </Stack>
+            <Dialog
+                open={rosterDialogOpen}
+                onClose={handleRosterDialogClose}
+                fullWidth
+                maxWidth="sm"
+                sx={{ display: { xs: 'block', md: 'none' } }}
+                BackdropProps={{
+                    sx: {
+                        backdropFilter: 'blur(6px)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                    },
+                }}
+                PaperProps={{
+                    sx: {
+                        backgroundColor: 'dashboardBlack.main',
+                        borderRadius: 3,
+                    },
+                }}
+            >
+                <DialogTitle sx={{ color: 'white' }}>
+                    View Rosters
+                </DialogTitle>
+                <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: '70vh', overflowY: 'auto' }}>
+                    <FormControl fullWidth>
+                        <Select
+                            value={selectedTeamId ?? ''}
+                            onChange={(e) => setSelectedTeamId(Number(e.target.value))}
+                            sx={{
+                                color: 'white',
+                            }}
+                        >
+                            {leagueData?.teams.map((team) => (
+                                <MenuItem key={team.id} value={team.id}>
+                                    {team.name}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                    {rosterData?.roster.map((slot, index) => (
+                        <DraftPlayerCard
+                            key={index}
+                            name={slot.fighter ? slot.fighter.full_name : 'Empty Slot'}
+                            subtitle={slot.fighter ? `Avg: ${slot.fantasy?.average_points.toFixed(1) ?? '0.0'} | Last: ${slot.fantasy?.last_fight_points.toFixed(1) ?? '0.0'}` : 'No Fighter Drafted'}
+                            weightClass={slot.slot}
+                            variant="roster"
+                        />
+                    ))}
+                </DialogContent>
+            </Dialog>
+
+            {/* Flex Confirmation Dialog */}
+            <Dialog
+                open={flexDialogOpen}
+                onClose={handleFlexDialogCancel}
+                PaperProps={{
+                    sx: {
+                        backgroundColor: 'dashboardBlack.main',
+                        borderRadius: 3,
+                    },
+                }}
+            >
+                <DialogTitle sx={{ color: 'white' }}>
+                    Confirm FLEX Assignment
+                </DialogTitle>
+                <DialogContent sx={{ color: 'white' }}>
+                    <Typography>
+                        This weight class is full. FLEX is available. Do you want to assign this fighter to FLEX?
+                    </Typography>
+                </DialogContent>
+                <Box sx={{ p: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                    <Button
+                        variant="contained" 
+                        color="whiteAlpha20"
+                        onClick={handleFlexDialogCancel}
+                        sx={{
+                            borderColor: 'gray900.main',
+                            '&:hover': {
+                                borderColor: 'gray800.main'
+                            }
+                        }}
+                        
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="brandAlpha50"
+                        onClick={handleDraftFlex}
+                        sx={{ 
+                        borderColor: 'brand.light',
+                        '&:hover': {
+                            borderColor: 'brand.main'
+                        }                        
+                    }}
+                    >
+                        Draft FLEX
+                    </Button>
+                </Box>
+            </Dialog>
         </ListPageLayout>
     );
 }

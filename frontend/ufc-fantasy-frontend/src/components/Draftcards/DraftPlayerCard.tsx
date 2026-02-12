@@ -2,9 +2,9 @@ import React from 'react';
 import { Box, Avatar, Typography } from '@mui/material';
 
 interface DraftPlayerCardProps {
-    name: string;
-    subtitle: React.ReactNode;
-    weightClass: string;
+    name?: string;
+    subtitle?: React.ReactNode;
+    weightClass?: string;
     /** 
      - 'roster': Used in the "Current Roster" column.
      - 'history': Used in the "Past Picks" column 
