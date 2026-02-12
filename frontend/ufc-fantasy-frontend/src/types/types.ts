@@ -284,3 +284,12 @@ export interface TeamDataResponse {
     };
     roster: TeamRosterSlot[];
 }
+
+export interface DraftHistoryItem {
+    id: number;
+    round: number;
+    pick: number;
+    user: string;
+    fighter: string;
+    wc: string;
+}

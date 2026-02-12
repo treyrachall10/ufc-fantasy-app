@@ -19,7 +19,7 @@ from fantasy.models import (Fighters, Events, Fights, FighterCareerStats,
                             Team, Roster, Draft, DraftPick, DraftOrder)
 from .utils import (create_fantasy_for_fighter, generate_join_code, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
-                    is_user_in_league
+                    is_user_in_league, autopick_fighter
                     )
 
 '''
@@ -134,11 +134,13 @@ def AddRosterSlot(request, draft_id):
     draft = get_object_or_404(Draft, id=draft_id)
     # Gets League and team
     league = draft.league
-    team = get_object_or_404(Team, id = request.data['team_id'], owner=request.user)
+    team = get_object_or_404(Team, id = request.data['team_id'], owner__owner__id=request.user.id)
     # Verify draft in drafting state
     if draft.status != Draft.Status.IN_PROGRESS:
         return Response(
-            {"detail": "Draft has not yet started."},
+            {"detail": "Draft has not yet started.",
+             "code": "draft_not_live"
+             },
             status=409,
         )
     current_pick = draft.current_pick
@@ -146,95 +148,61 @@ def AddRosterSlot(request, draft_id):
     # Check if users turn to draft
     if team != team_to_pick:
         return Response(
-            {"detail": "It's not your turn to draft."},
+            {"detail": "It's not your turn to draft.",
+             "code": "not_your_turn"
+             },
             status=409
         )
-    # Check if autopick is true, draft random fighter from available fighters and for a slot not filled
-    if request.data.get('autopick', False):
-        # Get roster slots already filled for team as a set for O(1) lookups
-        filled_slots = set(Roster.objects.filter(team=team).values_list('slot_type', flat=True))
-        
-        # Get drafted fighter ids in league
-        drafted_fighter_ids = set(DraftPick.objects.filter(draft=draft).values_list('fighter__fighter_id', flat=True))
-        
-        # If FLEX is available, all undrafted fighters are eligible
-        if Roster.SlotType.FLEX not in filled_slots:
-            available_fighters = list(FighterCareerStats.objects.exclude(fighter_id__in=drafted_fighter_ids))
-            if not available_fighters:
+    # Checks if fighter exists
+    fighter = get_object_or_404(Fighters, fighter_id=request.data['fighter_id'])
+    # Check if fighter already drafted in league
+    if Roster.objects.filter(
+        fighter=fighter,
+        team__owner__league=league
+    ).exists():
+        return Response(
+            {"detail": "Fighter already been drafted",
+                "code": "fighter_already_drafted"
+            },
+            status=409
+        )
+    slot_type = weight_to_slot(fighter.weight)
+    slot_taken = Roster.objects.filter(team=team, slot_type=slot_type).exists()
+    flex_taken = Roster.objects.filter(team=team, slot_type=Roster.SlotType.FLEX).exists()
+    # If weight class slot is taken and flex is taken reject draft pick
+    if slot_taken and flex_taken:
+        return Response(
+            {
+                "detail": "You already have a fighter in this weight class and cannot assign this pick to FLEX.",
+                "code": "weight_class_and_flex_full"
+            },
+            status=409
+        )
+    # If weight class slot is taken and flex is not ask to draft to flex slot
+    if slot_taken and not flex_taken:
                 return Response(
-                    {"detail": "No available fighters to draft."},
-                    status=409
-                )
-            fighter = random.choice(available_fighters)
-        else:
-            # FLEX is taken, only fighters matching open weight class slots are eligible
-            all_slots = {
-                Roster.SlotType.STRAWWEIGHT, Roster.SlotType.FLYWEIGHT, 
-                Roster.SlotType.BANTAMWEIGHT, Roster.SlotType.FEATHERWEIGHT,
-                Roster.SlotType.LIGHTWEIGHT, Roster.SlotType.WELTERWEIGHT,
-                Roster.SlotType.MIDDLEWEIGHT, Roster.SlotType.LIGHT_HEAVYWEIGHT,
-                Roster.SlotType.HEAVYWEIGHT
-            }
-            open_slots = all_slots - filled_slots
-            
-            # Filter to fighters whose weight class slot is open
-            eligible_fighters = []
-            for fighter in FighterCareerStats.objects.exclude(fighter_id__in=drafted_fighter_ids):
-                slot_type = weight_to_slot(fighter.weight)
-                if slot_type in open_slots:
-                    eligible_fighters.append(fighter)
-            
-            if not eligible_fighters:
-                return Response(
-                    {"detail": "No available fighters to draft."},
-                    status=409
-                )
-            
-            fighter = random.choice(eligible_fighters)
-    else:
-        # Checks if fighter exists
-        fighter = get_object_or_404(Fighters, fighter_id=request.data['fighter_id'])
-        # Check if fighter already drafted in league
-        if Roster.objects.filter(
-            fighter=fighter,
-            team__league=league
-        ).exists():
-            return Response(
-                {"detail": "Fighter already been drafted"},
-                status=409
-            )
-        slot_type = weight_to_slot(fighter.weight)
-        slot_taken = Roster.objects.filter(team=team, slot_type=slot_type).exists()
-        flex_taken = Roster.objects.filter(team=team, slot_type=Roster.SlotType.FLEX).exists()
-        # If weight class slot is taken and flex is taken reject draft pick
-        if slot_taken and flex_taken:
-            return Response(
-                {
-                    "detail": "You already have a fighter in this weight class and cannot assign this pick to FLEX"
-                },
-                status=409
-            )
-        # If weight class slot is taken and flex is not ask to draft to flex slot
-        if slot_taken and not flex_taken:
-                    return Response(
-                {
-                    "action_required": "confirm_flex",
-                    "detail": "This weight class is full. FLEX is available. Do you want to assign this fighter to Flex?"
-                },
-                status=200
-            )
+            {
+                "action_required": "confirm_flex",
+                "detail": "This weight class is full. FLEX is available. Do you want to assign this fighter to Flex?",
+                "code": "confirm_flex",
+                "fighter_id": fighter.fighter_id
+            },
+            status=200
+        )
     execute_draft_pick(team=team, 
                        fighter=fighter, 
                        slot_type=slot_type, 
                        draft=draft, 
                        pick_num=current_pick,
                        )
+    # Check if draft is completed
     if draft.current_pick >= DraftOrder.objects.filter(draft=draft).count():
         draft.status = Draft.Status.COMPLETED
         draft.save()
         return Response(
             {
                 "detail": f"Fighter has been drafted to {slot_type}. Draft is now completed.",
+                "code": "draft_completed",
                 "draft_status": draft.status
             },
             status=200
@@ -243,61 +211,87 @@ def AddRosterSlot(request, draft_id):
         {
             "detail": f"Fighter has been drafted to {slot_type}",
             "current_pick": draft.current_pick,
-            "pick_start_time": draft.pick_start_time
+            "pick_start_time": draft.pick_start_time,
+            "code": "pick_successful",
         },
         status=200
     )
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def DraftFlexSlot(request):
-    # Checks if team exists in league and get team plus league
-    team = get_object_or_404(Team, id=request.data['id'], owner=request.user)
-    league = team.owner.league
+def DraftFlexSlot(request, draft_id):
     # Verify draft has been created for league
-    draft = get_object_or_404(Draft, league=league)
+    draft = get_object_or_404(Draft, id=draft_id)
+    # Get League and team
+    league = draft.league
+    team = get_object_or_404(Team, id=request.data['team_id'], owner__owner__id=request.user.id)
     # Verify draft in drafting state
-    if draft.Status != Draft.Status.IN_PROGRESS:
+    if draft.status != Draft.Status.IN_PROGRESS:
         return Response(
-            {"detail": "Draft has not yet started."},
+            {"detail": "Draft has not yet started.",
+             "code": "draft_not_live"
+             },
             status=409,
         )
     current_pick = draft.current_pick
-    current_pick_team = DraftOrder.objects.get(draft=draft, pick_num=current_pick).team
+    team_to_pick = DraftOrder.objects.get(draft=draft, pick_num=current_pick).team
     # Check if users turn to draft
-    if team != current_pick_team:
+    if team != team_to_pick:
         return Response(
-            {"detail": "It's not your turn to draft."},
+            {"detail": "It's not your turn to draft.",
+             "code": "not_your_turn"
+             },
             status=409
         )
     # Checks if fighter exists
     fighter = get_object_or_404(Fighters, fighter_id=request.data['fighter_id'])
+    # Check if fighter already drafted in league
     if Roster.objects.filter(
         fighter=fighter,
-        team__league=league
+        team__owner__league=league
     ).exists():
         return Response(
-            {"detail": "Fighter already been drafted"},
+            {"detail": "Fighter already been drafted",
+             "code": "fighter_already_drafted"
+            },
             status=409
         )
     slot_type = weight_to_slot(fighter.weight)
     flex_taken = Roster.objects.filter(team=team, slot_type=Roster.SlotType.FLEX).exists()
+    # Verify flex slot is available and weight class slot is taken
     if not flex_taken and Roster.objects.filter(team=team, slot_type=slot_type).exists():
-        pick_num = current_pick.pick_num
         execute_draft_pick(fighter=fighter, 
                            team=team, 
                            slot_type=Roster.SlotType.FLEX, 
                            draft=draft,
-                           pick_num=pick_num,
-                           current_pick=current_pick
+                           pick_num=current_pick
                            )
+        # Check if draft is completed
+        if draft.current_pick >= DraftOrder.objects.filter(draft=draft).count():
+            draft.status = Draft.Status.COMPLETED
+            draft.save()
+            return Response(
+                {
+                    "detail": f"Fighter has been drafted to FLEX. Draft is now completed.",
+                    "code": "draft_completed",
+                    "draft_status": draft.status
+                },
+                status=200
+            )
         return Response(
-            {'detail': f'{fighter.full_name} drafted to FLEX'},
+            {
+                "detail": f"Fighter has been drafted to FLEX",
+                "current_pick": draft.current_pick,
+                "pick_start_time": draft.pick_start_time,
+                "code": "pick_successful",
+            },
             status=200
         )
     else:
         return Response(
-            {"detail": "Flex slot is no longer available."},
+            {"detail": "Flex slot is no longer available.",
+             "code": "flex_not_available"
+             },
             status=409
         )
 
@@ -650,6 +644,12 @@ def GetDraftState(request, draft_id):
     # Draft is live return draft status and current pick info 
     if draft.status == Draft.Status.IN_PROGRESS:
         team_to_pick = DraftOrder.objects.get(draft=draft, pick_num=draft.current_pick).team
+        # Check time remaining for pick and if time has expired, auto pick for team to pick and advance draft
+        time_elapsed = timezone.now() - draft.pick_start_time
+        if time_elapsed >= timezone.timedelta(seconds=60): # 60 second pick timer
+            fighter = autopick_fighter(team=team_to_pick, draft=draft)
+            slot = weight_to_slot(fighter.weight) if fighter and fighter.weight is not None else Roster.SlotType.FLEX
+            execute_draft_pick(team=team_to_pick, fighter=fighter, draft=draft, pick_num=draft.current_pick, slot_type=slot)
         return Response(
             {
                 "draft_status": draft.status,
@@ -747,7 +747,7 @@ def GetDraftPickHistory(request, draft_id):
     draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
     is_user_in_league(request.user, league.id) # Determine if user in league; raises error if not
-    draft_picks = DraftPick.objects.filter(draft=draft).select_related('fighter', 'team').order_by('pick_num')
+    draft_picks = DraftPick.objects.filter(draft=draft).select_related('fighter', 'team').order_by('-pick_num')
     serializer = DraftPickHistorySerializer(draft_picks, many=True)
     return Response(
         serializer.data,

@@ -4,11 +4,20 @@ import FighterTable from '../components/dataGrid/FighterTable';
 import DraftPlayerCard from '../components/Draftcards/DraftPlayerCard';
 import { useEffect, useState } from 'react';
 import AnimatedList from '../components/Animations/AnimatedList';
-import { useQuery } from '@tanstack/react-query';
+import { Query, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { authFetch } from '../auth/authFetch';
 import { useParams } from 'react-router-dom';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { LeagueInfo, TeamDataResponse } from '../types/types';
+import { LeagueInfo, TeamDataResponse, DraftHistoryItem } from '../types/types';
+import { useRef } from 'react';
+
+// Payload type for drafting a fighter
+interface DraftFighterPayload {
+    team_id: number;
+    fighter_id: number;
+}
 
 // TypeScript interface for draft state
 interface DraftState {
@@ -36,6 +45,7 @@ interface DraftableFighter {
 export default function DraftLobbyPage() {
     const params = useParams<{ leagueId: string; draftId: string }>();
     const isMobile = useMediaQuery('(max-width: 600px)');
+    const queryClient = useQueryClient();
     
     // Draft Button Renderer for DataGrid - Calls the handleDraftPick function with the fighter's ID when clicked.
     const DraftButton = (params: GridRenderCellParams) => {
@@ -43,6 +53,7 @@ export default function DraftLobbyPage() {
             <Button
                 variant="contained"
                 color="whiteAlpha20"
+                disabled={!canDraft}
                 onClick={() => handleDraftPick(Number(params.id))}
                 size={isMobile ? 'small' : undefined}
                 sx={{
@@ -67,6 +78,14 @@ export default function DraftLobbyPage() {
         refetchInterval: 1000, // Refetch every 1000 milliseconds (1 second)
     })
 
+    // Effect to invalidate past picks query when current_pick changes
+    useEffect(() => {
+        if(!draftStateData?.current_pick) return;
+
+        queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
+
+    }, [draftStateData?.current_pick]);
+
     // Fetch Draftable Fighters for Draft Board
     const { data: draftableFightersData, isPending: isDraftableFightersPending, error: draftableFightersError} = useQuery<DraftableFighter[]>({
         queryKey: ['draft', params.draftId, 'draftableFighters'],
@@ -85,8 +104,34 @@ export default function DraftLobbyPage() {
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/pastPicks`).then(r => r.json()),
     })
 
+    // Effect to update the past picks reference when new picks are added to trigger animations in the AnimatedList component
+
+    useEffect(() => {
+        if(!pastPicksData) return;
+        // filter out picks that are not in reference to only add new picks to the history list and trigger animations for those new picks
+        /*
+        const newPicks = pastPicksData.filter((item: any) => !pastPicksRef.current.some((pick: any) => pick.pick_num === item.pick_num));
+        pastPicksRef.current = [...pastPicksRef.current, ...newPicks];
+        pastPicksDisplayData.push(...newPicks);
+        */
+       setDraftHistory(pastPicksData.map((pick: any) => ({
+            id: pick.pick_num,
+            round: Math.ceil(pick.pick_num / leagueData?.league.capacity!),
+            pick: pick.pick_num,
+            user: pick.team.name || 'Unknown Team',
+            fighter: pick.fighter.full_name,
+            wc: pick.fighter.weight,
+        })) || []);
+    }, [pastPicksData]);
+
+    // Reference for the past picks container to add new picks with an animation when they are added to the history list
+    const pastPicksRef = useRef(pastPicksData || []);
+    const pastPicksDisplayData = pastPicksRef.current;
+
     const [selectedTeamId, setSelectedTeamId] = useState<number | undefined>();
     const [rosterDialogOpen, setRosterDialogOpen] = useState(false);
+    const [flexDialogOpen, setFlexDialogOpen] = useState(false);
+    const [pendingFlexFighterId, setPendingFlexFighterId] = useState<number | null>(null);
     
     // Set default team to user's own team when draft state loads
     useEffect(() => {
@@ -108,6 +153,100 @@ export default function DraftLobbyPage() {
         enabled: !!selectedTeamId, // Only run this query if selectedTeamId is available
     })
 
+    const USERTEAMID = rosterData ? rosterData.team.id : undefined;
+    const canDraft = draftStateData?.team_to_pick_id === USERTEAMID;
+
+    // Handles errors that can occur during the drafting process 
+    const handleDraftingErrors = (error: any) => {
+        if (error.code === 'not_your_turn') {
+            alert("It's not your turn to draft!");
+        } else if (error.code === 'weight_class_and_flex_full') {
+            alert(error.detail + " Please choose another fighter in a different weight class.");
+        } else if (error.code === 'fighter_already_drafted') {
+            alert("This fighter has already been drafted by another team.");
+        } else if (error.code === 'no_available_fighters') {
+            alert("No available fighters to draft.");
+        } else if (error.code === 'draft_not_live') {
+            alert("Draft has not yet started.");
+        } else {
+            alert("An unexpected error occurred while drafting. Please try again.");
+        }
+    }
+
+    // Handles successful draft picks and draft completion
+    const handleDraftingSuccess = (data: any) => {
+        if (data.code === 'draft_completed') {
+            alert("Draft is now completed!");
+        } else if (data.code === 'pick_successful') {
+            alert("Pick successful!");
+        }
+    }
+
+    const draftFighterMutation = useMutation({
+        mutationFn: async (payload: DraftFighterPayload) => {
+        const response = await authFetch(`http://localhost:8000/draft/${params.draftId}/pick`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        })
+    
+        const data = await response.json()
+    
+        if (!response.ok) {
+            throw data
+        }
+    
+        return data
+        },
+    
+        // Do something if fails
+        onError: (error: any) => {
+            handleDraftingErrors(error);
+        },
+    
+        onSuccess: (data) => {
+            if (data.action_required === 'confirm_flex') {
+                setPendingFlexFighterId(data.fighter_id);
+                setFlexDialogOpen(true);
+            };
+
+            handleDraftingSuccess(data);
+            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'state'] });
+            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'draftableFighters'] });
+            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
+            queryClient.invalidateQueries({ queryKey: ['team', selectedTeamId] });
+        }
+    })
+
+    const draftFlexMutation = useMutation({
+        mutationFn: async (payload: DraftFighterPayload) => {
+        const response = await authFetch(`http://localhost:8000/draft/${params.draftId}/draftFlex`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        })
+    
+        const data = await response.json()
+    
+        if (!response.ok) {
+            throw data
+        }
+    
+        return data
+        },
+    
+        // Do something if fails
+        onError: (error: any) => {
+            handleDraftingErrors(error);
+        },
+    
+        onSuccess: (data) => {
+            handleDraftingSuccess(data);
+            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'state'] });
+            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'draftableFighters'] });
+            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
+            queryClient.invalidateQueries({ queryKey: ['team', selectedTeamId] });
+        }
+    })
+
     // State for weight class filter - holds the selected weight class number or empty string for all
     const [selectedWeightClass, setSelectedWeightClass] = useState('');
 
@@ -124,15 +263,17 @@ export default function DraftLobbyPage() {
     const currentRound = Math.ceil((draftStateData?.current_pick || 0) / (leagueData?.league.capacity || 1));    // Mock Roster Data (1 per Weight Class)
     const COLUMN_HEIGHT = '885px';
 
-    // Mock Draft History (Not really in use atm)
-    const [draftHistory, setDraftHistory] = useState([
-        { id: 106, round: 1, pick: 6, user: 'Team Adan', fighter: 'Sean O\'Malley', wc: 'BW' },
-        { id: 105, round: 1, pick: 5, user: 'Team Trey', fighter: 'Belal Muhammad', wc: 'WW' },
-        { id: 104, round: 1, pick: 4, user: 'Team Chris', fighter: 'Ilia Topuria', wc: 'FW' },
-        { id: 103, round: 1, pick: 3, user: 'Team Matt', fighter: 'Islam Makhachev', wc: 'LW' },
-        { id: 102, round: 1, pick: 2, user: 'Team Adan', fighter: 'Alex Pereira', wc: 'LHW' },
-        { id: 101, round: 1, pick: 1, user: 'Team Trey', fighter: 'Jon Jones', wc: 'HW' },
-    ]);
+    // Draft history to display to animated list of past picks
+    const [draftHistory, setDraftHistory] = useState(
+        pastPicksData?.map((pick: any) => ({
+            id: pick.pick_num,
+            round: Math.ceil(pick.pick_num / leagueData?.league.capacity!),
+            pick: pick.pick_num,
+            user: pick.team.name || 'Unknown Team',
+            fighter: pick.fighter.full_name,
+            wc: pick.fighter.weight,
+        })) || []
+    );
 
     // Transform raw API data into row format for the DataGrid
     // Convert weight class names to numeric values using the weightClassMap
@@ -153,9 +294,28 @@ export default function DraftLobbyPage() {
 
     const handleDraftPick = (fighterId: number) => {
         console.log(`Drafting fighter with ID: ${fighterId}`);
+        draftFighterMutation.mutate({
+            team_id: draftStateData?.user_team_id!,
+            fighter_id: fighterId,
+        })
     };
     const handleRosterDialogOpen = () => setRosterDialogOpen(true);
     const handleRosterDialogClose = () => setRosterDialogOpen(false);
+
+    const handleDraftFlex = () => {
+        if (!pendingFlexFighterId) return;
+        setFlexDialogOpen(false);
+        draftFlexMutation.mutate({
+            team_id: draftStateData?.user_team_id!,
+            fighter_id: pendingFlexFighterId,
+        });
+        setPendingFlexFighterId(null);
+    };
+
+    const handleFlexDialogCancel = () => {
+        setFlexDialogOpen(false);
+        setPendingFlexFighterId(null);
+    };
 
     const baseColumns: GridColDef[] = [
         { field: 'weightClass', headerName: 'WC', flex: 0.6, minWidth: 60 },
@@ -683,7 +843,7 @@ export default function DraftLobbyPage() {
                             },
                             msOverflowStyle: 'none', // IE
                         }}>
-                            <AnimatedList
+                            <AnimatedList<DraftHistoryItem>
                                 items={draftHistory}
                                 gap={8}
                                 renderItem={(item) => (
@@ -748,6 +908,56 @@ export default function DraftLobbyPage() {
                         />
                     ))}
                 </DialogContent>
+            </Dialog>
+
+            {/* Flex Confirmation Dialog */}
+            <Dialog
+                open={flexDialogOpen}
+                onClose={handleFlexDialogCancel}
+                PaperProps={{
+                    sx: {
+                        backgroundColor: 'dashboardBlack.main',
+                        borderRadius: 3,
+                    },
+                }}
+            >
+                <DialogTitle sx={{ color: 'white' }}>
+                    Confirm FLEX Assignment
+                </DialogTitle>
+                <DialogContent sx={{ color: 'white' }}>
+                    <Typography>
+                        This weight class is full. FLEX is available. Do you want to assign this fighter to FLEX?
+                    </Typography>
+                </DialogContent>
+                <Box sx={{ p: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                    <Button
+                        variant="contained" 
+                        color="whiteAlpha20"
+                        onClick={handleFlexDialogCancel}
+                        sx={{
+                            borderColor: 'gray900.main',
+                            '&:hover': {
+                                borderColor: 'gray800.main'
+                            }
+                        }}
+                        
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="brandAlpha50"
+                        onClick={handleDraftFlex}
+                        sx={{ 
+                        borderColor: 'brand.light',
+                        '&:hover': {
+                            borderColor: 'brand.main'
+                        }                        
+                    }}
+                    >
+                        Draft FLEX
+                    </Button>
+                </Box>
             </Dialog>
         </ListPageLayout>
     );
