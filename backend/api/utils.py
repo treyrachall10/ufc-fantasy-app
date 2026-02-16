@@ -6,6 +6,7 @@ from fantasy.models import Draft, RoundScore, FightScore, Roster, Team, DraftOrd
 import secrets
 import string
 import random
+from django.db.models import Max
 
 def create_fantasy_for_fighter(fight, fighter,  round_stats):
     """
@@ -139,6 +140,7 @@ def autopick_fighter(team, draft):
     :param draft: Instance of Draft model object
     :return: Instance of FighterCareerStats model object (randomly chosen available fighter)
     """
+    cutoff = timezone.now() - timezone.timedelta(days=365*2) # 2 year cutoff for fighter activity
     # Get roster slots already filled for team as a set for O(1) lookups
     filled_slots = set(Roster.objects.filter(team=team).values_list('slot_type', flat=True))
     
@@ -147,12 +149,14 @@ def autopick_fighter(team, draft):
     
     # If FLEX is available, all undrafted fighters are eligible
     if Roster.SlotType.FLEX not in filled_slots:
-        available_fighters = list(FighterCareerStats.objects.exclude(fighter_id__in=drafted_fighter_ids))
-        if not available_fighters:
+        draftable_fighters = list(FighterCareerStats.objects.annotate(last_fight=Max('fighter__fightscore__fight__event__date')
+                                                                      ).exclude(fighter_id__in=drafted_fighter_ids)
+                                                                      .exclude(last_fight__lt=cutoff))
+        if not draftable_fighters:
             return None
-        fighter = random.choice(available_fighters)
+        fighter = random.choice(draftable_fighters)
+    # FLEX is taken, only fighters matching open weight class slots are eligible
     else:
-        # FLEX is taken, only fighters matching open weight class slots are eligible
         all_slots = {
             Roster.SlotType.STRAWWEIGHT, Roster.SlotType.FLYWEIGHT, 
             Roster.SlotType.BANTAMWEIGHT, Roster.SlotType.FEATHERWEIGHT,
@@ -164,8 +168,12 @@ def autopick_fighter(team, draft):
         
         # Filter to fighters whose weight class slot is open
         eligible_fighters = []
-        for fighter in FighterCareerStats.objects.exclude(fighter_id__in=drafted_fighter_ids):
-            slot_type = weight_to_slot(fighter.weight)
+        for fighter in FighterCareerStats.objects.annotate(last_fight=Max('fighter__fightscore__fight__event__date')
+                                                          ).exclude(fighter_id__in=drafted_fighter_ids
+                                                          ).exclude(last_fight__lt=cutoff):
+            if fighter.fighter.weight is None:
+                continue
+            slot_type = weight_to_slot(fighter.fighter.weight)
             if slot_type in open_slots:
                 eligible_fighters.append(fighter)
         
