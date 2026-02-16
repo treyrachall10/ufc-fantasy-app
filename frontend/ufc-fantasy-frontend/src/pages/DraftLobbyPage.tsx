@@ -10,7 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { authFetch } from '../auth/authFetch';
 import { useParams } from 'react-router-dom';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { LeagueInfo, TeamDataResponse, DraftHistoryItem } from '../types/types';
+import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam } from '../types/types';
 import { useRef } from 'react';
 
 // Payload type for drafting a fighter
@@ -96,6 +96,12 @@ export default function DraftLobbyPage() {
     const { data: leagueData, isPending: isLeagueDataPending, error: leagueDataError} = useQuery<LeagueInfo>({
         queryKey: ['League', params.leagueId],
         queryFn: () => authFetch(`http://localhost:8000/league/${params.leagueId}`).then(r => r.json()),
+    })
+
+    // Fetch Draft Order.
+    const { data: draftOrderData, isPending: isDraftOrderPending, error: draftOrderError} = useQuery<DraftOrderTeam[]>({
+        queryKey: ['draft', params.draftId, 'draftOrder'],
+        queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/draftOrder`).then(r => r.json()),
     })
 
     // Fetch Past Picks to show draft history on the right column

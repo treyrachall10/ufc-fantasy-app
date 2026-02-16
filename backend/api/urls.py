@@ -28,5 +28,6 @@ urlpatterns = [
     path('draft/<int:draft_id>/draftableFighters', views.GetDraftableFighters),
     path('draft/<int:draft_id>/pastPicks', views.GetDraftPickHistory),
     path('draft/<int:draft_id>/pick', views.AddRosterSlot),
-    path('draft/<int:draft_id>/draftFlex', views.DraftFlexSlot)
+    path('draft/<int:draft_id>/draftFlex', views.DraftFlexSlot),
+    path('draft/<int:draft_id>/draftOrder', views.GetDraftOrder)
 ]
