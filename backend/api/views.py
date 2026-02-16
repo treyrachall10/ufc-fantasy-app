@@ -646,12 +646,10 @@ def GetDraftState(request, draft_id):
         team_to_pick = DraftOrder.objects.get(draft=draft, pick_num=draft.current_pick).team
         # Check time remaining for pick and if time has expired, auto pick for team to pick and advance draft
         time_elapsed = timezone.now() - draft.pick_start_time
-        '''
         if time_elapsed >= timezone.timedelta(seconds=60): # 60 second pick timer
             fighter = autopick_fighter(team=team_to_pick, draft=draft)
             slot = weight_to_slot(fighter.weight) if fighter and fighter.weight is not None else Roster.SlotType.FLEX
             execute_draft_pick(team=team_to_pick, fighter=fighter, draft=draft, pick_num=draft.current_pick, slot_type=slot)
-        '''
         return Response(
             {
                 "draft_status": draft.status,
