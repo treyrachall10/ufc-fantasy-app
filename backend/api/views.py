@@ -686,7 +686,7 @@ def GetDraftableFighters(request, draft_id):
     # use DraftPick to get drafted fighters in league using draft as lookup
     drafted_fighter_ids = DraftPick.objects.filter(draft=draft).values_list('fighter__fighter_id', flat=True)
     
-    # get fighters that haven't been drafted, have fought in last 2 yeard, and prefetch fightscores for fantasy calculations
+    # get fighters that haven't been drafted, have fought in last 2 years, and prefetch fightscores for fantasy calculations
     draftable_fighters = FighterCareerStats.objects.annotate(last_fight=Max('fighter__fightscore__fight__event__date')).exclude(
         fighter_id__in=drafted_fighter_ids).exclude(last_fight__lt=cutoff).prefetch_related(
         Prefetch(
