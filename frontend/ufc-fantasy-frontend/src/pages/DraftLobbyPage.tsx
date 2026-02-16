@@ -10,7 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { authFetch } from '../auth/authFetch';
 import { useParams } from 'react-router-dom';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { LeagueInfo, TeamDataResponse, DraftHistoryItem } from '../types/types';
+import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam } from '../types/types';
 import { useRef } from 'react';
 
 // Payload type for drafting a fighter
@@ -78,14 +78,6 @@ export default function DraftLobbyPage() {
         refetchInterval: 1000, // Refetch every 1000 milliseconds (1 second)
     })
 
-    // Effect to invalidate past picks query when current_pick changes
-    useEffect(() => {
-        if(!draftStateData?.current_pick) return;
-
-        queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
-
-    }, [draftStateData?.current_pick]);
-
     // Fetch Draftable Fighters for Draft Board
     const { data: draftableFightersData, isPending: isDraftableFightersPending, error: draftableFightersError} = useQuery<DraftableFighter[]>({
         queryKey: ['draft', params.draftId, 'draftableFighters'],
@@ -98,14 +90,32 @@ export default function DraftLobbyPage() {
         queryFn: () => authFetch(`http://localhost:8000/league/${params.leagueId}`).then(r => r.json()),
     })
 
+    // Fetch Draft Order.
+    const { data: draftOrderData, isPending: isDraftOrderPending, error: draftOrderError} = useQuery<DraftOrderTeam[]>({
+        queryKey: ['draft', params.draftId, 'draftOrder'],
+        queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/draftOrder`).then(r => r.json()),
+    })
+
     // Fetch Past Picks to show draft history on the right column
     const { data: pastPicksData, isPending: isPastPicksPending, error: pastPicksError} = useQuery({
         queryKey: ['draft', params.draftId, 'pastPicks'],
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/pastPicks`).then(r => r.json()),
     })
 
-    // Effect to update the past picks reference when new picks are added to trigger animations in the AnimatedList component
+    // Calculate how many picks until user's next pick based on current pick and draft order.
+    const nextUserPick = draftOrderData && draftStateData ? draftOrderData.find((pick) => pick.team.id === draftStateData.user_team_id && pick.pick_num >= draftStateData.current_pick) : undefined;
+    const picksUntilUserNextPick = nextUserPick && draftStateData ? nextUserPick.pick_num - draftStateData.current_pick : undefined;
 
+    // Effect to invalidate past picks query and update when user next pick is when current_pick changes
+    useEffect(() => {
+        if(!draftStateData?.current_pick) return;
+
+        queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
+        const indexOfNextUserPick = draftOrderData?.findIndex((pick) => pick.team.id === draftStateData.user_team_id && pick.pick_num > draftStateData.current_pick);
+        //setPicksUntilUserNextPick(indexOfNextUserPick !== undefined && indexOfNextUserPick !== -1 ? indexOfNextUserPick - draftStateData.current_pick : undefined);
+    }, [draftStateData?.current_pick]);
+
+    // Effect to update the past picks reference when new picks are added to trigger animations in the AnimatedList component
     useEffect(() => {
         if(!pastPicksData) return;
         // filter out picks that are not in reference to only add new picks to the history list and trigger animations for those new picks
@@ -139,12 +149,6 @@ export default function DraftLobbyPage() {
             setSelectedTeamId(draftStateData.user_team_id);
         }
     }, [draftStateData?.user_team_id]);
-
-    // Log when selected team changes
-    const selectedTeamName = leagueData?.teams.find((team) => team.id === selectedTeamId)?.name || 'Your Team';
-    useEffect(() => {
-        console.log("Selected Team:", selectedTeamName);
-    }, [selectedTeamName]);
 
     // Fetch selected team's roster data to show in the left column. This query depends on 'selectedTeamId' and will only run when it's set.
     const {data: rosterData, isPending: isRosterDataPending, error: rosterDataError} = useQuery<TeamDataResponse>({
@@ -525,7 +529,7 @@ export default function DraftLobbyPage() {
                             </Avatar>
                             <Box>
                                 <Typography variant="body2" sx={{ color: 'text.secondary', mb: 0.5 }}>
-                                    On The Clock: Pick {draftState.currentPick.number}
+                                    On The Clock: Pick {draftState.currentPick.number === null ? 'N/A' : draftState.currentPick.number}
                                 </Typography>
                                 <Typography variant="h3" sx={{ color: 'white' }}>
                                     {draftState.currentPick.team}
@@ -674,7 +678,11 @@ export default function DraftLobbyPage() {
                                 <Avatar sx={{ bgcolor: 'brand.main', width: 40, height: 40 }}></Avatar>
                                 <Box>
                                     <Typography variant="h3" sx={{ fontSize: '1.2rem', color: 'white' }}>
-                                        You're on the clock: 1 Pick
+                                        {picksUntilUserNextPick === 0 ? 'On the clock NOW!' : `On the clock in `}
+                                        <Typography component="span" variant="h3" sx={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'brand.main' }}>
+                                            {picksUntilUserNextPick !== 0 && picksUntilUserNextPick}
+                                        </Typography>
+                                        {picksUntilUserNextPick !== 0 && ` Pick${picksUntilUserNextPick !== 1 ? 's' : ''}`}
                                     </Typography>
                                 </Box>
                             </Box>

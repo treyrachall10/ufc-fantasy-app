@@ -668,7 +668,7 @@ def GetDraftOrder(request, draft_id):
     league = draft.league
     is_user_in_league(request.user, league.id) # Determine if user in league; raises error if not
     # Get draft order for league
-    draft_order = DraftOrder.objects.filter(league=league).select_related('team').order_by('pick_num')
+    draft_order = DraftOrder.objects.filter(draft=draft).select_related('team').order_by('pick_num')
     serializer = DraftOrderSerializer(draft_order, many=True)
     return Response(
             serializer.data,

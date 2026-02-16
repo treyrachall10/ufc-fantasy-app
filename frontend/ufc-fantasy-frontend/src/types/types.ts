@@ -1,3 +1,6 @@
+import { Navigate } from 'react-router-dom';
+import exp from "constants";
+
 export interface Fighter {
     fighter_id: number,
     first_name: string,
@@ -259,6 +262,13 @@ export interface FightStats {
     }
 }
 
+export interface Team {
+  id: number;
+  name: string;
+  owner: string;
+  created_at: string;
+}
+
 export interface TeamListFighter {
     fighter_id: number;
     full_name: string;
@@ -277,11 +287,7 @@ export interface TeamRosterSlot {
 }
 
 export interface TeamDataResponse {
-    team: {
-        id: number;
-        name: string;
-        owner: string;
-    };
+    team: Team;
     roster: TeamRosterSlot[];
 }
 
@@ -292,4 +298,9 @@ export interface DraftHistoryItem {
     user: string;
     fighter: string;
     wc: string;
+}
+
+export interface DraftOrderTeam {
+  pick_num: number;
+  team: Team;
 }
