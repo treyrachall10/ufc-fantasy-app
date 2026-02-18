@@ -297,7 +297,8 @@ export default function DraftLobbyPage() {
         : allRows.filter(row => row.weightClass === selectedWeightClass);
 
     const handleDraftPick = (fighterId: number) => {
-        console.log(`Drafting fighter with ID: ${fighterId}`);
+        if (!canDraft) return;
+        
         draftFighterMutation.mutate({
             team_id: draftStateData?.user_team_id!,
             fighter_id: fighterId,
