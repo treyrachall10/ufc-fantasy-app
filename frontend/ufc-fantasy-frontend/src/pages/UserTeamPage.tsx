@@ -41,7 +41,7 @@ export default function UserTeamPage() {
         fighter: slot.fighter?.full_name || 'Empty',
         status: 'Coming Soon',
         projected: 'Coming Soon',
-        year: '2026',
+        year: slot.fantasy?.total_points_since_draft,
         average: slot.fantasy ? slot.fantasy.average_points.toFixed(1) : '0.0',
         last: slot.fantasy ? slot.fantasy.last_fight_points.toFixed(1) : '0.0',
     }))

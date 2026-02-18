@@ -530,7 +530,9 @@ def GetTeamListData(request, team_id):
     :param team_id: Integer id for team
     :return: Response with team info, roster with fighter data or None, and fantasy scores
     """
-    team = get_object_or_404(Team, id=team_id)
+    team = get_object_or_404(Team.objects.prefetch_related('owner__league__draft_set') , id=team_id)
+    draft = team.owner.league.draft_set.first() # Get draft for league; One league should only have one draft
+    draftStartTime = draft.draft_date.date() if draft else None # Get draft start time for fantasy score calculations
     # Load roster rows with fighters and their fight scores; uses select/prefetch related for efficiency
     roster_rows = (
         Roster.objects.filter(team=team)
@@ -585,10 +587,13 @@ def GetTeamListData(request, team_id):
             latest_fantasy = all_scores[0] if all_scores else None
             score_values = [score.fight_total_points for score in all_scores if score.fight_total_points is not None]
             average_points = (sum(score_values) / len(score_values)) if score_values else None
+            points_since_draft = [score.fight_total_points for score in all_scores if score.fight and score.fight.event and draftStartTime and score.fight.event.date >= draftStartTime and score.fight_total_points is not None]
+            total_points_since_draft = sum(points_since_draft) if points_since_draft else 0
             if latest_fantasy is not None:
                 fantasy_payload = {
                     "last_fight_points": latest_fantasy.fight_total_points,
-                    "average_points": average_points
+                    "average_points": average_points,
+                    "total_points_since_draft": total_points_since_draft
                 }
         response_roster.append(
         {
@@ -646,10 +651,12 @@ def GetDraftState(request, draft_id):
         team_to_pick = DraftOrder.objects.get(draft=draft, pick_num=draft.current_pick).team
         # Check time remaining for pick and if time has expired, auto pick for team to pick and advance draft
         time_elapsed = timezone.now() - draft.pick_start_time
+        '''
         if time_elapsed >= timezone.timedelta(seconds=60): # 60 second pick timer
             fighter = autopick_fighter(team=team_to_pick, draft=draft)
             slot = weight_to_slot(fighter.weight) if fighter and fighter.weight is not None else Roster.SlotType.FLEX
             execute_draft_pick(team=team_to_pick, fighter=fighter, draft=draft, pick_num=draft.current_pick, slot_type=slot)
+        '''
         return Response(
             {
                 "draft_status": draft.status,
