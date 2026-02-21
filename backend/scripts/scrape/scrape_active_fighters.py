@@ -21,7 +21,7 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 }
 
-def scrape_active_fighters():
+def scrape_active_fighters_df():
     """
     Scrapes the UFC website for active fighters and returns a set of their normalized names.
     """
@@ -71,4 +71,4 @@ def scrape_active_fighters():
                 fighter_names.append(name.text.strip())
 
     df = pd.DataFrame(fighter_names, columns=["Fighter Name"])
-scrape_active_fighters()
+    return df
