@@ -8,6 +8,7 @@ import re
 import unicodedata
 from config import DATARAWPATH, DATACLEANPATH
 from scripts.utils import normalize_name
+from scripts.scrape.scrape_active_fighters import scrape_active_fighters_df
 
 def convert_to_inches(value_to_conv):
     """
@@ -134,11 +135,10 @@ def parse_fighters():
     try:
         df1 = pd.read_csv(f'{DATARAWPATH}/ufc_fighter_details.csv')
         df2 = pd.read_csv(f'{DATARAWPATH}/ufc_fighter_tott.csv')
+        active_fighters_df = scrape_active_fighters_df()
     except FileNotFoundError as e:
         print(f"ERROR: Missing file - {e}")
         return
-
-    
 
     # Build full + normalized names for joining
     df1["full_name"] = (df1["FIRST"].fillna("") + " " + df1["LAST"].fillna("")).str.strip()
@@ -146,6 +146,8 @@ def parse_fighters():
 
     df2["full_name"] = df2["FIGHTER"]
     df2["normalized_name"] = df2["full_name"].apply(normalize_name)
+
+    active_fighters_df["normalized_name"] = active_fighters_df["Fighter Name"].apply(normalize_name)
 
     # Merge on normalized name
     main_df = df1.merge(
@@ -167,6 +169,7 @@ def parse_fighters():
     main_df["reach"] = main_df["REACH"].apply(lambda x: int(x.replace('"', '')) if isinstance(x,str) and x != '--' else None)
     main_df["stance"] = main_df["STANCE"]
     main_df["dob"] = main_df["DOB"].apply(format_date)  # Converts date string to datetime so Django can handle db population later
+    main_df["is_active"] = main_df["normalized_name"].isin(active_fighters_df["normalized_name"])  # Checks if fighter is active by seeing if their normalized name is in the list of normalized names from the active fighters scrape
 
     # Drop raw source columns
     main_df = main_df.drop(
