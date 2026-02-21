@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
 import json
-
+import pandas as pd
 active_fighter_page_url = "https://www.ufc.com/athletes/all?filters%5B0%5D=status%3A23"
 
 url_params = {
@@ -70,5 +70,6 @@ def scrape_active_fighters():
             name = div.find("span", class_="c-listing-athlete__name")
             if name:
                 fighter_names.append(name.text.strip())
-    
+
+    df = pd.DataFrame(fighter_names, columns=["Fighter Name"])
 scrape_active_fighters()
