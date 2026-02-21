@@ -130,7 +130,7 @@ def populate_fighter_stats_tables():
                             del row_data[unique_field]
 
                     try:
-                        obj, created = model.objects.get_or_create(
+                        obj, created = model.objects.update_or_create(
                             **lookup_kwargs,       # the unique identifier fields (e.g. fight, fighter)
                             defaults=row_data      # everything else to fill in when creating
                         )
