@@ -2,11 +2,11 @@
     - Utility functions for api file
 """
 from django.utils import timezone
-from fantasy.models import Draft, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick, LeagueMember, FighterCareerStats
+from fantasy.models import Draft, Fighters, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick, LeagueMember, FighterCareerStats
 import secrets
 import string
 import random
-from django.db.models import Max
+from django.db.models import Max, Prefetch
 
 def create_fantasy_for_fighter(fight, fighter,  round_stats):
     """
@@ -194,3 +194,23 @@ def is_user_in_league(user, league_id):
     """
     if not LeagueMember.objects.filter(owner=user, league__id=league_id).exists():
         raise PermissionError("User is not in league")
+
+def get_draftable_fighters(drafted_fighter_ids=(), prefetch_fight_scores=False):
+    """
+    Retrieves a queryset of draftable fighters for a given draft, excluding already drafted fighters and annotating with fantasy points if wanted.
+
+    :param drafted_fighter_ids: Optional set of fighter IDs that have already been drafted
+    :param prefetch_fight_scores: Boolean indicating whether to prefetch FightScore objects
+    :return: Queryset of FighterCareerStats objects annotated with fantasy points
+    """
+    draftable_fighters = ()
+    if prefetch_fight_scores:
+        draftable_fighters = Fighters.objects.filter(is_active=True).exclude(fighter_id__in=drafted_fighter_ids).prefetch_related(
+            Prefetch(
+                'fightscore_set',
+                queryset=FightScore.objects.select_related('fight__event').order_by('-fight__event__date')
+            )
+        )
+    else:
+        draftable_fighters = Fighters.objects.filter(is_active=True).exclude(fighter_id__in=drafted_fighter_ids)
+    return draftable_fighters
