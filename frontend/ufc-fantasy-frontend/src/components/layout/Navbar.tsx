@@ -28,7 +28,7 @@ const pages = [{
         ]
 
 export default function Navbar(){
-    const { loginWithRedirect } = useAuth0();
+    const { loginWithRedirect, logout } = useAuth0();
     const navigate = useNavigate();
     // Gives access to token state directly
     const auth = useContext(AuthContext)!;
@@ -59,8 +59,7 @@ export default function Navbar(){
         {
             label: 'Logout',
             action: () => {
-            auth.logout();
-            navigate('/sign-in');
+            logout({ logoutParams: { returnTo: window.location.origin } });
             },
         },
     ];
