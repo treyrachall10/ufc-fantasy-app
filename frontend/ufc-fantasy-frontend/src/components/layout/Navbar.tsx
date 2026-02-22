@@ -15,6 +15,7 @@ import fistLogo from '../../images/fist-svgrepo-com.svg';
 import { useContext } from 'react';
 import { AuthContext } from '../../auth/AuthProvider';
 import { useNavigate } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
 
 const pages = [{
         title: 'Fighters',
@@ -27,6 +28,7 @@ const pages = [{
         ]
 
 export default function Navbar(){
+    const { loginWithRedirect } = useAuth0();
     const navigate = useNavigate();
     // Gives access to token state directly
     const auth = useContext(AuthContext)!;
@@ -200,7 +202,7 @@ export default function Navbar(){
                         <Button 
                             variant='contained' 
                             color={"whiteAlpha20"}
-                            component={Link} to="/sign-in"
+                            onClick={() => loginWithRedirect()}
                             sx={{
                                 textWrap: 'nowrap',
                                 borderColor: 'gray900.main',
