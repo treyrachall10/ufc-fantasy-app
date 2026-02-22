@@ -13,8 +13,11 @@ root.render(
     domain="dev-kxp1v6beff35mbat.us.auth0.com"
     clientId="30r14jTMf8eR5QYcyEbSaUJw5QSWd01B"
     authorizationParams={{
-      redirect_uri: window.location.origin
+      redirect_uri: window.location.origin,
+      audience: "https://ufc-fantasy-api"
     }}
+    useRefreshTokens={true}
+    cacheLocation="localstorage"
   >
     <React.StrictMode>
       <App />
