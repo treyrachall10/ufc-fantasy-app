@@ -223,3 +223,14 @@ def get_drafted_fighter_ids(draft):
     :return: Set of fighter IDs that have been drafted
     """
     return set(DraftPick.objects.filter(draft=draft).values_list('fighter__fighter_id', flat=True))
+
+def get_filled_slots(team):
+    """
+    Retrieves a set of slot types that are already filled for a given team.
+
+    :param team: Instance of Team model object
+    :return: Set of Roster.SlotType values representing filled slots
+    """
+    # Get roster slots already filled for team as a set for O(1) lookups
+    filled_slots = set(Roster.objects.filter(team=team).values_list('slot_type', flat=True))
+    return filled_slots
