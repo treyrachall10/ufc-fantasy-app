@@ -684,27 +684,25 @@ def GetDraftOrder(request, draft_id):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def GetDraftableFighters(request, draft_id):
-    cutoff = timezone.now() - timezone.timedelta(days=365*2) # 2 year cutoff for fighter activity, can adjust as needed
-    
+def GetDraftableFighters(request, draft_id):    
     draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
     is_user_in_league(request.user, league.id) # Determine if user in league; raises error if not
     # use DraftPick to get drafted fighters in league using draft as lookup
     drafted_fighter_ids = DraftPick.objects.filter(draft=draft).values_list('fighter__fighter_id', flat=True)
     
-    # get fighters that haven't been drafted, have fought in last 2 years, and prefetch fightscores for fantasy calculations
-    draftable_fighters = FighterCareerStats.objects.annotate(last_fight=Max('fighter__fightscore__fight__event__date')).exclude(
-        fighter_id__in=drafted_fighter_ids).exclude(last_fight__lt=cutoff).prefetch_related(
+    # get fighters that haven't been drafted, are active, and prefetch fightscores for fantasy calculations
+    draftable_fighters = Fighters.objects.filter(is_active=True).exclude(
+        fighter_id__in=drafted_fighter_ids).prefetch_related(
         Prefetch(
-            'fighter__fightscore_set',
+            'fightscore_set',
             queryset=FightScore.objects.select_related('fight__event').order_by('-fight__event__date')
         )
     )
     # Build list of objects with fighter info and fantasy info
     draftable_fighters_list = []
-    for fighter_stats in draftable_fighters:
-        fight_scores = fighter_stats.fighter.fightscore_set.all()
+    for fighter in draftable_fighters:
+        fight_scores = fighter.fightscore_set.all()
         
         # Calculate average and last fight points
         if fight_scores.exists():
@@ -715,10 +713,10 @@ def GetDraftableFighters(request, draft_id):
             last_points = 0
         
         # Convert fighter weight to roster slot type
-        slot_type = weight_to_slot(fighter_stats.fighter.weight) if fighter_stats.fighter.weight is not None else None
+        slot_type = weight_to_slot(fighter.weight) if fighter.weight is not None else None
         
         # Create object with fighter, fantasy data, and slot type
-        fighter_obj = fighter_stats.fighter
+        fighter_obj = fighter
         draftable_fighters_list.append({
             'fighter': fighter_obj,
             'fantasy': {
