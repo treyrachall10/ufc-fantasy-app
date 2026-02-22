@@ -17,9 +17,9 @@ from .serializers import *
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
                             FightStats, RoundStats, FightScore, League, LeagueMember, 
                             Team, Roster, Draft, DraftPick, DraftOrder)
-from .utils import (create_fantasy_for_fighter, generate_join_code, 
+from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftable_fighters, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
-                    is_user_in_league, autopick_fighter
+                    is_user_in_league, autopick_fighter, get_drafted_fighter_ids
                     )
 
 '''
@@ -689,16 +689,9 @@ def GetDraftableFighters(request, draft_id):
     league = draft.league
     is_user_in_league(request.user, league.id) # Determine if user in league; raises error if not
     # use DraftPick to get drafted fighters in league using draft as lookup
-    drafted_fighter_ids = DraftPick.objects.filter(draft=draft).values_list('fighter__fighter_id', flat=True)
-    
+    drafted_fighter_ids = get_drafted_fighter_ids(draft=draft)
     # get fighters that haven't been drafted, are active, and prefetch fightscores for fantasy calculations
-    draftable_fighters = Fighters.objects.filter(is_active=True).exclude(
-        fighter_id__in=drafted_fighter_ids).prefetch_related(
-        Prefetch(
-            'fightscore_set',
-            queryset=FightScore.objects.select_related('fight__event').order_by('-fight__event__date')
-        )
-    )
+    draftable_fighters = get_draftable_fighters(drafted_fighter_ids=drafted_fighter_ids, prefetch_fight_scores=True)
     # Build list of objects with fighter info and fantasy info
     draftable_fighters_list = []
     for fighter in draftable_fighters:
