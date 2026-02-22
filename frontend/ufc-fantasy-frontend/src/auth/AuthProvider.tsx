@@ -2,18 +2,15 @@ import { createContext, useState, ReactNode, useEffect } from 'react';
 import { getToken, clearToken, saveToken } from './auth';
 import { useQuery } from "@tanstack/react-query";
 import { authFetch } from './authFetch';
+import { useAuth0, User } from '@auth0/auth0-react';
 
 interface AuthContextType {
   token: string | null;
   logout: () => void;
   login: (token: string) => void;
-  user: User | null;
-}
-
-interface User {
-  pk: number
-  email: string
-  username: string
+  user: User | undefined;
+    isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 interface AuthProviderProps {
@@ -25,8 +22,9 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 // Component job is to own the authentication state
 export function AuthProvider({ children }: AuthProviderProps) {
+  const {user, isAuthenticated, isLoading} = useAuth0();
   const [token, setToken] = useState<string | null>(getToken());
-  const [user, setUser] = useState<User | null>(null);
+  const [userState, setUserState] = useState<User | null>(null);
 
   // Calls api to store user info if token exists
   const { data, isPending, error} = useQuery<User>({
@@ -37,7 +35,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Runs when user data changes
   useEffect(() => {
     if (data) {
-      setUser({
+      setUserState({
         pk: data.pk,
         email: data.email,
         username: data.username
@@ -49,14 +47,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   if (token && error) {
       clearToken()
       setToken(null)
-      setUser(null)
+      setUserState(null)
     }
   }, [token, error])
 
 // Logs users out by clearing jwt token and setting token state to null
   const logout = () => {
     clearToken();
-    setUser(null);
+    setUserState(null);
     setToken(null);
   };
 // Logs users in by saving token to session memory and setting token state to that value
@@ -66,7 +64,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 };
 
   return (
-    <AuthContext.Provider value={{ token, logout, login, user }}>
+    <AuthContext.Provider value={{ token, logout, login, user: user, isAuthenticated, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
