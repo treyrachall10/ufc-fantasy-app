@@ -214,3 +214,12 @@ def get_draftable_fighters(drafted_fighter_ids=(), prefetch_fight_scores=False):
     else:
         draftable_fighters = Fighters.objects.filter(is_active=True).exclude(fighter_id__in=drafted_fighter_ids)
     return draftable_fighters
+
+def get_drafted_fighter_ids(draft):
+    """
+    Retrieves a set of fighter IDs that have already been drafted in the given draft.
+
+    :param draft: Instance of Draft model object
+    :return: Set of fighter IDs that have been drafted
+    """
+    return set(DraftPick.objects.filter(draft=draft).values_list('fighter__fighter_id', flat=True))
