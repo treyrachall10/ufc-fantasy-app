@@ -2,11 +2,11 @@
     - Utility functions for api file
 """
 from django.utils import timezone
-from fantasy.models import Draft, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick, LeagueMember, FighterCareerStats
+from fantasy.models import Draft, Fighters, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick, LeagueMember, FighterCareerStats
 import secrets
 import string
 import random
-from django.db.models import Max
+from django.db.models import Max, Prefetch
 
 def create_fantasy_for_fighter(fight, fighter,  round_stats):
     """
@@ -140,18 +140,14 @@ def autopick_fighter(team, draft):
     :param draft: Instance of Draft model object
     :return: Instance of FighterCareerStats model object (randomly chosen available fighter)
     """
-    cutoff = timezone.now() - timezone.timedelta(days=365*2) # 2 year cutoff for fighter activity
     # Get roster slots already filled for team as a set for O(1) lookups
-    filled_slots = set(Roster.objects.filter(team=team).values_list('slot_type', flat=True))
+    filled_slots = get_filled_slots(team)
     
     # Get drafted fighter ids in league
-    drafted_fighter_ids = set(DraftPick.objects.filter(draft=draft).values_list('fighter__fighter_id', flat=True))
-    
+    drafted_fighter_ids = get_drafted_fighter_ids(draft)
+    draftable_fighters = get_draftable_fighters(drafted_fighter_ids=drafted_fighter_ids)
     # If FLEX is available, all undrafted fighters are eligible
     if Roster.SlotType.FLEX not in filled_slots:
-        draftable_fighters = list(FighterCareerStats.objects.annotate(last_fight=Max('fighter__fightscore__fight__event__date')
-                                                                      ).exclude(fighter_id__in=drafted_fighter_ids)
-                                                                      .exclude(last_fight__lt=cutoff))
         if not draftable_fighters:
             return None
         fighter = random.choice(draftable_fighters)
@@ -168,21 +164,17 @@ def autopick_fighter(team, draft):
         
         # Filter to fighters whose weight class slot is open
         eligible_fighters = []
-        for fighter in FighterCareerStats.objects.annotate(last_fight=Max('fighter__fightscore__fight__event__date')
-                                                          ).exclude(fighter_id__in=drafted_fighter_ids
-                                                          ).exclude(last_fight__lt=cutoff):
-            if fighter.fighter.weight is None:
+        for fighter in draftable_fighters:
+            if fighter.weight is None:
                 continue
-            slot_type = weight_to_slot(fighter.fighter.weight)
+            slot_type = weight_to_slot(fighter.weight)
             if slot_type in open_slots:
                 eligible_fighters.append(fighter)
-        
         if not eligible_fighters:
             return None
-        
         fighter = random.choice(eligible_fighters)
     
-    return fighter.fighter
+    return fighter
 
 def is_user_in_league(user, league_id):
     """
@@ -194,3 +186,43 @@ def is_user_in_league(user, league_id):
     """
     if not LeagueMember.objects.filter(owner=user, league__id=league_id).exists():
         raise PermissionError("User is not in league")
+
+def get_draftable_fighters(drafted_fighter_ids=(), prefetch_fight_scores=False):
+    """
+    Retrieves a queryset of draftable fighters for a given draft, excluding already drafted fighters and annotating with fantasy points if wanted.
+
+    :param drafted_fighter_ids: Optional set of fighter IDs that have already been drafted
+    :param prefetch_fight_scores: Boolean indicating whether to prefetch FightScore objects
+    :return: Queryset of FighterCareerStats objects annotated with fantasy points
+    """
+    draftable_fighters = ()
+    if prefetch_fight_scores:
+        draftable_fighters = Fighters.objects.filter(is_active=True).exclude(fighter_id__in=drafted_fighter_ids).prefetch_related(
+            Prefetch(
+                'fightscore_set',
+                queryset=FightScore.objects.select_related('fight__event').order_by('-fight__event__date')
+            )
+        )
+    else:
+        draftable_fighters = Fighters.objects.filter(is_active=True).exclude(fighter_id__in=drafted_fighter_ids)
+    return draftable_fighters
+
+def get_drafted_fighter_ids(draft):
+    """
+    Retrieves a set of fighter IDs that have already been drafted in the given draft.
+
+    :param draft: Instance of Draft model object
+    :return: Set of fighter IDs that have been drafted
+    """
+    return set(DraftPick.objects.filter(draft=draft).values_list('fighter__fighter_id', flat=True))
+
+def get_filled_slots(team):
+    """
+    Retrieves a set of slot types that are already filled for a given team.
+
+    :param team: Instance of Team model object
+    :return: Set of Roster.SlotType values representing filled slots
+    """
+    # Get roster slots already filled for team as a set for O(1) lookups
+    filled_slots = set(Roster.objects.filter(team=team).values_list('slot_type', flat=True))
+    return filled_slots

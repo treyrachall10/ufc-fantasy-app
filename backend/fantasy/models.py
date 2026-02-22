@@ -23,7 +23,7 @@ class Fighters(models.Model):
     height = models.IntegerField(null=True, blank=True)
     reach = models.IntegerField(null=True, blank=True)
     dob = models.DateField(null=True, blank=True)
-
+    is_active = models.BooleanField(default=False)
 
 class Events(models.Model):
     event_id = models.AutoField(primary_key=True)
