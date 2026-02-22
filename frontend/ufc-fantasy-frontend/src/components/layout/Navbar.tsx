@@ -28,7 +28,7 @@ const pages = [{
         ]
 
 export default function Navbar(){
-    const { loginWithRedirect, logout } = useAuth0();
+    const { loginWithRedirect, logout, user, isAuthenticated, isLoading } = useAuth0();
     const navigate = useNavigate();
     // Gives access to token state directly
     const auth = useContext(AuthContext)!;
@@ -197,7 +197,7 @@ export default function Navbar(){
                             }}
                         >
                         {/* render sign in button if user not logged in*/}
-                        {!auth.token && (
+                        {!isAuthenticated && (
                         <Button 
                             variant='contained' 
                             color={"whiteAlpha20"}
@@ -227,12 +227,12 @@ export default function Navbar(){
                         >
                             Join a League
                         </Button>
-                        {auth.token && (
+                        {isAuthenticated && (
                             <>
                                 <IconButton
                                     onClick={handleOpenUserMenu}
                                 >
-                                    <Avatar alt="Profile Picture"/>
+                                    <Avatar alt="Profile Picture" src={user?.picture || undefined} />
                                 </IconButton>
                                 <Menu
                                     anchorEl={anchorElUser}
