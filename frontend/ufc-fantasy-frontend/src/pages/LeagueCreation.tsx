@@ -13,7 +13,7 @@ import ToggleButton, { toggleButtonClasses } from '@mui/material/ToggleButton';
 import ToggleButtonGroup, {
   toggleButtonGroupClasses,
 } from '@mui/material/ToggleButtonGroup';
-import { authFetch } from '../auth/authFetch';
+import { useAuthFetch } from '../auth/authFetch';
 
 type LeaguePayload = {
     leagueName: string,
@@ -23,6 +23,7 @@ type LeaguePayload = {
 export default function LeagueCreation(){
     const navigate = useNavigate();
     const queryClient = useQueryClient()
+    const authFetch = useAuthFetch();
 
     const [leagueNameError, setLeagueNameError] = React.useState(false)
     const [leagueNameErrorMessage, setLeagueNameErrorMessage] = React.useState('')

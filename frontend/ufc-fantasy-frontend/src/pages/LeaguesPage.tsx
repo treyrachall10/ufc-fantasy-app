@@ -4,7 +4,7 @@ import { Box, Typography, Stack } from '@mui/material';
 import { Link, Button } from '@mui/material';
 import { Router, Link as RouterLink} from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { authFetch } from "../auth/authFetch";
+import { useAuthFetch } from "../auth/authFetch";
 
 interface UserLeaguesAndTeams {
     league_id: number,
@@ -14,6 +14,7 @@ interface UserLeaguesAndTeams {
 }
 
 export default function LeaguesPage() {
+    const authFetch = useAuthFetch();
 
     const { data, isPending, error} = useQuery<UserLeaguesAndTeams[]>({
         queryKey: ['userLeaguesAndTeams'],

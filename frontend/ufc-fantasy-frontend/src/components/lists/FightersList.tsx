@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query'
 import { Fighter } from '../../types/types';
 import { getToken } from '../../auth/auth';
-import { authFetch } from '../../auth/authFetch';
+import { useAuthFetch } from '../../auth/authFetch';
 
-export default function FightersList() {      
+export default function FightersList() {
+    const authFetch = useAuthFetch();
     {/* API fetching*/}    
     const { data, isPending, error } = useQuery<Fighter[]>({
         queryKey: ['fighterListData'],
-        queryFn: () => fetch('http://localhost:8000/fighters').then(r => r.json()),
+        queryFn: () => authFetch('http://localhost:8000/fighters').then(r => r.json()),
 
     });
     

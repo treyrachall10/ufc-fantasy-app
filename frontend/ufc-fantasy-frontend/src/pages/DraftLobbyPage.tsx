@@ -7,7 +7,7 @@ import AnimatedList from '../components/Animations/AnimatedList';
 import { Query, useQuery } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
-import { authFetch } from '../auth/authFetch';
+import { useAuthFetch } from '../auth/authFetch';
 import { useParams } from 'react-router-dom';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam } from '../types/types';
@@ -46,6 +46,7 @@ export default function DraftLobbyPage() {
     const params = useParams<{ leagueId: string; draftId: string }>();
     const isMobile = useMediaQuery('(max-width: 600px)');
     const queryClient = useQueryClient();
+    const authFetch = useAuthFetch();
     
     // Draft Button Renderer for DataGrid - Calls the handleDraftPick function with the fighter's ID when clicked.
     const DraftButton = (params: GridRenderCellParams) => {

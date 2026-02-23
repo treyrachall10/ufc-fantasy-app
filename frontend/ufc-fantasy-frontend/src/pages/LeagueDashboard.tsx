@@ -7,7 +7,7 @@ import LeagueStandingsBarChart from "../components/charts/LeagueStandingsBarChar
 import LeagueStandingBarChartLabel from "../components/badges/LeagueStandingBarChartLabel";
 import { DataGrid } from '@mui/x-data-grid';
 import { useQuery } from "@tanstack/react-query";
-import { authFetch } from "../auth/authFetch";
+import { useAuthFetch } from "../auth/authFetch";
 import { useParams } from 'react-router-dom';
 import Popover from '@mui/material/Popover';
 import IconButton from '@mui/material/IconButton';
@@ -106,6 +106,7 @@ function ScheduleDraftDialogue(props: ScheduleDraftDialogProps) {
 export default function LeagueDashboard() {   
     const auth = useContext(AuthContext)!
     const params = useParams();
+    const authFetch = useAuthFetch();
 
     const [open, setOpen] = React.useState(false);
     const [dialogueOpen, setDialogueOpen] = React.useState(false);
