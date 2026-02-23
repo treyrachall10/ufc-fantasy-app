@@ -22,6 +22,18 @@ from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftabl
                     is_user_in_league, autopick_fighter, get_drafted_fighter_ids
                     )
 
+from authlib.integrations.django_oauth2 import ResourceProtector
+from .auth0_validator import Auth0JWTBearerTokenValidator
+print("AUTH MODULE LOADED")
+require_auth = ResourceProtector()
+
+validator = Auth0JWTBearerTokenValidator(
+    "dev-kxp1v6beff35mbat.us.auth0.com",
+    "https://ufc-fantasy-api"     # API Identifier
+)
+
+require_auth.register_token_validator(validator)
+
 '''
     -   POST METHODS
 '''
