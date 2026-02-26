@@ -13,7 +13,7 @@ root.render(
     domain="dev-kxp1v6beff35mbat.us.auth0.com"
     clientId="wAEedS77ZrwwbVvaBXsmb0DQ6cCTs9nt"
     authorizationParams={{
-      redirect_uri: window.location.origin,
+      redirect_uri: "http://localhost:3000/callback",
       audience: "https://ufc-fantasy-api",
     }}
     useRefreshTokens={true}
