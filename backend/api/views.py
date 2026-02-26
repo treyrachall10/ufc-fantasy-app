@@ -17,14 +17,15 @@ from .serializers import *
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
                             FightStats, RoundStats, FightScore, League, LeagueMember, 
                             Team, Roster, Draft, DraftPick, DraftOrder)
-from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftable_fighters, 
+from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftable_fighters, get_or_create_user_from_token, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
                     is_user_in_league, autopick_fighter, get_drafted_fighter_ids
                     )
 
+from accounts.models import User
+
 from authlib.integrations.django_oauth2 import ResourceProtector
 from .auth0_validator import Auth0JWTBearerTokenValidator
-print("AUTH MODULE LOADED")
 require_auth = ResourceProtector()
 
 validator = Auth0JWTBearerTokenValidator(
