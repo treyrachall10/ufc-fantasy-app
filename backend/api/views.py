@@ -763,3 +763,22 @@ def GetDraftPickHistory(request, draft_id):
         serializer.data,
         status=200
     )
+
+@api_view(['GET'])
+@require_auth(None)
+def GetCurrentUserViewSet(request):
+    try:
+        auth0_id = request.oauth_token.get('sub')
+        email = request.oauth_token.get("https://ufcfantasy.com/email")
+    except AttributeError:
+        return Response({"error": "Invalid OAuth token"}, status=400)
+    user, created = User.objects.get_or_create(email=email, defaults={'email': email, 'auth0_id': auth0_id})
+    needs_username = user.username is None or user.username == ''
+    return Response({
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+        },
+        "profile_complete": user.profile_complete
+    })
