@@ -1,7 +1,7 @@
 import { createContext, useState, ReactNode, useEffect } from 'react';
 import { getToken, clearToken, saveToken } from './auth';
 import { useQuery } from "@tanstack/react-query";
-import { authFetch } from './authFetch';
+import { useAuthFetch } from './authFetch';
 import { useAuth0, User } from '@auth0/auth0-react';
 
 interface AuthContextType {
@@ -11,6 +11,7 @@ interface AuthContextType {
   user: User | undefined;
     isAuthenticated: boolean;
   isLoading: boolean;
+  profileComplete: boolean;
 }
 
 interface AuthProviderProps {
@@ -23,8 +24,10 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 // Component job is to own the authentication state
 export function AuthProvider({ children }: AuthProviderProps) {
   const {user, isAuthenticated, isLoading} = useAuth0();
+  const authFetch = useAuthFetch();
   const [token, setToken] = useState<string | null>(getToken());
   const [userState, setUserState] = useState<User | null>(null);
+  const [profileComplete, setProfileComplete] = useState<boolean>(false);
 
   // Calls api to store user info if token exists
   const { data, isPending, error} = useQuery<User>({
@@ -40,6 +43,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         email: data.email,
         username: data.username
       });
+      setProfileComplete(data.profile_complete ?? false);
     }
   }, [data]);
 
@@ -64,7 +68,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 };
 
   return (
-    <AuthContext.Provider value={{ token, logout, login, user: user, isAuthenticated, isLoading }}>
+    <AuthContext.Provider value={{ token, logout, login, user: user, isAuthenticated, isLoading, profileComplete }}>
       {children}
     </AuthContext.Provider>
   );
