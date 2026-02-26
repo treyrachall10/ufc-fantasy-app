@@ -32,6 +32,9 @@ import LeagueCreation from './pages/LeagueCreation';
 // Theme imports
 import theme from './theme/theme';
 import { ThemeProvider } from "@mui/material/styles";
+import Callback from './pages/Callback';
+import { R } from '@tanstack/react-query-devtools/build/legacy/ReactQueryDevtools-ChNsB-ya';
+import FinishSignup from './pages/FinishSignup';
 
 function App() {
   const queryClient = new QueryClient();
@@ -59,8 +62,10 @@ function App() {
                 <Route path="/join" element={<JoinLeague />} />
                 <Route path="/league/:leagueId/draft/:draftId" element={<DraftLobbyPage />} />
                 <Route path="/leagues/create-league" element={<LeagueCreation />} />
+                
                 <Route element={<ProtectedRoute />}>
                   <Route path="/league/:leagueId" element={<LeagueDashboard />} />
+                  
                 </Route>
               </Route>
 
@@ -68,6 +73,8 @@ function App() {
               <Route element={<AuthLayout />}>
                 <Route path="/sign-in" element={<SignIn />} />
                 <Route path="/sign-up" element={<SignUp />} />
+                <Route path="/callback" element={<Callback />} />
+                <Route path="/finish-signup" element={<FinishSignup />} />
               </Route>
 
             </Routes>
