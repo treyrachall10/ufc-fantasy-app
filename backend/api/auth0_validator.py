@@ -20,10 +20,3 @@ class Auth0JWTBearerTokenValidator(JWTBearerTokenValidator):
             "aud": {"essential": True, "validate": [audience]},
             "iss": {"essential": True, "value": issuer},
         }
-    
-    def authenticate_token(self, token_string):
-        try:
-            return super().authenticate_token(token_string)
-        except Exception as e:
-            print("AUTH ERROR:", repr(e))
-            raise
