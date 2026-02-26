@@ -3,6 +3,7 @@
 """
 from django.utils import timezone
 from fantasy.models import Draft, Fighters, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick, LeagueMember, FighterCareerStats
+from accounts.models import User
 import secrets
 import string
 import random
