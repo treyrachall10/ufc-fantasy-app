@@ -139,6 +139,41 @@ def CreateLeagueMember(request):
         status=201
     )
 
+@api_view(['POST'])
+@require_auth(None)
+def SetUsername(request):
+    try:
+        user = get_or_create_user_from_token(request=request)
+    except AttributeError:
+        return Response({"detail": "Invalid OAuth token"}, status=400)
+
+    username = request.data.get("username", "")
+    username = username.strip()
+
+    if not username:
+        return Response({"detail": "Username is required"}, status=400)
+
+    if any(char.isspace() for char in username):
+        return Response({"detail": "Username cannot contain spaces"}, status=400)
+    # Check if username already exists for another user
+    if User.objects.filter(username=username).exclude(id=user.id).exists():
+        return Response({"detail": "This username already exists"}, status=409)
+
+    user.username = username
+    user.profile_complete = True
+    user.save(update_fields=["username", "profile_complete"])
+
+    return Response(
+        {
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "username": user.username,
+            }
+        },
+        status=200
+    )
+
 @transaction.atomic
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
