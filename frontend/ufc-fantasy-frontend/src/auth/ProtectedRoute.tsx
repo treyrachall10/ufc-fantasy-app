@@ -10,5 +10,10 @@ export default function ProtectedRoute() {
     if (!auth.token) {
         return <Navigate to="/sign-in" replace />;
     }
+    
+    if (!auth.profileComplete) {
+        return <Navigate to="/finish-signup" replace />;
+    }
+    
     return <Outlet />
 }
