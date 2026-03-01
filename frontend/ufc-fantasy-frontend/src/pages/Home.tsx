@@ -14,6 +14,7 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import { Link } from 'react-router-dom';
 import { AuthContext } from "../auth/AuthProvider";
 import { useContext } from "react";
+import { useAuth0 } from '@auth0/auth0-react';
 
 const cards = [
     {
@@ -56,7 +57,7 @@ const glowWrapperSx = {
 
 
 export default function HomePage() {
-    const auth = useContext(AuthContext)!;
+    const { isAuthenticated } = useAuth0();
   return (
     <>
       {/* Hero */}
@@ -146,7 +147,7 @@ export default function HomePage() {
                     >
                         Join a League
                 </Button>
-                { !auth.token && ( // Render component if not logged in
+                { !isAuthenticated && ( // Render component if not logged in
                     <Button 
                         variant="contained" 
                         color="whiteAlpha20"
