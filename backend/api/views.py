@@ -39,8 +39,9 @@ require_auth.register_token_validator(validator)
     -   POST METHODS
 '''
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def CreateLeague(request):
+    user = get_or_create_user_from_token(request=request)
     # Attempt to create league 3 times
     for _ in range(3):
         join_key = generate_join_code()
@@ -48,7 +49,7 @@ def CreateLeague(request):
             league = League.objects.create(
                 name=request.data["leagueName"],
                 capacity=request.data["teams"],
-                creator=request.user,
+                creator=user,
                 status=League.Status.SETUP,
                 join_key=join_key,
             )
@@ -58,13 +59,13 @@ def CreateLeague(request):
                 status=Draft.Status.NOT_SCHEDULED,
             )
             member = LeagueMember.objects.create(
-                owner = request.user,
+                owner = user,
                 league = league,
                 role = LeagueMember.Role.CREATOR
             )
             team = Team.objects.create(
                 owner=member,
-                name = f"{request.user.username}'s Team"
+                name = f"{user.username}'s Team"
             )
             break # Successful league creation
         except IntegrityError: # Code exists in db
