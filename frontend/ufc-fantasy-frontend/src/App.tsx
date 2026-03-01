@@ -1,6 +1,3 @@
-import React from 'react';
-import { useState } from 'react';
-import logo from './logo.svg';
 import './App.css';
 import FightersListPage from './pages/FightersListPage'
 import EventsListPage from './pages/EventsListPage'
@@ -9,9 +6,6 @@ import AthleteStatsPage from './pages/AthleteStatsPage';
 import LeagueDashboard from './pages/LeagueDashboard';
 import JoinLeague from './pages/JoinLeague';
 import HomePage from './pages/Home';
-import Navbar from './components/layout/Navbar';
-import SignIn from './pages/SignIn';
-import SignUp from './pages/SignUp';
 import { Box, CssBaseline } from '@mui/material';
 import UserTeamPage from './pages/UserTeamPage';
 import DraftLobbyPage from './pages/DraftLobbyPage';
@@ -71,8 +65,6 @@ function App() {
 
               {/* Pages WITHOUT navbar */}
               <Route element={<AuthLayout />}>
-                <Route path="/sign-in" element={<SignIn />} />
-                <Route path="/sign-up" element={<SignUp />} />
                 <Route path="/callback" element={<Callback />} />
                 <Route path="/finish-signup" element={<FinishSignup />} />
               </Route>
