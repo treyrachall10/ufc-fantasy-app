@@ -57,7 +57,7 @@ const glowWrapperSx = {
 
 
 export default function HomePage() {
-    const { isAuthenticated } = useAuth0();
+    const { isAuthenticated, loginWithRedirect } = useAuth0();
   return (
     <>
       {/* Hero */}
@@ -151,7 +151,7 @@ export default function HomePage() {
                     <Button 
                         variant="contained" 
                         color="whiteAlpha20"
-                        component={Link} to="/sign-in"
+                        onClick={() => loginWithRedirect()}
                         sx={{
                             borderColor: 'gray900.main',
                             '&:hover': {
