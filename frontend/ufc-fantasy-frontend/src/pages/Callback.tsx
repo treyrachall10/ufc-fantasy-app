@@ -3,7 +3,6 @@ import { Box, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuthFetch } from '../auth/authFetch';
-import fistLogo from '../images/fist-svgrepo-com.svg';
 
 type ApiMeResponse = {
 	user: {
@@ -50,7 +49,7 @@ export default function Callback() {
 		>
 			<Box
 				component="img"
-				src={fistLogo}
+				src='/fist.svg'
 				alt="UFC Fantasy"
 				sx={{
 					width: 90,

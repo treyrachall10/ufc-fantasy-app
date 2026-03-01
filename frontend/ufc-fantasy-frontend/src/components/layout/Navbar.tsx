@@ -11,7 +11,6 @@ import * as React from 'react';
 import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
 import { Link } from 'react-router-dom';
-import fistLogo from '../../images/fist-svgrepo-com.svg';
 import { useContext } from 'react';
 import { AuthContext } from '../../auth/AuthProvider';
 import { useNavigate } from 'react-router-dom';
@@ -76,7 +75,7 @@ export default function Navbar(){
                         sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }}
                         >
                         <img
-                            src={fistLogo}
+                            src='/fist.svg'
                             alt="Home"
                             style={{ height: 32 }}
                         />
@@ -153,7 +152,7 @@ export default function Navbar(){
                         sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }}
                         >
                         <img
-                            src={fistLogo}
+                            src='/fist.svg'
                             alt="Home"
                             style={{ height: 32 }}
                         />
