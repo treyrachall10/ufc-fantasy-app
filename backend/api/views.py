@@ -406,8 +406,9 @@ def SetDraftStatus(request):
     )
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def SetDraftDate(request, league_id):
+    user = get_or_create_user_from_token(request=request)
     # Determine if league exist
     league = get_object_or_404(League, id=league_id)
     # Ensure date is passed
@@ -423,7 +424,7 @@ def SetDraftDate(request, league_id):
             status=400
         )
     # Allow only league creator to set draft status
-    if league.creator != request.user:
+    if league.creator != user:
         return Response(
             {
                 "detail": "You don't have correct permissions to change draft status",   
