@@ -558,9 +558,10 @@ def GetUserLeaguesAndTeams(request):
     return Response(serializer.data)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def GetLeagueData(request, league_id):
-    is_user_in_league(request.user, league_id)
+    user = get_or_create_user_from_token(request=request)
+    is_user_in_league(user, league_id)
     league = get_object_or_404(League, id=league_id)
     teams = Team.objects.filter(owner__league_id=league_id)
     draft = Draft.objects.get(league=league)
