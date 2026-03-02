@@ -809,10 +809,14 @@ def GetCurrentUserViewSet(request):
     try:
         auth0_id = request.oauth_token.get('sub')
         email = request.oauth_token.get("https://ufcfantasy.com/email")
+        username = request.oauth_token.get("https://ufcfantasy.com/username")
     except AttributeError:
         return Response({"error": "Invalid OAuth token"}, status=400)
-    user, created = User.objects.get_or_create(email=email, defaults={'email': email, 'auth0_id': auth0_id})
-    needs_username = user.username is None or user.username == ''
+    user, created = User.objects.get_or_create(email=email, defaults={'email': email, 'auth0_id': auth0_id, 'username': username})
+    # If user was created with username mark profile complete, otherwise keep profile incomplete
+    if user.username is not None and user.username != '':
+        user.profile_complete = True
+        user.save(update_fields=['profile_complete'])
     return Response({
         "user": {
             "id": user.id,
