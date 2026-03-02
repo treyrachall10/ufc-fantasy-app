@@ -3,6 +3,7 @@ import { getToken, clearToken, saveToken } from './auth';
 import { useQuery } from "@tanstack/react-query";
 import { useAuthFetch } from './authFetch';
 import { useAuth0, User } from '@auth0/auth0-react';
+import { useCurrentUser } from './useCurrentUser';
 
 interface AuthContextType {
   token: string | null;
@@ -28,32 +29,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(getToken());
   const [userState, setUserState] = useState<User | null>(null);
   const [profileComplete, setProfileComplete] = useState<boolean>(false);
-
-  // Calls api to store user info if token exists
-  const { data, isPending, error} = useQuery<User>({
-      queryKey: ['UserInfo', token],
-      queryFn: () => authFetch(`http://localhost:8000/dj-rest-auth/user/`).then(r => r.json()),
-      enabled: !!token,
-  })
-  // Runs when user data changes
-  useEffect(() => {
-    if (data) {
-      setUserState({
-        pk: data.pk,
-        email: data.email,
-        username: data.username
-      });
-      setProfileComplete(data.profile_complete ?? false);
-    }
-  }, [data]);
-
-  useEffect(() => {
-  if (token && error) {
-      clearToken()
-      setToken(null)
-      setUserState(null)
-    }
-  }, [token, error])
+  const { data } = useCurrentUser();
 
 // Logs users out by clearing jwt token and setting token state to null
   const logout = () => {
