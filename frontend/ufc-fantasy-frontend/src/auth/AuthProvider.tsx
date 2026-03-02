@@ -7,12 +7,9 @@ import { useCurrentUser } from './useCurrentUser';
 
 interface AuthContextType {
   token: string | null;
-  logout: () => void;
-  login: (token: string) => void;
   user: User | undefined;
     isAuthenticated: boolean;
   isLoading: boolean;
-  profileComplete: boolean;
 }
 
 interface AuthProviderProps {
@@ -31,20 +28,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [profileComplete, setProfileComplete] = useState<boolean>(false);
   const { data } = useCurrentUser();
 
-// Logs users out by clearing jwt token and setting token state to null
-  const logout = () => {
-    clearToken();
-    setUserState(null);
-    setToken(null);
-  };
-// Logs users in by saving token to session memory and setting token state to that value
-  const login = (token: string) => {
-    saveToken(token);
-    setToken(token);
-};
-
   return (
-    <AuthContext.Provider value={{ token, logout, login, user: user, isAuthenticated, isLoading, profileComplete }}>
+    <AuthContext.Provider value={{ token, user: user, isAuthenticated, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
