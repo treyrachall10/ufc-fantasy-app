@@ -305,3 +305,12 @@ export interface DraftOrderTeam {
   pick_num: number;
   team: Team;
 }
+
+export interface BackendUser {
+    user : {
+    id: number;
+    email: string;
+    username: string;
+    }
+    profile_complete: boolean;
+}
