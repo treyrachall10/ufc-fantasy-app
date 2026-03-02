@@ -95,18 +95,19 @@ def CreateLeague(request):
 
 @transaction.atomic
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def CreateLeagueMember(request):
     league = get_object_or_404(League, join_key=request.data['join_key'])
     # Check if user in league
-    if LeagueMember.objects.filter(owner=request.user, league=league).exists():
+    user = get_or_create_user_from_token(request=request)
+    if LeagueMember.objects.filter(owner=user, league=league).exists():
         return Response(
             {"detail": "You are already a member of this league"},
             status=409
         )
     # Create league member with player role
     league_member = LeagueMember.objects.create(
-        owner=request.user,
+        owner=user,
         league=league,
         role=LeagueMember.Role.PLAYER
     )
@@ -114,7 +115,7 @@ def CreateLeagueMember(request):
     try:
         team = Team.objects.create(
                             owner=league_member,
-                            name=f"{request.user.username}'s Team",
+                            name=f"{user.username}'s Team",
                             )
     except IntegrityError:
         return Response(
@@ -405,8 +406,9 @@ def SetDraftStatus(request):
     )
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def SetDraftDate(request, league_id):
+    user = get_or_create_user_from_token(request=request)
     # Determine if league exist
     league = get_object_or_404(League, id=league_id)
     # Ensure date is passed
@@ -422,7 +424,7 @@ def SetDraftDate(request, league_id):
             status=400
         )
     # Allow only league creator to set draft status
-    if league.creator != request.user:
+    if league.creator != user:
         return Response(
             {
                 "detail": "You don't have correct permissions to change draft status",   
@@ -666,12 +668,13 @@ def GetTeamListData(request, team_id):
     )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def GetDraftState(request, draft_id):
     draft=get_object_or_404(Draft, id=draft_id)
     league = draft.league
-    is_user_in_league(request.user, league.id) # Determine if user in league; raises error if not
-    team = Team.objects.get(owner__owner=request.user, owner__league=league)
+    user = get_or_create_user_from_token(request=request)
+    is_user_in_league(user, league.id) # Determine if user in league; raises error if not
+    team = Team.objects.get(owner__owner=user, owner__league=league)
     team_id = team.id
     # check if draft status is pending and if date has passed set to live
     if draft.status == Draft.Status.PENDING and timezone.now() >= draft.draft_date:
@@ -720,11 +723,12 @@ def GetDraftState(request, draft_id):
         )
     
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def GetDraftOrder(request, draft_id):
+    user = get_or_create_user_from_token(request=request)
     draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
-    is_user_in_league(request.user, league.id) # Determine if user in league; raises error if not
+    is_user_in_league(user, league.id) # Determine if user in league; raises error if not
     # Get draft order for league
     draft_order = DraftOrder.objects.filter(draft=draft).select_related('team').order_by('pick_num')
     serializer = DraftOrderSerializer(draft_order, many=True)
@@ -734,11 +738,12 @@ def GetDraftOrder(request, draft_id):
         )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def GetDraftableFighters(request, draft_id):    
+    user = get_or_create_user_from_token(request=request)
     draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
-    is_user_in_league(request.user, league.id) # Determine if user in league; raises error if not
+    is_user_in_league(user, league.id) # Determine if user in league; raises error if not
     # use DraftPick to get drafted fighters in league using draft as lookup
     drafted_fighter_ids = get_drafted_fighter_ids(draft=draft)
     # get fighters that haven't been drafted, are active, and prefetch fightscores for fantasy calculations
@@ -791,11 +796,12 @@ def GetDraftableFighters(request, draft_id):
     )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def GetDraftPickHistory(request, draft_id):
+    user = get_or_create_user_from_token(request=request)
     draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
-    is_user_in_league(request.user, league.id) # Determine if user in league; raises error if not
+    is_user_in_league(user, league.id) # Determine if user in league; raises error if not
     draft_picks = DraftPick.objects.filter(draft=draft).select_related('fighter', 'team').order_by('-pick_num')
     serializer = DraftPickHistorySerializer(draft_picks, many=True)
     return Response(
