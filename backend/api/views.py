@@ -572,7 +572,7 @@ def GetLeagueData(request, league_id):
     })
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def GetTeamListData(request, team_id):
     """
     Gets team list data for a given team, including fighter info and fantasy scores.  
@@ -583,7 +583,7 @@ def GetTeamListData(request, team_id):
     """
     team = get_object_or_404(Team.objects.prefetch_related('owner__league__draft_set') , id=team_id)
     draft = team.owner.league.draft_set.first() # Get draft for league; One league should only have one draft
-    draftStartTime = draft.draft_date.date() if draft else None # Get draft start time for fantasy score calculations
+    draftStartTime = draft.draft_date.date() if draft.draft_date else None # Get draft start time for fantasy score calculations
     # Load roster rows with fighters and their fight scores; uses select/prefetch related for efficiency
     roster_rows = (
         Roster.objects.filter(team=team)
