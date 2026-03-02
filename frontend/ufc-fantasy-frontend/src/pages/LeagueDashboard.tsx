@@ -27,6 +27,7 @@ import { useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs'
 import { Link as RouterLink } from 'react-router-dom';
 import { LeagueInfo } from '../types/types';
+import { useCurrentUser } from '../auth/useCurrentUser';
 
 interface SetDraftSatePayload {
     draft_date: string,
@@ -104,9 +105,9 @@ function ScheduleDraftDialogue(props: ScheduleDraftDialogProps) {
 }
 
 export default function LeagueDashboard() {   
-    const auth = useContext(AuthContext)!
     const params = useParams();
     const authFetch = useAuthFetch();
+    const { data: user, isLoading: userLoading } = useCurrentUser()
 
     const [open, setOpen] = React.useState(false);
     const [dialogueOpen, setDialogueOpen] = React.useState(false);
@@ -142,10 +143,10 @@ export default function LeagueDashboard() {
         }
     })  
 
-    if (isPending) return <span>Loading...</span>
+    if (isPending || userLoading) return <span>Loading...</span>
     if (error) return <span>Oops!</span>
 
-    const isCreator = auth.user?.pk === data.league.creator;
+    const isCreator = user?.user.id === data.league.creator;
     const teams = data.teams.length; // Number of teams in league
     const capacity = data.league.capacity; // Max capacity for league
     const isLeagueOpen = capacity > 0
