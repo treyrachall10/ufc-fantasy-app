@@ -95,18 +95,19 @@ def CreateLeague(request):
 
 @transaction.atomic
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def CreateLeagueMember(request):
     league = get_object_or_404(League, join_key=request.data['join_key'])
     # Check if user in league
-    if LeagueMember.objects.filter(owner=request.user, league=league).exists():
+    user = get_or_create_user_from_token(request=request)
+    if LeagueMember.objects.filter(owner=user, league=league).exists():
         return Response(
             {"detail": "You are already a member of this league"},
             status=409
         )
     # Create league member with player role
     league_member = LeagueMember.objects.create(
-        owner=request.user,
+        owner=user,
         league=league,
         role=LeagueMember.Role.PLAYER
     )
@@ -114,7 +115,7 @@ def CreateLeagueMember(request):
     try:
         team = Team.objects.create(
                             owner=league_member,
-                            name=f"{request.user.username}'s Team",
+                            name=f"{user.username}'s Team",
                             )
     except IntegrityError:
         return Response(
