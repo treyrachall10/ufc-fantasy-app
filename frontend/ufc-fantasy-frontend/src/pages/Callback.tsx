@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuthFetch } from '../auth/authFetch';
+import { useCurrentUser } from '../auth/useCurrentUser';
 
 type ApiMeResponse = {
 	user: {
@@ -16,19 +17,15 @@ type ApiMeResponse = {
 export default function Callback() {
 	const authFetch = useAuthFetch();
 	const navigate = useNavigate();
-
-	const { data } = useQuery<ApiMeResponse>({
-		queryKey: ['me'],
-		queryFn: () => authFetch('http://localhost:8000/api/me').then((r) => r.json()),
-	});
+	const { data: user, isLoading, isError } = useCurrentUser()
 
 	useEffect(() => {
-		if (data?.profile_complete === false) {
+		if (user?.profile_complete === false) {
 			navigate('/finish-signup');
-		} else if (data?.profile_complete === true) {
+		} else if (user?.profile_complete === true) {
             navigate('/');
         }
-	}, [data, navigate]);
+	}, [user, navigate]);
 
 	return (
 		<Box
