@@ -37,6 +37,13 @@ class Events(models.Model):
     event = models.CharField(max_length=100, null=True, blank=True)
     date = models.DateField(null=True, blank=True)
     location = models.CharField(max_length=50, null=True, blank=True)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['event', 'date'],
+                name='unique_event'
+            )
+        ]
 
 
 class Fights(models.Model):
