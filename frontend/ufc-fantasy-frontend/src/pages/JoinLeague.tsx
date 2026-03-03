@@ -13,7 +13,7 @@ import ToggleButton, { toggleButtonClasses } from '@mui/material/ToggleButton';
 import ToggleButtonGroup, {
   toggleButtonGroupClasses,
 } from '@mui/material/ToggleButtonGroup';
-import { authFetch } from '../auth/authFetch';
+import { useAuthFetch } from '../auth/authFetch';
 
 type JoinPayload = {
     join_key: string,
@@ -22,6 +22,7 @@ type JoinPayload = {
 export default function JoinLeague(){
     const navigate = useNavigate();
     const queryClient = useQueryClient()
+    const authFetch = useAuthFetch();
 
     const [joinKeyError, setJoinKeyError] = React.useState(false)
     const [joinKeyErrorMessage, setJoinKeyErrorMessage] = React.useState('')

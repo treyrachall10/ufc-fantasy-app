@@ -1,6 +1,3 @@
-import React from 'react';
-import { useState } from 'react';
-import logo from './logo.svg';
 import './App.css';
 import FightersListPage from './pages/FightersListPage'
 import EventsListPage from './pages/EventsListPage'
@@ -9,9 +6,6 @@ import AthleteStatsPage from './pages/AthleteStatsPage';
 import LeagueDashboard from './pages/LeagueDashboard';
 import JoinLeague from './pages/JoinLeague';
 import HomePage from './pages/Home';
-import Navbar from './components/layout/Navbar';
-import SignIn from './pages/SignIn';
-import SignUp from './pages/SignUp';
 import { Box, CssBaseline } from '@mui/material';
 import UserTeamPage from './pages/UserTeamPage';
 import DraftLobbyPage from './pages/DraftLobbyPage';
@@ -32,6 +26,9 @@ import LeagueCreation from './pages/LeagueCreation';
 // Theme imports
 import theme from './theme/theme';
 import { ThemeProvider } from "@mui/material/styles";
+import Callback from './pages/Callback';
+import { R } from '@tanstack/react-query-devtools/build/legacy/ReactQueryDevtools-ChNsB-ya';
+import FinishSignup from './pages/FinishSignup';
 
 function App() {
   const queryClient = new QueryClient();
@@ -59,15 +56,17 @@ function App() {
                 <Route path="/join" element={<JoinLeague />} />
                 <Route path="/league/:leagueId/draft/:draftId" element={<DraftLobbyPage />} />
                 <Route path="/leagues/create-league" element={<LeagueCreation />} />
+                
                 <Route element={<ProtectedRoute />}>
                   <Route path="/league/:leagueId" element={<LeagueDashboard />} />
+                  
                 </Route>
               </Route>
 
               {/* Pages WITHOUT navbar */}
               <Route element={<AuthLayout />}>
-                <Route path="/sign-in" element={<SignIn />} />
-                <Route path="/sign-up" element={<SignUp />} />
+                <Route path="/callback" element={<Callback />} />
+                <Route path="/finish-signup" element={<FinishSignup />} />
               </Route>
 
             </Routes>

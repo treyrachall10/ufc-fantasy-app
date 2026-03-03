@@ -29,5 +29,7 @@ urlpatterns = [
     path('draft/<int:draft_id>/pastPicks', views.GetDraftPickHistory),
     path('draft/<int:draft_id>/pick', views.AddRosterSlot),
     path('draft/<int:draft_id>/draftFlex', views.DraftFlexSlot),
-    path('draft/<int:draft_id>/draftOrder', views.GetDraftOrder)
+    path('draft/<int:draft_id>/draftOrder', views.GetDraftOrder),
+    path('api/me', views.GetCurrentUserViewSet),
+    path('api/setUserName', views.SetUsername),
 ]

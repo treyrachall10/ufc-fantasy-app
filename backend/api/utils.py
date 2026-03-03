@@ -3,6 +3,7 @@
 """
 from django.utils import timezone
 from fantasy.models import Draft, Fighters, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick, LeagueMember, FighterCareerStats
+from accounts.models import User
 import secrets
 import string
 import random
@@ -226,3 +227,30 @@ def get_filled_slots(team):
     # Get roster slots already filled for team as a set for O(1) lookups
     filled_slots = set(Roster.objects.filter(team=team).values_list('slot_type', flat=True))
     return filled_slots
+
+def get_or_create_user_from_token(request):
+    """
+    Adds an authenticated user to the database if they do not already exist.
+    This function should be called after a user successfully authenticates via Auth0.
+    """
+    auth0_id = request.oauth_token.get("sub")
+    email = request.oauth_token.get("https://ufcfantasy.com/email")
+    username = request.oauth_token.get("username")
+    
+    defaults = {"email": email}
+    if username:
+        defaults["username"] = username
+        defaults["profile_complete"] = True
+    else:
+        defaults["username"] = ''
+        defaults["profile_complete"] = False
+    
+    user, created = User.objects.get_or_create(
+        auth0_id=auth0_id,
+        defaults=defaults
+    )
+    # Ensure email is up to date in case it has changed in Auth0 since last login
+    if user.email != email:
+        user.email = email
+        user.save(update_fields=["email"])
+    return user

@@ -2,10 +2,8 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query'
 import { Fighter } from '../../types/types';
-import { getToken } from '../../auth/auth';
-import { authFetch } from '../../auth/authFetch';
 
-export default function FightersList() {      
+export default function FightersList() {
     {/* API fetching*/}    
     const { data, isPending, error } = useQuery<Fighter[]>({
         queryKey: ['fighterListData'],
