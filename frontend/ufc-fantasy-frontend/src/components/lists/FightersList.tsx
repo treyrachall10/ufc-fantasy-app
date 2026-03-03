@@ -3,7 +3,11 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query'
 import { Fighter } from '../../types/types';
 
-export default function FightersList() {
+interface FightersListProps {
+    searchQuery?: string;
+}
+
+export default function FightersList({ searchQuery = "" }: FightersListProps) {      
     {/* API fetching*/}    
     const { data, isPending, error } = useQuery<Fighter[]>({
         queryKey: ['fighterListData'],
@@ -36,19 +40,28 @@ export default function FightersList() {
     { field: 'd', headerName: 'D', flex: 0.5 },
     ];
 
-    const rows = data.map((fighter) => ({
-        id: fighter.fighter_id,
-        name: fighter.full_name,
-        nickName: fighter.nick_name,
-        stance: fighter.stance,
-        weight: fighter.weight,
-        height: fighter.height,
-        reach: fighter.reach,
-        dob: fighter.dob,
-        w: fighter.record?.wins.total,
-        l: fighter.record?.losses.total,
-        d: fighter.record?.draws,
-    }));
+    const rows = data
+        .filter((fighter) => {
+            // Filter by fighter name or nick name (case-insensitive)
+            const fullName = fighter.full_name?.toLowerCase() || "";
+            const nickName = fighter.nick_name?.toLowerCase() || "";
+            const query = searchQuery.toLowerCase();
+            
+            return fullName.includes(query) || nickName.includes(query);
+        })
+        .map((fighter) => ({
+            id: fighter.fighter_id,
+            name: fighter.full_name,
+            nickName: fighter.nick_name,
+            stance: fighter.stance,
+            weight: fighter.weight,
+            height: fighter.height,
+            reach: fighter.reach,
+            dob: fighter.dob,
+            w: fighter.record?.wins.total,
+            l: fighter.record?.losses.total,
+            d: fighter.record?.draws,
+        }));
 
     return(
         <DataGrid 
