@@ -104,6 +104,19 @@ function ScheduleDraftDialogue(props: ScheduleDraftDialogProps) {
   );
 }
 
+interface TeamStanding {
+    id: number;
+    name: string;
+    owner: string;
+    total_points: number;
+    standing: number;
+}
+
+interface StandingsResponse {
+    teams: TeamStanding[];
+    draft_start_date: string | null;
+}
+
 export default function LeagueDashboard() {   
     const params = useParams();
     const authFetch = useAuthFetch();
@@ -117,6 +130,12 @@ export default function LeagueDashboard() {
     const { data, isPending, error} = useQuery<LeagueInfo>({
         queryKey: ['League', params.leagueId],
         queryFn: () => authFetch(`http://localhost:8000/league/${params.leagueId}`).then(r => r.json()),
+    })
+
+    const { data: standingsData, isPending: standingsPending, error: standingsError } = useQuery<StandingsResponse>({
+        queryKey: ['LeagueStandings', params.leagueId],
+        queryFn: () => authFetch(`http://localhost:8000/league/${params.leagueId}/standings`).then(r => r.json()),
+        enabled: !!data, // Only fetch standings after main league data loads
     })
 
     const scheduleDraftMutation = useMutation({
@@ -143,8 +162,8 @@ export default function LeagueDashboard() {
         }
     })  
 
-    if (isPending || userLoading) return <span>Loading...</span>
-    if (error) return <span>Oops!</span>
+    if (isPending || standingsPending) return <span>Loading...</span>
+    if (error || standingsError) return <span>Oops!</span>
 
     const isCreator = user?.user.id === data.league.creator;
     const teams = data.teams.length; // Number of teams in league
@@ -305,28 +324,47 @@ const NonCreatorDraftNotScheduled = () => {
     )
 }
 
-    const rowData = data.teams.map((team) => ({
+    const rowData = standingsData?.teams.map((team) => ({
         team: team.name,
-        pts: 184,
-        standing: 0,
+        pts: team.total_points,
+        standing: team.standing,
         id: team.id
-    }))
+    })) || []
 
     const labelData = rowData.map((row) => ({
         category: row.team,
         points: row.pts,
     }))
 
-    // Compute league standing
-    for (const team of rowData) {
-        let standing = 1;
-        for (const comparingTeam of rowData) {
-            if (team.pts < comparingTeam.pts) {
-                standing +=1;
+    // Validate team standings for ties or data integrity issues
+    const validateStandings = () => {
+        if (!rowData || rowData.length === 0) return true;
+        
+        // Check for duplicate standings (if two teams have same points, they should have consecutive standing numbers)
+        const pointTotals = rowData.map(t => t.pts);
+        const uniquePoints = new Set(pointTotals);
+        
+        if (uniquePoints.size !== pointTotals.length) {
+            console.warn('⚠️  Teams with tied points detected:', 
+                rowData.filter(team => 
+                    rowData.filter(t => t.pts === team.pts).length > 1
+                )
+            );
+        }
+        
+        // Verify standings are sequential without gaps
+        const standings = rowData.map(t => t.standing).sort((a, b) => a - b);
+        for (let i = 0; i < standings.length; i++) {
+            if (standings[i] !== i + 1) {
+                console.warn('⚠️  Standing numbers are not sequential');
+                break;
             }
         }
-        team.standing = standing;
-    }
+        
+        return true;
+    };
+    
+    validateStandings();
 
     // Define the columns for the data grid
     // Each column needs: field (matches the data property name), headerName (what users see), and width

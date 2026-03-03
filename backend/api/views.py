@@ -567,6 +567,83 @@ def GetLeagueData(request, league_id):
     })
 
 @api_view(['GET'])
+def GetLeagueTeamStandings(request, league_id):
+    """
+    Gets all teams in a league with their total fantasy points since draft.
+    Calculates standings based on team points.
+    
+    :param league_id: Integer id for league
+    :return: Response with array of teams and their total points
+    """
+    is_user_in_league(request.user, league_id)
+    league = get_object_or_404(League, id=league_id)
+    draft = Draft.objects.get(league=league)
+    draft_start_time = draft.draft_date.date() if draft and draft.draft_date else None
+    
+    # Get all teams in the league with their rosters and fight scores
+    teams = Team.objects.filter(owner__league=league).prefetch_related(
+        Prefetch(
+            'roster_set__fighter__fightscore_set',
+            queryset=(
+                FightScore.objects.select_related('fight__event')
+                .order_by('-fight__event__date')
+            ),
+            to_attr='all_fight_scores'
+        )
+    )
+    
+    team_standings = []
+    
+    # Calculate total points for each team
+    for team in teams:
+        total_points = 0
+        
+        # Iterate through each roster slot for the team
+        for roster_entry in team.roster_set.all():
+            fighter = roster_entry.fighter
+            
+            # Skip if slot is empty
+            if fighter is None:
+                continue
+            
+            # Get fight scores for this fighter
+            fight_scores = getattr(fighter, 'all_fight_scores', [])
+            if not fight_scores:
+                # Fallback if prefetch didn't work as expected
+                fight_scores = FightScore.objects.filter(fighter=fighter).select_related('fight__event').order_by('-fight__event__date')
+            
+            # Sum points for fights after draft date
+            for fight_score in fight_scores:
+                if (fight_score.fight and 
+                    fight_score.fight.event and 
+                    draft_start_time and 
+                    fight_score.fight.event.date >= draft_start_time and 
+                    fight_score.fight_total_points is not None):
+                    total_points += fight_score.fight_total_points
+        
+        team_standings.append({
+            'id': team.id,
+            'name': team.name,
+            'owner': team.owner.owner.username,
+            'total_points': total_points
+        })
+    
+    # Sort by points (descending) to get standings
+    team_standings.sort(key=lambda x: x['total_points'], reverse=True)
+    
+    # Add ranking
+    for index, team in enumerate(team_standings, start=1):
+        team['standing'] = index
+    
+    return Response(
+        {
+            'teams': team_standings,
+            'draft_start_date': draft_start_time
+        },
+        status=200
+    )
+
+@api_view(['GET'])
 @require_auth(None)
 def GetTeamListData(request, team_id):
     """
