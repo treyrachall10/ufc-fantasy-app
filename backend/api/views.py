@@ -517,9 +517,6 @@ def GetFightsFromEventViewSet(request, id):
     serializer = FightSerializer(fights, many=True)
     return Response(serializer.data)
 
-
-from django.forms.models import model_to_dict
-
 @api_view(['GET'])
 def GetHeadToHeadStatsViewSet(request, id):    
 
