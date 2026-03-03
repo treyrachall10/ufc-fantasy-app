@@ -8,6 +8,18 @@ from config import DATACLEANPATH, MODEL_MAP
 from scripts.utils import normalize_name
 from scripts.scoring import score_knockdowns, score_td_landed, score_sub_att, score_ctrl_time, score_win, score_round_finish, score_time
 
+
+def resolve_lookup_value(field_name, value):
+    """
+        -   Normalizes lookup values so key types match DB field types
+    """
+    if field_name in {"dob", "date"} and isinstance(value, str) and value:
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        except ValueError:
+            return value
+    return value
+
 def populate_fighter_stats_tables():
     """
         -   Populates database dynamically by reading the files in the MODEL_FILE_MAP
