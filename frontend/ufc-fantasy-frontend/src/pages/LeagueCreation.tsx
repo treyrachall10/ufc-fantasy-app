@@ -5,6 +5,10 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import FormLabel from '@mui/material/FormLabel';
 import FormControl from '@mui/material/FormControl';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from "@tanstack/react-query";
@@ -31,6 +35,9 @@ export default function LeagueCreation(){
     const [teams, setTeams] = React.useState<string | null>(null)
     const [teamError, setTeamError] = React.useState(false)
     const [teamErrorMessage, setTeamErrorMessage] = React.useState('')
+
+    const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false)
+    const [pendingPayload, setPendingPayload] = React.useState<LeaguePayload | null>(null)
 
     // POST request to login a user
       const createLeagueMutation = useMutation({
@@ -76,7 +83,7 @@ export default function LeagueCreation(){
         }
       })
 
-    // Handles form submission when submit button is clicked
+    // Handles form submission - shows confirmation dialog
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         console.log(teams)
@@ -90,7 +97,24 @@ export default function LeagueCreation(){
             leagueName: data.get('league') as string ,
             teams: Number(teams),
         }
-        createLeagueMutation.mutate(payload)
+        // Store payload and open dialog instead of immediately submitting
+        setPendingPayload(payload)
+        setConfirmDialogOpen(true)
+    }
+
+    // Handles confirmation - actually creates the league
+    const handleConfirmCreate = () => {
+        if (pendingPayload) {
+            createLeagueMutation.mutate(pendingPayload)
+            setConfirmDialogOpen(false)
+            setPendingPayload(null)
+        }
+    }
+
+    // Handles cancellation - closes dialog without creating
+    const handleCancelCreate = () => {
+        setConfirmDialogOpen(false)
+        setPendingPayload(null)
     }
 
     // Handles team selection
@@ -236,6 +260,42 @@ export default function LeagueCreation(){
                     </Box>
             </Box>
             </Box>
+
+            {/* Confirmation Dialog */}
+            <Dialog
+                open={confirmDialogOpen}
+                onClose={handleCancelCreate}
+            >
+                <DialogTitle sx={{ fontWeight: 600 }}>
+                    Ready to Build Your League?
+                </DialogTitle>
+                <DialogContent>
+                    <Typography sx={{ mt: 1 }}>
+                        League: <strong>{pendingPayload?.leagueName}</strong>
+                    </Typography>
+                    <Typography>
+                        Teams: <strong>{pendingPayload?.teams}</strong>
+                    </Typography>
+                    <Typography sx={{ mt: 2, color: 'text.secondary' }}>
+                        You can invite other players to join your league after creation.
+                    </Typography>
+                </DialogContent>
+                <DialogActions sx={{ gap: 1, p: 2 }}>
+                    <Button
+                        onClick={handleCancelCreate}
+                        variant="outlined"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleConfirmCreate}
+                        variant="contained"
+                        color="brandAlpha50"
+                    >
+                        Create League
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     )
 
