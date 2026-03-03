@@ -464,12 +464,6 @@ def SetDraftDate(request, league_id):
         status=200 
         )
 
-@transaction.atomic
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def DraftFighter(request, draft_id):
-    pass
-
 '''
     -   GET METHODS
 '''
