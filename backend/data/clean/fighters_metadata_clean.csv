@@ -96,7 +96,7 @@ Magno Almeida,magno almeida,Magno,Almeida,,72.0,155.0,,,1985-06-06,False
 Thomas Almeida,thomas almeida,Thomas,Almeida,Thominhas,67.0,145.0,70.0,Southpaw,1991-07-31,False
 Ericka Almeida,ericka almeida,Ericka,Almeida,,66.0,115.0,,Orthodox,1989-03-05,False
 Estefani Almeida,estefani almeida,Estefani,Almeida,,64.0,125.0,,Orthodox,1988-10-17,True
-Jailton Almeida,jailton almeida,Jailton,Almeida,Malhadinho,75.0,205.0,79.0,Orthodox,1991-06-26,True
+Jailton Almeida,jailton almeida,Jailton,Almeida,Malhadinho,75.0,205.0,79.0,Orthodox,1991-06-26,False
 Lucas Almeida,lucas almeida,Lucas,Almeida,,71.0,145.0,71.0,Orthodox,1991-01-31,False
 Cesar Almeida,cesar almeida,Cesar,Almeida,Cesinha,73.0,185.0,74.0,Orthodox,1988-03-28,True
 Mauricio Alonso,mauricio alonso,Mauricio,Alonso,,74.0,170.0,,,1980-02-27,False
@@ -516,7 +516,7 @@ Modestas Bukauskas,modestas bukauskas,Modestas,Bukauskas,The Baltic Gladiator,75
 Lee Kwan Bum,lee kwan bum,Lee Kwan,Bum,,74.0,286.0,,Orthodox,,False
 Josh Bumgarner,josh bumgarner,Josh,Bumgarner,,73.0,170.0,,,,False
 Shawn Bunch,shawn bunch,Shawn,Bunch,Bunch the Great,65.0,135.0,,,1983-03-19,False
-Felipe Bunes,felipe bunes,Felipe,Bunes,Felipinho,67.0,125.0,69.0,Orthodox,1989-10-29,True
+Felipe Bunes,felipe bunes,Felipe,Bunes,Felipinho,67.0,125.0,69.0,Orthodox,1989-10-29,False
 Shane Burgos,shane burgos,Shane,Burgos,Hurricane,71.0,145.0,75.0,Orthodox,1991-03-19,False
 Joshua Burkman,joshua burkman,Joshua,Burkman,The People's Warrior,70.0,170.0,72.0,Orthodox,1980-04-10,False
 Justin Burlinson,justin burlinson,Justin,Burlinson,,73.0,170.0,74.0,Switch,1997-05-19,True
@@ -863,7 +863,7 @@ Batgerel Danaa,batgerel danaa,Batgerel,Danaa,Storm,67.0,135.0,70.0,Orthodox,1989
 Cindy Dandois,cindy dandois,Cindy,Dandois,Battlecat,67.0,135.0,,Orthodox,1984-10-26,False
 Peter Danesoe,peter danesoe,Peter,Danesoe,The Asian Viking,66.0,135.0,68.0,Orthodox,2000-09-01,True
 Jarjis Danho,jarjis danho,Jarjis,Danho,Man Mountain,75.0,265.0,74.0,Orthodox,1983-10-15,False
-Jose Daniel Medina,jose daniel medina,Jose,Daniel Medina,Chicho,72.0,185.0,74.0,Orthodox,1991-05-17,True
+Jose Daniel Medina,jose daniel medina,Jose,Daniel Medina,Chicho,72.0,185.0,74.0,Orthodox,1991-05-17,False
 Raymond Daniels,raymond daniels,Raymond,Daniels,,74.0,185.0,,Southpaw,,False
 Marques Daniels,marques daniels,Marques,Daniels,,,155.0,,,,False
 Anvarbek Daniyalbekov,anvarbek daniyalbekov,Anvarbek,Daniyalbekov,,,185.0,,,1995-05-27,False
@@ -1259,7 +1259,7 @@ Hermes Franca,hermes franca,Hermes,Franca,,66.0,155.0,71.0,Orthodox,2074-08-26,F
 Glaico Franca Moreira,glaico franca moreira,Glaico,Franca Moreira,Nego,72.0,155.0,77.0,Orthodox,1991-02-28,False
 Francisco France,francisco france,Francisco,France,Kiko,72.0,205.0,,,1983-01-21,False
 John Franchi,john franchi,John,Franchi,,66.0,145.0,67.0,Orthodox,1982-07-16,False
-Felipe Franco,felipe franco,Felipe,Franco,Negao,,205.0,,,2001-01-22,False
+Felipe Franco,felipe franco,Felipe,Franco,Negao,,205.0,,,2001-01-22,True
 Rich Franklin,rich franklin,Rich,Franklin,Ace,73.0,185.0,76.0,Southpaw,2074-10-05,False
 Xavier Franklin,xavier franklin,Xavier,Franklin,Mr. Benjamin,66.0,135.0,66.0,Southpaw,1996-10-15,False
 Zoila Frausto,zoila frausto,Zoila,Frausto,Warrior Princess,64.0,135.0,,Orthodox,,False
@@ -1772,7 +1772,7 @@ Al Iaquinta,al iaquinta,Al,Iaquinta,Raging,70.0,155.0,70.0,Orthodox,1987-04-30,T
 Khadis Ibragimov,khadis ibragimov,Khadis,Ibragimov,,75.0,205.0,78.0,Orthodox,1995-05-21,False
 Minoki Ichihara,minoki ichihara,Minoki,Ichihara,,67.0,178.0,,Orthodox,,False
 Alibi Idiris,alibi idiris,Alibi,Idiris,,66.0,125.0,68.0,Orthodox,1994-10-22,True
-Dan Ige,dan ige,Dan,Ige,50K,67.0,145.0,71.0,Orthodox,1991-08-06,True
+Dan Ige,dan ige,Dan,Ige,100K,67.0,145.0,71.0,Orthodox,1991-08-06,True
 Valeri Ignatov,valeri ignatov,Valeri,Ignatov,,69.0,170.0,,Orthodox,,False
 Sergey Ignatov,sergey ignatov,Sergey,Ignatov,,69.0,210.0,,Orthodox,,False
 Fabiano Iha,fabiano iha,Fabiano,Iha,,68.0,155.0,,Orthodox,2070-07-28,False
@@ -2188,6 +2188,7 @@ Carlos Leal,carlos leal,Carlos,Leal,The Lion,71.0,170.0,74.0,Orthodox,1994-05-04
 Jordan Leavitt,jordan leavitt,Jordan,Leavitt,The Monkey King,69.0,155.0,71.0,Southpaw,1995-06-02,True
 Jerome LeBanner,jerome lebanner,Jerome,LeBanner,,75.0,265.0,,Southpaw,2072-12-26,False
 Chris Leben,chris leben,Chris,Leben,The Crippler,71.0,185.0,73.0,Southpaw,1980-07-21,False
+Julien Leblanc,julien leblanc,Julien,Leblanc,,,185.0,,,1992-01-21,False
 Jean-Paul Lebosnoyani,jean paul lebosnoyani,Jean-Paul,Lebosnoyani,Mufasa,71.0,170.0,72.0,Switch,1999-01-27,True
 Mickael Lebout,mickael lebout,Mickael,Lebout,Ragnar,71.0,155.0,73.0,Orthodox,1987-08-16,False
 Stephen Ledbetter,stephen ledbetter,Stephen,Ledbetter,,69.0,145.0,,Orthodox,1982-06-30,False
@@ -2402,7 +2403,7 @@ Nazareno Malegarie,nazareno malegarie,Nazareno,Malegarie,El Tigre,68.0,155.0,,,1
 Carl Malenko,carl malenko,Carl,Malenko,,71.0,200.0,,Orthodox,,False
 Jacob Malkoun,jacob malkoun,Jacob,Malkoun,Mamba,69.0,185.0,73.0,Orthodox,1995-08-26,True
 Mike Malott,mike malott,Mike,Malott,Proper,73.0,170.0,73.0,Orthodox,1991-11-07,True
-Regina Malpica Rivera,regina malpica rivera,Regina,Malpica Rivera,Kill Bill,,135.0,,,2004-10-19,False
+Regina Malpica,regina malpica,Regina,Malpica,Kill Bill,,125.0,,,2004-10-19,False
 Dan Manasoiu,dan manasoiu,Dan,Manasoiu,,,,,,,False
 Troy Mandaloniz,troy mandaloniz,Troy,Mandaloniz,Rude Boy,69.0,170.0,,Orthodox,1980-02-01,False
 Nate Maness,nate maness,Nate,Maness,Mayhem,70.0,125.0,72.0,Orthodox,1991-06-27,False
@@ -2449,7 +2450,7 @@ Joe Martin,joe martin,Joe,Martin,,69.0,170.0,,,,False
 Anthony Rocco Martin,anthony rocco martin,Anthony Rocco,Martin,,72.0,170.0,73.0,Orthodox,1989-12-11,False
 Mallory Martin,mallory martin,Mallory,Martin,,64.0,115.0,63.0,Orthodox,1994-01-29,False
 Michal Martinek,michal martinek,Michal,Martinek,,74.0,230.0,,Southpaw,1990-04-19,True
-Adrian Luna Martinetti,adrian luna martinetti,Adrian Luna,Martinetti,,,,,,,False
+Juan Adrian Martinetti,juan adrian martinetti,Juan Adrian,Martinetti,,,,,,,False
 Rainy Martinez,rainy martinez,Rainy,Martinez,,72.0,199.0,,Orthodox,,False
 Danny Martinez,danny martinez,Danny,Martinez,The Gremlin,66.0,125.0,67.0,Orthodox,1985-06-14,False
 Alonzo Martinez,alonzo martinez,Alonzo,Martinez,Zo Diddy,70.0,155.0,,,1984-04-22,False
@@ -2462,7 +2463,7 @@ Victor Martinez,victor martinez,Victor,Martinez,The Brick,68.0,155.0,70.0,Orthod
 Roque Martinez,roque martinez,Roque,Martinez,,70.0,250.0,72.0,Orthodox,1986-03-04,False
 Melissa Martinez,melissa martinez,Melissa,Martinez,Super Mely,62.0,115.0,66.0,Southpaw,1997-08-18,False
 Julieta Martinez,julieta martinez,Julieta,Martinez,The Ninja Ferret,61.0,115.0,62.0,Orthodox,2004-09-14,False
-David Martinez,david martinez,David,Martinez,Doctor,65.0,135.0,67.0,Orthodox,1998-08-03,True
+David Martinez,david martinez,David,Martinez,,65.0,135.0,67.0,Orthodox,1998-08-03,True
 Wagner da Conceicao Martins,wagner da conceicao martins,Wagner da Conceicao,Martins,Zuluzinho,79.0,390.0,,Orthodox,1978-05-19,False
 Adriano Martins,adriano martins,Adriano,Martins,,70.0,155.0,72.0,Southpaw,1982-12-16,False
 Lucas Martins,lucas martins,Lucas,Martins,Mineiro,72.0,145.0,72.0,Southpaw,1988-11-11,False
@@ -3557,6 +3558,7 @@ Bob Sapp,bob sapp,Bob,Sapp,The Beast,77.0,350.0,,Orthodox,2074-09-22,False
 Daniel Sarafian,daniel sarafian,Daniel,Sarafian,,69.0,185.0,73.0,Orthodox,1982-08-21,False
 Jeka Saragih,jeka saragih,Jeka,Saragih,,68.0,145.0,69.0,Orthodox,1995-01-01,False
 Diego Saraiva,diego saraiva,Diego,Saraiva,The Octopus,66.0,155.0,,Orthodox,1982-04-23,False
+Gokhan Saricam,gokhan saricam,Gokhan,Saricam,,,265.0,,,1991-02-26,False
 Harris Sarmiento,harris sarmiento,Harris,Sarmiento,The Hitman,69.0,155.0,,Orthodox,1983-09-09,False
 Alexander Sarnavskiy,alexander sarnavskiy,Alexander,Sarnavskiy,Tiger,71.0,155.0,,,1989-01-17,False
 Yuki Sasaki,yuki sasaki,Yuki,Sasaki,,74.0,185.0,,Orthodox,1976-09-12,False
@@ -3972,6 +3974,7 @@ Kasey Tanner,kasey tanner,Kasey,Tanner,,67.0,135.0,69.0,Orthodox,1992-01-11,Fals
 Otari Tanzilovi,otari tanzilovi,Otari,Tanzilovi,,70.0,135.0,70.0,Orthodox,1998-04-09,False
 Manny Tapia,manny tapia,Manny,Tapia,The Mangler,65.0,135.0,67.0,Orthodox,1981-03-14,False
 Gary Tapusoa,gary tapusoa,Gary,Tapusoa,,67.0,185.0,,,,False
+Regina Tarin,regina tarin,Regina,Tarin,Kill Bill,,,,,,True
 Miesha Tate,miesha tate,Miesha,Tate,Cupcake,66.0,135.0,65.0,Orthodox,1986-08-18,True
 Aaron Tau,aaron tau,Aaron,Tau,Tauzemup,64.0,125.0,66.0,Switch,1993-08-21,False
 Deividas Taurosevicius,deividas taurosevicius,Deividas,Taurosevicius,,69.0,145.0,68.0,Southpaw,1977-08-28,False
@@ -4159,7 +4162,7 @@ Billy Vaughan,billy vaughan,Billy,Vaughan,,66.0,155.0,,,1983-12-02,False
 Yuri Vaulin,yuri vaulin,Yuri,Vaulin,,76.0,197.0,,Southpaw,,False
 Javier Vazquez,javier vazquez,Javier,Vazquez,Showtime,67.0,145.0,69.0,Southpaw,1977-07-16,False
 Manny Vazquez,manny vazquez,Manny,Vazquez,,70.0,125.0,72.0,Orthodox,1993-11-19,True
-Gianni Vazquez,gianni vazquez,Gianni,Vazquez,Kriptonita,67.0,135.0,71.0,Orthodox,1994-07-17,True
+Gianni Vazquez,gianni vazquez,Gianni,Vazquez,Kriptonita,67.0,135.0,71.0,Orthodox,1994-07-17,False
 Matt Veach,matt veach,Matt,Veach,,71.0,155.0,,Orthodox,1981-05-31,False
 Joe Vedepo,joe vedepo,Joe,Vedepo,The Doctor,72.0,185.0,,Orthodox,,False
 Kelly Velasco,kelly velasco,Kelly,Velasco,Killer,69.0,135.0,,Orthodox,1995-05-21,True
