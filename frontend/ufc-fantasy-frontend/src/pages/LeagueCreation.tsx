@@ -157,14 +157,16 @@ export default function LeagueCreation(){
                 width: '100%',
                 display: 'flex',
                 justifyContent: 'center',
+                alignItems: 'flex-start',
+                pt: { xs: 4, md: 8 }
             }}>
             <Box sx={{
                 display: 'flex',
                 flexDirection: 'column',
-                width: '50%',
-                gap: 2
+                width: { xs: '90%', sm: '70%', md: '50%', lg: '45%' },
+                gap: 3
             }}>
-            <Typography variant='h2'>Create League</Typography>
+            <Typography variant='h2' sx={{ mb: 1 }}>Create League</Typography>
             {/* League creation card container*/}
             <Box sx={{
                     bgcolor: 'dashboardBlack.main',
@@ -172,7 +174,16 @@ export default function LeagueCreation(){
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    borderRadius: 2,
+                    borderRadius: 3,
+                    border: '1px solid',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                    backdropFilter: 'blur(10px)',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4)',
+                    }
                 }}>
                     {/* Form */}
                     <Box
@@ -183,29 +194,54 @@ export default function LeagueCreation(){
                             display: 'flex',
                             flexDirection: 'column',
                             width: '100%',
-                            padding: 2,
-                            gap: 2,
+                            padding: { xs: 3, md: 4 },
+                            gap: 3,
                             }}
                         >
-                            <FormControl>
-                                <FormLabel htmlFor='leagueName' sx={{color: 'white', fontSize: '1.3rem'}}>League Name</FormLabel>
+                            <FormControl fullWidth>
+                                <FormLabel htmlFor='leagueName' sx={{
+                                    color: 'white',
+                                    fontSize: '1rem',
+                                    fontWeight: 600,
+                                    mb: 1.5,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em'
+                                }}>
+                                    League Name
+                                </FormLabel>
                                 <TextField
-                                error={leagueNameError}
-                                helperText={leagueNameErrorMessage}
-                                id="league"
-                                type="league"
-                                name="league"
-                                placeholder="Real Fight Fans League"
-                                autoComplete="email"
-                                autoFocus
-                                required
-                                fullWidth
-                                variant="outlined"
-                                color={leagueNameError ? 'error' : 'primary'}
+                                    error={leagueNameError}
+                                    helperText={leagueNameErrorMessage}
+                                    id="league"
+                                    type="text"
+                                    name="league"
+                                    placeholder="Real Fight Fans League"
+                                    autoComplete="off"
+                                    autoFocus
+                                    required
+                                    fullWidth
+                                    variant="outlined"
+                                    color={leagueNameError ? 'error' : 'primary'}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            color: 'white',
+                                            fontSize: '1rem'
+                                        }
+                                    }}
                                 />
                           </FormControl>
-                          <FormControl> 
-                            <FormLabel htmlFor='teamSelect' sx={{color: 'white', alignSelf: 'center', fontSize: '1.3rem'}}>Number of Teams</FormLabel>     
+                          <FormControl fullWidth> 
+                            <FormLabel htmlFor='teamSelect' sx={{
+                                color: 'white',
+                                fontSize: '1rem',
+                                fontWeight: 600,
+                                mb: 2,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                                textAlign: 'center'
+                            }}>
+                                Number of Teams
+                            </FormLabel>     
                                 <ToggleButtonGroup
                                     exclusive
                                     value={teams}
@@ -214,7 +250,8 @@ export default function LeagueCreation(){
                                     sx={{
                                         display: 'flex',
                                         justifyContent: 'center',
-                                        gap: 2, 
+                                        gap: { xs: 1, sm: 2 }, 
+                                        flexWrap: 'wrap'
                                     }}
                                     >
                                     {['4','6','8','10'].map(v => (
@@ -227,6 +264,15 @@ export default function LeagueCreation(){
                                             p: 0,
                                             fontSize: '1rem',
                                             color: 'white',
+                                            border: '2px solid rgba(255, 255, 255, 0.2)',
+                                            '&.Mui-selected': {
+                                                backgroundColor: 'brand.main',
+                                                borderColor: 'brand.main',
+                                                color: 'white',
+                                            },
+                                            '&:hover': {
+                                                borderColor: 'brand.light',
+                                            }
                                         }}
                                         >
                                         {v}
@@ -237,7 +283,7 @@ export default function LeagueCreation(){
                                         <Typography
                                         variant="caption"
                                         color="error"
-                                        sx={{ mt: 1, textAlign: 'center' }}
+                                        sx={{ mt: 1, textAlign: 'center', fontWeight: 500 }}
                                         >
                                         {teamErrorMessage}
                                         </Typography>
@@ -248,10 +294,19 @@ export default function LeagueCreation(){
                         variant="contained" 
                         color='brandAlpha50'
                         sx={{ 
-                            borderColor: 'brand.light',
                             alignSelf: 'center',
+                            mt: 2,
+                            px: 6,
+                            py: 1.5,
+                            fontSize: '1rem',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            borderRadius: 1,
+                            transition: 'all 0.3s ease',
                             '&:hover': {
-                                borderColor: 'brand.main'
+                                transform: 'translateY(-2px)',
+                                boxShadow: '0 6px 20px rgba(255, 0, 0, 0.3)',
                             }                        
                         }}
                         >
@@ -265,25 +320,50 @@ export default function LeagueCreation(){
             <Dialog
                 open={confirmDialogOpen}
                 onClose={handleCancelCreate}
+                maxWidth="sm"
+                fullWidth
             >
-                <DialogTitle sx={{ fontWeight: 600 }}>
+                <DialogTitle sx={{ 
+                    fontWeight: 700,
+                    fontSize: '1.3rem',
+                    textAlign: 'center',
+                    pb: 1
+                }}>
                     Ready to Build Your League?
                 </DialogTitle>
-                <DialogContent>
-                    <Typography sx={{ mt: 1 }}>
-                        League: <strong>{pendingPayload?.leagueName}</strong>
-                    </Typography>
-                    <Typography>
-                        Teams: <strong>{pendingPayload?.teams}</strong>
-                    </Typography>
-                    <Typography sx={{ mt: 2, color: 'text.secondary' }}>
+                <DialogContent sx={{ pt: 2 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Box sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1.5 }}>
+                            <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                                League Name
+                            </Typography>
+                            <Typography sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                                {pendingPayload?.leagueName}
+                            </Typography>
+                        </Box>
+                        <Box sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1.5 }}>
+                            <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                                Number of Teams
+                            </Typography>
+                            <Typography sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                                {pendingPayload?.teams} Teams
+                            </Typography>
+                        </Box>
+                    </Box>
+                    <Typography sx={{ mt: 3, color: 'text.secondary', fontSize: '0.95rem', textAlign: 'center', fontStyle: 'italic' }}>
                         You can invite other players to join your league after creation.
                     </Typography>
                 </DialogContent>
-                <DialogActions sx={{ gap: 1, p: 2 }}>
+                <DialogActions sx={{ gap: 1, p: 2.5, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
                     <Button
                         onClick={handleCancelCreate}
                         variant="outlined"
+                        sx={{
+                            flex: 1,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            fontWeight: 600
+                        }}
                     >
                         Cancel
                     </Button>
@@ -291,6 +371,17 @@ export default function LeagueCreation(){
                         onClick={handleConfirmCreate}
                         variant="contained"
                         color="brandAlpha50"
+                        sx={{
+                            flex: 1,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            fontWeight: 600,
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                                transform: 'translateY(-2px)',
+                                boxShadow: '0 6px 20px rgba(255, 0, 0, 0.3)',
+                            }
+                        }}
                     >
                         Create League
                     </Button>
