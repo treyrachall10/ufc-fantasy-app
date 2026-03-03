@@ -15,8 +15,8 @@ class Fighters(models.Model):
     fighter_id = models.AutoField(primary_key=True)
     first_name = models.CharField(max_length=50, null=True, blank=True)
     last_name = models.CharField(max_length=50, null=True, blank=True)
-    full_name = models.CharField(max_length=100, null=True, blank=True, unique=True)
-    normalized_name = models.CharField(max_length=100, null=True, blank=True, unique=True)
+    full_name = models.CharField(max_length=100, null=True, blank=True)
+    normalized_name = models.CharField(max_length=100, null=True, blank=True)
     nick_name = models.CharField(max_length=50, null=True, blank=True)
     stance = models.CharField(max_length=50, null=True, blank=True)
     weight = models.IntegerField(null=True, blank=True)
@@ -24,6 +24,13 @@ class Fighters(models.Model):
     reach = models.IntegerField(null=True, blank=True)
     dob = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=False)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['first_name', 'last_name', 'dob'],
+                name='unique_fighter'
+            )
+        ]
 
 class Events(models.Model):
     event_id = models.AutoField(primary_key=True)
