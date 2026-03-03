@@ -11,7 +11,7 @@ MODEL_MAP = {
         "file": "fighters_metadata_clean.csv", 
         "model": Fighters,
         "foreign_keys": False,
-        "unique_fields": ["normalized_name", "first_name", "last_name", "nick_name"],
+        "unique_fields": ["first_name", "last_name", "dob"],
         "attributes": [
             "normalized_name",
             "first_name",
@@ -29,7 +29,12 @@ MODEL_MAP = {
         "file": "event_data_clean.csv",
         "model": Events,
         "foreign_keys": False,
-        "unique_fields": ["event"]
+        "unique_fields": ["event", "date"],
+        "attributes": [
+            "event",
+            "date",
+            "location",
+        ],
     },
     "fights": {
         "file": "fight_results_clean.csv",
