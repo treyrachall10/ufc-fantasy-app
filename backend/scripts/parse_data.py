@@ -152,7 +152,7 @@ def parse_fighters():
     # Merge on normalized name
     main_df = df1.merge(
         df2,
-        on="normalized_name",
+        on="URL",
         how="left",
         suffixes=("", "_df2")
     )
@@ -180,6 +180,18 @@ def parse_fighters():
         ],
         errors="ignore"
     )
+
+    # Replace empty strings with pd.NA
+    main_df = main_df.replace("", pd.NA)
+    
+    # For fighters with non-null DOB, drop rows where DOB is null for the same (first_name, last_name)
+    pairs_with_dob = main_df[main_df["dob"].notnull()][["first_name", "last_name"]].drop_duplicates()
+    main_df = main_df.merge(pairs_with_dob.assign(_has_dob=True), on=["first_name", "last_name"], how="left")
+    main_df = main_df[(~main_df["_has_dob"].fillna(False)) | (main_df["dob"].notnull())]
+    main_df = main_df.drop(columns=["_has_dob"])
+    
+    # Group by first_name, last_name, and dob to merge duplicates
+    main_df = main_df.groupby(["first_name", "last_name", "dob"], as_index=False).first()
 
     if main_df is not None and not main_df.empty:
         try:
