@@ -178,13 +178,14 @@ def SetUsername(request):
 
 @transaction.atomic
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def AddRosterSlot(request, draft_id):
+    user = get_or_create_user_from_token(request=request)
     # Verify draft has been created for league
     draft = get_object_or_404(Draft, id=draft_id)
     # Gets League and team
     league = draft.league
-    team = get_object_or_404(Team, id = request.data['team_id'], owner__owner__id=request.user.id)
+    team = get_object_or_404(Team, id = request.data['team_id'], owner__owner__id=user.id)
     # Verify draft in drafting state
     if draft.status != Draft.Status.IN_PROGRESS:
         return Response(
@@ -268,13 +269,14 @@ def AddRosterSlot(request, draft_id):
     )
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def DraftFlexSlot(request, draft_id):
+    user = get_or_create_user_from_token(request=request)
     # Verify draft has been created for league
     draft = get_object_or_404(Draft, id=draft_id)
     # Get League and team
     league = draft.league
-    team = get_object_or_404(Team, id=request.data['team_id'], owner__owner__id=request.user.id)
+    team = get_object_or_404(Team, id=request.data['team_id'], owner__owner__id=user.id)
     # Verify draft in drafting state
     if draft.status != Draft.Status.IN_PROGRESS:
         return Response(
