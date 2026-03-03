@@ -145,6 +145,80 @@ def populate_fighter_stats_tables():
         except FileNotFoundError:
             print(f"ERROR: Could not find file '{value['file']}'")
 
+def populate_fighter_table():
+    """
+        -   Populates the Fighter table with unique fighters from the fight stats table
+        -   RETURNS: Nothing; it just builds the Fighter table
+    """
+    print("Populating Fighter table...")
+    config = MODEL_MAP["fighters"]
+    model = config["model"]
+    csv_file = config["file"]
+    unique_fields = config["unique_fields"]
+    attributes = config.get("attributes", config.get("attribute", []))
+
+    create_list = [] # Holds new fighter objects to bulk create
+    update_list = [] # Holds existing fighter objects with updated data to bulk update
+
+    # Get existing fighters from database and create a lookup dict based on unique fields for quick access during population
+    existing_fighters = model.objects.all()
+    fighters_by_lookup = {
+        (fighter.normalized_name, fighter.nick_name): fighter
+        for fighter in existing_fighters
+    }
+
+    with open(f"{DATACLEANPATH}/{csv_file}", "r") as file:
+        reader = csv.DictReader(file)
+
+        for row in reader:
+            row_data = {}
+
+            for attribute in attributes:
+                value = row.get(attribute)
+
+                if value is None or value == "":
+                    row_data[attribute] = None
+                    continue
+
+                cleaned_value = value.strip()
+                # Convert numeric fields to integers, handle boolean for is_active, and keep strings as they are
+                if attribute in {"height", "weight", "reach"}:
+                    row_data[attribute] = int(float(cleaned_value))
+                elif attribute == "is_active":
+                    row_data[attribute] = cleaned_value.lower() == "true"
+                else:
+                    row_data[attribute] = cleaned_value
+            # Use normalized_name and nick_name as the lookup key to find existing fighter
+            lookup_key = (row_data.get("normalized_name"), row_data.get("nick_name"))
+            fighter_obj = fighters_by_lookup.get(lookup_key)
+            # If no existing fighter is found, create a new fighter object and add it to the create list; otherwise, check for updates and add to update list if there are changes
+            if fighter_obj is None:
+                new_fighter = model(**row_data)
+                create_list.append(new_fighter)
+                fighters_by_lookup[lookup_key] = new_fighter
+                continue
+
+            has_changes = False
+            for attribute in attributes:
+                new_value = row_data.get(attribute)
+                if getattr(fighter_obj, attribute) != new_value:
+                    setattr(fighter_obj, attribute, new_value)
+                    has_changes = True
+
+            if has_changes:
+                update_list.append(fighter_obj)
+
+    if create_list:
+        model.objects.bulk_create(
+            objs=create_list,
+            update_fields=[field for field in attributes if field not in unique_fields],
+        )
+
+    if update_list:
+        model.objects.bulk_update(objs=update_list, fields=attributes)
+
+    print(f"Created {len(create_list)} new Fighter rows.")
+    print(f"Updated {len(update_list)} existing Fighter rows.")
 
 def populate_round_score():
     """
