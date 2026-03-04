@@ -800,6 +800,10 @@ def populate_fight_score():
     print(f"Created {entry_counter} new FightScore rows.")
 
 def populate_database():
-    populate_fighter_stats_tables()
+    populate_simple_tables()
+    populate_fights_table()
+    populate_fight_stats_table()
+    populate_round_stats_table()
+    populate_fighter_career_stats_table()
     populate_round_score()
     populate_fight_score()
