@@ -741,17 +741,22 @@ def populate_fight_score():
         -   Populates the FightScore table
         -   RETURNS: Nothing; populates the FightScore table 
     """
+    print("Populating fight_score table...")
     entry_counter = 0
-    fights = Fights.objects.filter(fightscore__isnull=True) # Filters every fight that needs scoring
+    fights = Fights.objects.filter(fightscore__isnull=True).select_related('winner').prefetch_related(
+        'fightstats_set__fighter',
+        'fightstats_set__roundstats_set__roundscore_set'
+    ) # Filters every fight that needs scoring and prefetches related data
     objs = [] # Holds fight objects to bulk create
+    counter = 0
     # Iterate through fights; score fight; append to objs list
     for fight in fights:
         # Skip fights with no winner ONLY if it's not a draw
         if fight.winner is None and fight.method not in ("Decision - Split", "Decision - Majority", "Draw"):
             continue
-        fight_stats = FightStats.objects.filter(fight=fight) # Filter FightStats rows for fight(should contain 2 rows. 1 for each fighter.)
+        fight_stats = fight.fightstats_set.all() # Use prefetched FightStats
         # Skip incomplete fight data
-        if fight_stats.count() != 2:
+        if len(fight_stats) != 2:
             continue
         # Iterate through fight_stats rows (fight stat for each fighter)
         for fight_stat in fight_stats:
@@ -759,11 +764,11 @@ def populate_fight_score():
             if fight_stat.fighter is None:
                 continue
             total_rounds_score = 0
-            round_stats = RoundStats.objects.filter(fight_stats=fight_stat) # Filter every round for the fighter in the fight
+            round_stats = fight_stat.roundstats_set.all() # Use prefetched RoundStats
             # Iterate through every round in round_stats; add all round totals; create FightScore object
             for round in round_stats:
-                round_score = RoundScore.objects.get(round_stats=round)
-                total_rounds_score += round_score.round_total_points
+                round_score = round.roundscore_set.all() # Use prefetched RoundScore
+                total_rounds_score += round_score[0].round_total_points
             is_winner = (fight.winner is not None and fight_stat.fighter.full_name == fight.winner.full_name) # Determines if fighter is winner
             # LOSER
             if not is_winner:
