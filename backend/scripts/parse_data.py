@@ -156,7 +156,7 @@ def parse_fighters():
         how="left",
         suffixes=("", "_df2")
     )
-
+    
     # Adds names to main_df
     main_df["first_name"] = main_df["FIRST"]
     main_df["last_name"] = main_df["LAST"]
@@ -186,12 +186,14 @@ def parse_fighters():
     
     # For fighters with non-null DOB, drop rows where DOB is null for the same (first_name, last_name)
     pairs_with_dob = main_df[main_df["dob"].notnull()][["first_name", "last_name"]].drop_duplicates()
+ 
     main_df = main_df.merge(pairs_with_dob.assign(_has_dob=True), on=["first_name", "last_name"], how="left")
     main_df = main_df[(~main_df["_has_dob"].fillna(False)) | (main_df["dob"].notnull())]
     main_df = main_df.drop(columns=["_has_dob"])
     
     # Group by first_name, last_name, and dob to merge duplicates
-    main_df = main_df.groupby(["first_name", "last_name", "dob"], as_index=False).first()
+    # dropna=False ensures fighters with null DOB aren't dropped
+    main_df = main_df.groupby(["first_name", "last_name", "dob"], as_index=False, dropna=False).first()
 
     if main_df is not None and not main_df.empty:
         try:
@@ -272,6 +274,10 @@ def parse_fight_round_stats():
     main_df['clinch_str_attempted'] = split_columns['CLINCH'][1]
     main_df['ground_str_landed'] = split_columns['GROUND'][0]
     main_df['ground_str_attempted'] = split_columns['GROUND'][1]
+
+    # Drop rows where event, bout, round_number, or fighter is null 
+    rows_to_drop = main_df[['event', 'bout', 'round_number', 'fighter']].isnull().any(axis=1)
+    main_df = main_df[~rows_to_drop]
 
     if main_df is not None and not main_df.empty:
         try:
@@ -465,3 +471,5 @@ def parse_all_data():
     parse_fight_data()
     parse_total_fight_stats()
     parse_career_stats()
+
+parse_all_data()
