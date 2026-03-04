@@ -2,8 +2,8 @@
     -   Responsible for populating and updating database through connecting headers with model fields
 """
 import csv
-from django.db import models
-from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore, FightScore
+from datetime import datetime
+from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore, FightScore, FighterCareerStats
 from config import DATACLEANPATH, MODEL_MAP
 from scripts.utils import normalize_name
 from scripts.scoring import score_knockdowns, score_td_landed, score_sub_att, score_ctrl_time, score_win, score_round_finish, score_time
