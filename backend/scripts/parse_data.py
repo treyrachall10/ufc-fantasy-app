@@ -132,6 +132,7 @@ def parse_fighters():
     """
         -   Parses all fighter data and stores into 'fighters_metadata_clean.csv'
     """
+    print("parsing fighters...")
     try:
         df1 = pd.read_csv(f'{DATARAWPATH}/ufc_fighter_details.csv')
         df2 = pd.read_csv(f'{DATARAWPATH}/ufc_fighter_tott.csv')
@@ -152,11 +153,11 @@ def parse_fighters():
     # Merge on normalized name
     main_df = df1.merge(
         df2,
-        on="normalized_name",
+        on="URL",
         how="left",
         suffixes=("", "_df2")
     )
-
+    
     # Adds names to main_df
     main_df["first_name"] = main_df["FIRST"]
     main_df["last_name"] = main_df["LAST"]
@@ -181,6 +182,20 @@ def parse_fighters():
         errors="ignore"
     )
 
+    # Replace empty strings with pd.NA
+    main_df = main_df.replace("", pd.NA)
+    
+    # For fighters with non-null DOB, drop rows where DOB is null for the same (first_name, last_name)
+    pairs_with_dob = main_df[main_df["dob"].notnull()][["first_name", "last_name"]].drop_duplicates()
+ 
+    main_df = main_df.merge(pairs_with_dob.assign(_has_dob=True), on=["first_name", "last_name"], how="left")
+    main_df = main_df[(~main_df["_has_dob"].fillna(False)) | (main_df["dob"].notnull())]
+    main_df = main_df.drop(columns=["_has_dob"])
+    
+    # Group by first_name, last_name, and dob to merge duplicates
+    # dropna=False ensures fighters with null DOB aren't dropped
+    main_df = main_df.groupby(["first_name", "last_name", "dob"], as_index=False, dropna=False).first()
+
     if main_df is not None and not main_df.empty:
         try:
             main_df.to_csv(f"{DATACLEANPATH}/fighters_metadata_clean.csv", index=False)  # Writes main_df to file
@@ -193,6 +208,7 @@ def parse_events():
     """
         -   Parses all event data and stores into 'event_data_clean.csv'
     """
+    print("parsing events...")
     try:
         df = pd.read_csv(f'{DATARAWPATH}/ufc_event_details.csv')
     except FileNotFoundError:
@@ -218,6 +234,7 @@ def parse_fight_round_stats():
     """
         -   Parses all fights per round data and stores into 'round_stats_clean.csv'
     """
+    print("parsing fight round stats...")
     main_df = pd.DataFrame()
     column_names = ['SIG.STR.', 'TOTAL STR.', 'TD', 'HEAD', 'BODY', 'LEG', 'DISTANCE', 'CLINCH', 'GROUND']
     split_columns = {}
@@ -261,6 +278,10 @@ def parse_fight_round_stats():
     main_df['ground_str_landed'] = split_columns['GROUND'][0]
     main_df['ground_str_attempted'] = split_columns['GROUND'][1]
 
+    # Drop rows where event, bout, round_number, or fighter is null 
+    rows_to_drop = main_df[['event', 'bout', 'round_number', 'fighter']].isnull().any(axis=1)
+    main_df = main_df[~rows_to_drop]
+
     if main_df is not None and not main_df.empty:
         try:
             main_df.to_csv(f"{DATACLEANPATH}/round_stats_clean.csv", index=False)
@@ -273,6 +294,7 @@ def parse_fight_data():
     """
         -   Parses fight results and stores into 'fight_results_clean.csv'
     """
+    print("parsing fight data...")
     try:
         df = pd.read_csv(f'{DATARAWPATH}/ufc_fight_results.csv')
     except FileNotFoundError:
@@ -303,7 +325,7 @@ def parse_total_fight_stats():
     """
         -   Parses fight results and stores into 'total_fight_stats_clean.csv'
     """
-
+    print("parsing total fight stats...")
     drop_cols = [
         'fighter_opp',
         'kd_opp',
@@ -364,6 +386,7 @@ def parse_career_stats():
     """
         -   Parses fight results and stores into 'career_stats_clean.csv'
     """
+    print("parsing career stats...")
     try:
         total_fight_stats_df = pd.read_csv(f'{DATACLEANPATH}/total_fight_stats_clean.csv')
         fight_results_clean_df = pd.read_csv(f'{DATACLEANPATH}/fight_results_clean.csv')
