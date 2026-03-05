@@ -25,6 +25,7 @@ def scrape_active_fighters_df():
     """
     Scrapes the UFC website for active fighters and returns a set of their normalized names.
     """
+    print("Scraping active fighters...")
     session = requests.Session()
     response = session.get(ACTIVE_FIGHTER_URL, headers=HEADERS)
     response.raise_for_status()
@@ -71,4 +72,5 @@ def scrape_active_fighters_df():
                 fighter_names.append(name.text.strip())
 
     df = pd.DataFrame(fighter_names, columns=["Fighter Name"])
+    print(f"Scraped {len(df)} active fighters.")
     return df

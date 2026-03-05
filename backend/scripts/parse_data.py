@@ -132,6 +132,7 @@ def parse_fighters():
     """
         -   Parses all fighter data and stores into 'fighters_metadata_clean.csv'
     """
+    print("parsing fighters...")
     try:
         df1 = pd.read_csv(f'{DATARAWPATH}/ufc_fighter_details.csv')
         df2 = pd.read_csv(f'{DATARAWPATH}/ufc_fighter_tott.csv')
@@ -207,6 +208,7 @@ def parse_events():
     """
         -   Parses all event data and stores into 'event_data_clean.csv'
     """
+    print("parsing events...")
     try:
         df = pd.read_csv(f'{DATARAWPATH}/ufc_event_details.csv')
     except FileNotFoundError:
@@ -232,6 +234,7 @@ def parse_fight_round_stats():
     """
         -   Parses all fights per round data and stores into 'round_stats_clean.csv'
     """
+    print("parsing fight round stats...")
     main_df = pd.DataFrame()
     column_names = ['SIG.STR.', 'TOTAL STR.', 'TD', 'HEAD', 'BODY', 'LEG', 'DISTANCE', 'CLINCH', 'GROUND']
     split_columns = {}
@@ -291,6 +294,7 @@ def parse_fight_data():
     """
         -   Parses fight results and stores into 'fight_results_clean.csv'
     """
+    print("parsing fight data...")
     try:
         df = pd.read_csv(f'{DATARAWPATH}/ufc_fight_results.csv')
     except FileNotFoundError:
@@ -321,7 +325,7 @@ def parse_total_fight_stats():
     """
         -   Parses fight results and stores into 'total_fight_stats_clean.csv'
     """
-
+    print("parsing total fight stats...")
     drop_cols = [
         'fighter_opp',
         'kd_opp',
@@ -382,6 +386,7 @@ def parse_career_stats():
     """
         -   Parses fight results and stores into 'career_stats_clean.csv'
     """
+    print("parsing career stats...")
     try:
         total_fight_stats_df = pd.read_csv(f'{DATACLEANPATH}/total_fight_stats_clean.csv')
         fight_results_clean_df = pd.read_csv(f'{DATACLEANPATH}/fight_results_clean.csv')
@@ -471,5 +476,3 @@ def parse_all_data():
     parse_fight_data()
     parse_total_fight_stats()
     parse_career_stats()
-
-parse_all_data()
