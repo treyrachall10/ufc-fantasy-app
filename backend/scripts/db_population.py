@@ -116,8 +116,8 @@ def populate_fights_table():
     csv_file = MODEL_MAP["fights"]["file"]
     unique_fields = MODEL_MAP["fights"]["unique_fields"]
 
-    # Get all concrete model fields (excluding auto-generated ones)
-    model_fields = [f.name for f in model_class._meta.get_fields() if f.concrete and not f.auto_created]
+    # Get all concrete model fields (excluding auto-generated ones), exclude primary keys
+    model_fields = [f.name for f in model_class._meta.get_fields() if f.concrete and not f.auto_created and not f.primary_key]
 
     create_list = []  # Holds new fight objects to bulk create
     update_list = []  # Holds existing fight objects with updated data to bulk update
@@ -257,8 +257,8 @@ def populate_fight_stats_table():
     csv_file = MODEL_MAP["fight_stats"]["file"]
     unique_fields = MODEL_MAP["fight_stats"]["unique_fields"]
 
-    # Get all concrete model fields (excluding auto-generated ones)
-    model_fields = [f.name for f in model_class._meta.get_fields() if f.concrete and not f.auto_created]
+    # Get all concrete model fields (excluding auto-generated ones), exclude primary keys
+    model_fields = [f.name for f in model_class._meta.get_fields() if f.concrete and not f.auto_created and not f.primary_key]
 
     create_list = []  # Holds new fight stats objects to bulk create
     update_list = []  # Holds existing fight stats objects with updated data to bulk update
@@ -414,8 +414,8 @@ def populate_round_stats_table():
     csv_file = MODEL_MAP["round_stats"]["file"]
     unique_fields = MODEL_MAP["round_stats"]["unique_fields"]
 
-    # Get all concrete model fields (excluding auto-generated ones)
-    model_fields = [f.name for f in model_class._meta.get_fields() if f.concrete and not f.auto_created]
+    # Get all concrete model fields (excluding auto-generated ones), exclude primary keys
+    model_fields = [f.name for f in model_class._meta.get_fields() if f.concrete and not f.auto_created and not f.primary_key]
 
     create_list = []  # Holds new round stats objects to bulk create
     update_list = []  # Holds existing round stats objects with updated data to bulk update
@@ -584,8 +584,8 @@ def populate_fighter_career_stats_table():
     csv_file = MODEL_MAP["fighter_career_stats"]["file"]
     unique_fields = MODEL_MAP["fighter_career_stats"]["unique_fields"]
 
-    # Get all concrete model fields (excluding auto-generated ones)
-    model_fields = [f.name for f in model_class._meta.get_fields() if f.concrete and not f.auto_created]
+    # Get all concrete model fields (excluding auto-generated ones), exclude primary keys
+    model_fields = [f.name for f in model_class._meta.get_fields() if f.concrete and not f.auto_created and not f.primary_key]
 
     create_list = []  # Holds new career stats objects to bulk create
     update_list = []  # Holds existing career stats objects with updated data to bulk update
