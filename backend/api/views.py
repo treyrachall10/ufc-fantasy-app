@@ -567,7 +567,7 @@ def GetLeagueData(request, league_id):
     })
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def GetLeagueTeamStandings(request, league_id):
     """
     Gets all teams in a league with their total fantasy points since draft.
@@ -576,7 +576,8 @@ def GetLeagueTeamStandings(request, league_id):
     :param league_id: Integer id for league
     :return: Response with array of teams and their total points
     """
-    is_user_in_league(request.user, league_id)
+    user = get_or_create_user_from_token(request=request)
+    is_user_in_league(user, league_id)
     league = get_object_or_404(League, id=league_id)
     draft = Draft.objects.get(league=league)
     draft_start_time = draft.draft_date.date() if draft and draft.draft_date else None
@@ -645,7 +646,7 @@ def GetLeagueTeamStandings(request, league_id):
     )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@require_auth(None)
 def GetTeamListData(request, team_id):
     """
     Gets team list data for a given team, including fighter info and fantasy scores.  
