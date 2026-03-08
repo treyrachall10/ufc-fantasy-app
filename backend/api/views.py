@@ -567,6 +567,7 @@ def GetLeagueData(request, league_id):
     })
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def GetLeagueTeamStandings(request, league_id):
     """
     Gets all teams in a league with their total fantasy points since draft.
@@ -644,7 +645,7 @@ def GetLeagueTeamStandings(request, league_id):
     )
 
 @api_view(['GET'])
-@require_auth(None)
+@permission_classes([IsAuthenticated])
 def GetTeamListData(request, team_id):
     """
     Gets team list data for a given team, including fighter info and fantasy scores.  
