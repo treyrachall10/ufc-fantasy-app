@@ -13,6 +13,8 @@ from dateutil.parser import parse
 from django.db.models import Max
 from django.shortcuts import get_object_or_404
 
+from backend.api.pagination_classes import FighterListPagination
+
 from .serializers import *
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
                             FightStats, RoundStats, FightScore, League, LeagueMember, 
@@ -470,6 +472,7 @@ def SetDraftDate(request, league_id):
 @api_view(['GET'])
 def GetFighterProfileViewSet(request):
     fighters = FighterCareerStats.objects.all()
+    paginatior = FighterListPagination
     serializer = FighterSerializer(fighters, many=True)
     return Response(serializer.data)
 
