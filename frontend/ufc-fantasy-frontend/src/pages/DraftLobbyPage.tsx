@@ -112,19 +112,13 @@ export default function DraftLobbyPage() {
         if(!draftStateData?.current_pick) return;
 
         queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
-        const indexOfNextUserPick = draftOrderData?.findIndex((pick) => pick.team.id === draftStateData.user_team_id && pick.pick_num > draftStateData.current_pick);
-        //setPicksUntilUserNextPick(indexOfNextUserPick !== undefined && indexOfNextUserPick !== -1 ? indexOfNextUserPick - draftStateData.current_pick : undefined);
+        queryClient.invalidateQueries({ queryKey: ['team', selectedTeamId] });
     }, [draftStateData?.current_pick]);
 
     // Effect to update the past picks reference when new picks are added to trigger animations in the AnimatedList component
     useEffect(() => {
         if(!pastPicksData) return;
-        // filter out picks that are not in reference to only add new picks to the history list and trigger animations for those new picks
-        /*
-        const newPicks = pastPicksData.filter((item: any) => !pastPicksRef.current.some((pick: any) => pick.pick_num === item.pick_num));
-        pastPicksRef.current = [...pastPicksRef.current, ...newPicks];
-        pastPicksDisplayData.push(...newPicks);
-        */
+
        setDraftHistory(pastPicksData.map((pick: any) => ({
             id: pick.pick_num,
             round: Math.ceil(pick.pick_num / leagueData?.league.capacity!),
@@ -137,7 +131,6 @@ export default function DraftLobbyPage() {
 
     // Reference for the past picks container to add new picks with an animation when they are added to the history list
     const pastPicksRef = useRef(pastPicksData || []);
-    const pastPicksDisplayData = pastPicksRef.current;
 
     const [selectedTeamId, setSelectedTeamId] = useState<number | undefined>();
     const [rosterDialogOpen, setRosterDialogOpen] = useState(false);
