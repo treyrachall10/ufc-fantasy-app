@@ -471,6 +471,9 @@ def SetDraftDate(request, league_id):
     -   GET METHODS
 '''
 class GetFighterProfileViewSet(generics.ListAPIView):
+    '''
+        API view to get fighter profiles with pagination
+    '''
     queryset = FighterCareerStats.objects.all()
     serializer_class = FighterSerializer
     pagination_class = FighterListPagination
