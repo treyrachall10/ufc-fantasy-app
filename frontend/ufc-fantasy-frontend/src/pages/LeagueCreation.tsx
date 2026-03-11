@@ -345,12 +345,14 @@ export default function LeagueCreation(){
                 <DialogActions sx={{ gap: 1, p: 2.5, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
                     <Button
                         onClick={handleCancelCreate}
-                        variant="outlined"
+                        variant="contained"
+                        color="whiteAlpha20"
                         sx={{
                             flex: 1,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontWeight: 600
+                            borderColor: 'gray900.main',
+                            '&:hover': {
+                                borderColor: 'gray800.main'
+                            }
                         }}
                     >
                         Cancel
@@ -361,16 +363,11 @@ export default function LeagueCreation(){
                         color="brandAlpha50"
                         sx={{
                             flex: 1,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            fontWeight: 600,
+                            borderRadius: '8px',
                             border: '1px solid',
                             borderColor: 'brand.light',
-                            transition: 'all 0.3s ease',
                             '&:hover': {
                                 borderColor: 'brand.main',
-                                transform: 'translateY(-2px)',
-                                boxShadow: '0 6px 20px rgba(255, 0, 0, 0.3)',
                             }
                         }}
                     >
