@@ -281,6 +281,10 @@ const DraftScheduled = () => {
                 color="whiteAlpha20"
                 component={RouterLink} to={`/league/${data.league.id}/draft/${data.draft.id}`}
                 sx={{
+                    borderColor: 'gray900.main',
+                    '&:hover': {
+                        borderColor: 'gray800.main'
+                    },
                     '&.Mui-disabled': {
                         backgroundColor: 'hsla(0, 0%, 21%, 0.20)',
                         color: 'text.secondary',
