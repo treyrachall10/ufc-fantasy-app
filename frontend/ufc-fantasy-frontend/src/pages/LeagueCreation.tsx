@@ -245,7 +245,6 @@ export default function LeagueCreation(){
                                     sx={{
                                         display: 'flex',
                                         justifyContent: 'center',
-                                        gap: { xs: 1, sm: 2 }, 
                                         flexWrap: 'wrap'
                                     }}
                                     >
