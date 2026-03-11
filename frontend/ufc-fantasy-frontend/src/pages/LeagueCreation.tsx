@@ -178,12 +178,7 @@ export default function LeagueCreation(){
                     border: '1px solid',
                     borderColor: 'rgba(255, 255, 255, 0.1)',
                     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-                    backdropFilter: 'blur(10px)',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                        borderColor: 'rgba(255, 255, 255, 0.2)',
-                        boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4)',
-                    }
+                    backdropFilter: 'blur(10px)'
                 }}>
                     {/* Form */}
                     <Box
@@ -266,8 +261,8 @@ export default function LeagueCreation(){
                                             color: 'white',
                                             border: '2px solid rgba(255, 255, 255, 0.2)',
                                             '&.Mui-selected': {
-                                                backgroundColor: 'brand.main',
-                                                borderColor: 'brand.main',
+                                                backgroundColor: 'brand.light',
+                                                borderColor: 'brand.light',
                                                 color: 'white',
                                             },
                                             '&:hover': {
@@ -295,22 +290,15 @@ export default function LeagueCreation(){
                         color='brandAlpha50'
                         sx={{ 
                             alignSelf: 'center',
-                            mt: 2,
-                            px: 6,
-                            py: 1.5,
-                            fontSize: '1rem',
-                            fontWeight: 600,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            borderRadius: 1,
-                            transition: 'all 0.3s ease',
+                            borderRadius: '8px',
+                            border: '1px solid',
+                            borderColor: 'brand.light',
                             '&:hover': {
-                                transform: 'translateY(-2px)',
-                                boxShadow: '0 6px 20px rgba(255, 0, 0, 0.3)',
+                                borderColor: 'brand.main',
                             }                        
                         }}
                         >
-                        Submit
+                        Create League
                     </Button>
                     </Box>
             </Box>
@@ -376,8 +364,11 @@ export default function LeagueCreation(){
                             textTransform: 'uppercase',
                             letterSpacing: '0.05em',
                             fontWeight: 600,
+                            border: '1px solid',
+                            borderColor: 'brand.light',
                             transition: 'all 0.3s ease',
                             '&:hover': {
+                                borderColor: 'brand.main',
                                 transform: 'translateY(-2px)',
                                 boxShadow: '0 6px 20px rgba(255, 0, 0, 0.3)',
                             }
