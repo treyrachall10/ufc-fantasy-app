@@ -5,11 +5,13 @@ import { useQuery } from '@tanstack/react-query'
 import { Fighter, PaginatedResponse } from '../../types/types';
 
 export default function FightersList() {
-    {/* API fetching*/}    
-    const { data, isPending, error } = useQuery<Fighter[]>({
-        queryKey: ['fighterListData'],
-        queryFn: () => fetch('http://localhost:8000/fighters').then(r => r.json()),
+    const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({ page: 0, pageSize: 25 });
+    const { page, pageSize } = paginationModel;
 
+    {/* API fetching*/}    
+    const { data, isPending, error } = useQuery<PaginatedResponse<Fighter>>({
+        queryKey: ['fighterListData', page, pageSize],
+        queryFn: () => fetch(`http://localhost:8000/fighters/?page=${page + 1}&page_size=${pageSize}`).then(r => r.json()),
     });
     
     if (isPending) return <span>Loading...</span>
@@ -37,7 +39,7 @@ export default function FightersList() {
     { field: 'd', headerName: 'D', flex: 0.5 },
     ];
 
-    const rows = data.map((fighter) => ({
+    const rows = data.results.map((fighter) => ({
         id: fighter.fighter_id,
         name: fighter.full_name,
         nickName: fighter.nick_name,
@@ -55,6 +57,10 @@ export default function FightersList() {
         <DataGrid 
             columns={columns}
             rows={rows}
+            rowCount={data.count}
+            paginationMode="server"
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
             disableColumnSorting
             disableRowSelectionOnClick
             disableColumnMenu
