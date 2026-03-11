@@ -180,6 +180,16 @@ export default function DraftLobbyPage() {
         }
     }
 
+    const invalidateDraftQueries = (params: { draftId?: string }) => {
+        const draftId = params.draftId;
+        if (!draftId) return;
+
+        queryClient.invalidateQueries({ queryKey: ['draft', draftId, 'state'] });
+        queryClient.invalidateQueries({ queryKey: ['draft', draftId, 'draftableFighters'] });
+        queryClient.invalidateQueries({ queryKey: ['draft', draftId, 'pastPicks'] });
+        queryClient.invalidateQueries({ queryKey: ['team', selectedTeamId] });
+    };
+
     const draftFighterMutation = useMutation({
         mutationFn: async (payload: DraftFighterPayload) => {
         const response = await authFetch(`http://localhost:8000/draft/${params.draftId}/pick`, {
@@ -208,10 +218,7 @@ export default function DraftLobbyPage() {
             };
 
             handleDraftingSuccess(data);
-            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'state'] });
-            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'draftableFighters'] });
-            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
-            queryClient.invalidateQueries({ queryKey: ['team', selectedTeamId] });
+            invalidateDraftQueries(params);
         }
     })
 
@@ -238,10 +245,7 @@ export default function DraftLobbyPage() {
     
         onSuccess: (data) => {
             handleDraftingSuccess(data);
-            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'state'] });
-            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'draftableFighters'] });
-            queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
-            queryClient.invalidateQueries({ queryKey: ['team', selectedTeamId] });
+            invalidateDraftQueries(params);
         }
     })
 
