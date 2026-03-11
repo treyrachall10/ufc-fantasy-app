@@ -139,7 +139,7 @@ def autopick_fighter(team, draft):
     
     :param team: Instance of Team model object
     :param draft: Instance of Draft model object
-    :return: Instance of FighterCareerStats model object (randomly chosen available fighter)
+    :return: tuple of (FighterCareerStats object, Roster.SlotType) for the autopicked fighter and assigned slot; returns (None, None) if no fighters are available or no slots are open
     """
     # Get roster slots already filled for team as a set for O(1) lookups
     filled_slots = get_filled_slots(team)
@@ -147,35 +147,39 @@ def autopick_fighter(team, draft):
     # Get drafted fighter ids in league
     drafted_fighter_ids = get_drafted_fighter_ids(draft)
     draftable_fighters = get_draftable_fighters(drafted_fighter_ids=drafted_fighter_ids)
-    # If FLEX is available, all undrafted fighters are eligible
-    if Roster.SlotType.FLEX not in filled_slots:
+    all_weight_slots = {
+        Roster.SlotType.STRAWWEIGHT, Roster.SlotType.FLYWEIGHT,
+        Roster.SlotType.BANTAMWEIGHT, Roster.SlotType.FEATHERWEIGHT,
+        Roster.SlotType.LIGHTWEIGHT, Roster.SlotType.WELTERWEIGHT,
+        Roster.SlotType.MIDDLEWEIGHT, Roster.SlotType.LIGHT_HEAVYWEIGHT,
+        Roster.SlotType.HEAVYWEIGHT
+    }
+    open_weight_slots = all_weight_slots - filled_slots
+    flex_available = Roster.SlotType.FLEX not in filled_slots
+
+    # Build eligible fighters: those whose weight class slot is open
+    weight_class_eligible = []
+    for fighter in draftable_fighters:
+        if fighter.weight is None:
+            continue
+        slot_type = weight_to_slot(fighter.weight)
+        if slot_type in open_weight_slots:
+            weight_class_eligible.append((fighter, slot_type))
+
+    if weight_class_eligible:
+        # Prefer filling an open weight class slot directly
+        fighter, slot_type = random.choice(weight_class_eligible)
+    elif flex_available:
+        # All weight class slots are full; fall back to FLEX with any undrafted fighter
         if not draftable_fighters:
-            return None
-        fighter = random.choice(draftable_fighters)
-    # FLEX is taken, only fighters matching open weight class slots are eligible
+            return None, None
+        fighter = random.choice(list(draftable_fighters))
+        slot_type = Roster.SlotType.FLEX
     else:
-        all_slots = {
-            Roster.SlotType.STRAWWEIGHT, Roster.SlotType.FLYWEIGHT, 
-            Roster.SlotType.BANTAMWEIGHT, Roster.SlotType.FEATHERWEIGHT,
-            Roster.SlotType.LIGHTWEIGHT, Roster.SlotType.WELTERWEIGHT,
-            Roster.SlotType.MIDDLEWEIGHT, Roster.SlotType.LIGHT_HEAVYWEIGHT,
-            Roster.SlotType.HEAVYWEIGHT
-        }
-        open_slots = all_slots - filled_slots
-        
-        # Filter to fighters whose weight class slot is open
-        eligible_fighters = []
-        for fighter in draftable_fighters:
-            if fighter.weight is None:
-                continue
-            slot_type = weight_to_slot(fighter.weight)
-            if slot_type in open_slots:
-                eligible_fighters.append(fighter)
-        if not eligible_fighters:
-            return None
-        fighter = random.choice(eligible_fighters)
-    
-    return fighter
+        # No slots available at all
+        return None, None
+
+    return fighter, slot_type
 
 def is_user_in_league(user, league_id):
     """
