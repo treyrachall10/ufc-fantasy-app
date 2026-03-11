@@ -6,7 +6,7 @@ from rest_framework_simplejwt.views import (
 )
 
 urlpatterns = [
-    path('fighters/<page:int>/<limit:int>', views.GetFighterProfileViewSet),
+    path('fighters/', views.GetFighterProfileViewSet.as_view()),
     path('events', views.GetEventViewSet),
     path('fights', views.GetFightViewSet),
     path('fighter/<int:id>', views.GetCareerStatsViewSet),

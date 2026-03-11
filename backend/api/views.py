@@ -470,12 +470,10 @@ def SetDraftDate(request, league_id):
 '''
     -   GET METHODS
 '''
-@api_view(['GET'])
-def GetFighterProfileViewSet(request):
-    fighters = FighterCareerStats.objects.all()
-    paginatior = FighterListPagination
-    serializer = FighterSerializer(fighters, many=True)
-    return Response(serializer.data)
+class GetFighterProfileViewSet(generics.ListAPIView):
+    queryset = FighterCareerStats.objects.all()
+    serializer_class = FighterSerializer
+    pagination_class = FighterListPagination
 
 @api_view(['GET'])
 def GetEventViewSet(request):
