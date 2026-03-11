@@ -158,7 +158,7 @@ export default function DraftLobbyPage() {
         enabled: !!selectedTeamId, // Only run this query if selectedTeamId is available
     })
 
-    const USERTEAMID = rosterData ? rosterData.team.id : undefined;
+    const USERTEAMID = draftStateData ? draftStateData.user_team_id : undefined;
     const canDraft = draftStateData?.team_to_pick_id === USERTEAMID;
 
     // Handles errors that can occur during the drafting process 
