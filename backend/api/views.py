@@ -5,6 +5,7 @@ from random import random
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import generics
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Prefetch
@@ -12,6 +13,8 @@ from django.utils import timezone
 from dateutil.parser import parse
 from django.db.models import Max
 from django.shortcuts import get_object_or_404
+
+from api.pagination_classes import FighterListPagination
 
 from .serializers import *
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
@@ -467,11 +470,13 @@ def SetDraftDate(request, league_id):
 '''
     -   GET METHODS
 '''
-@api_view(['GET'])
-def GetFighterProfileViewSet(request):
-    fighters = FighterCareerStats.objects.all()
-    serializer = FighterSerializer(fighters, many=True)
-    return Response(serializer.data)
+class GetFighterProfileViewSet(generics.ListAPIView):
+    '''
+        API view to get fighter profiles with pagination
+    '''
+    queryset = FighterCareerStats.objects.all()
+    serializer_class = FighterSerializer
+    pagination_class = FighterListPagination
 
 @api_view(['GET'])
 def GetEventViewSet(request):
