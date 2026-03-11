@@ -5,6 +5,7 @@ from random import random
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import generics
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Prefetch
@@ -13,7 +14,7 @@ from dateutil.parser import parse
 from django.db.models import Max
 from django.shortcuts import get_object_or_404
 
-from backend.api.pagination_classes import FighterListPagination
+from api.pagination_classes import FighterListPagination
 
 from .serializers import *
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
