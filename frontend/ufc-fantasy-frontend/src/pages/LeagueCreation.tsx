@@ -196,10 +196,8 @@ export default function LeagueCreation(){
                             <FormControl fullWidth>
                                 <FormLabel htmlFor='leagueName' sx={{
                                     color: 'white',
-                                    fontSize: '1rem',
-                                    fontWeight: 600,
+                                    fontSize: '1.3rem',
                                     mb: 1.5,
-                                    textTransform: 'uppercase',
                                     letterSpacing: '0.05em'
                                 }}>
                                     League Name
@@ -228,10 +226,8 @@ export default function LeagueCreation(){
                           <FormControl fullWidth> 
                             <FormLabel htmlFor='teamSelect' sx={{
                                 color: 'white',
-                                fontSize: '1rem',
-                                fontWeight: 600,
+                                fontSize: '1.3rem',
                                 mb: 2,
-                                textTransform: 'uppercase',
                                 letterSpacing: '0.05em',
                                 textAlign: 'center'
                             }}>
@@ -321,7 +317,7 @@ export default function LeagueCreation(){
                 <DialogContent sx={{ pt: 2 }}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <Box sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1.5 }}>
-                            <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                            <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 0.5, letterSpacing: '0.05em', fontWeight: 600 }}>
                                 League Name
                             </Typography>
                             <Typography sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
@@ -329,7 +325,7 @@ export default function LeagueCreation(){
                             </Typography>
                         </Box>
                         <Box sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1.5 }}>
-                            <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                            <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 0.5, letterSpacing: '0.05em', fontWeight: 600 }}>
                                 Number of Teams
                             </Typography>
                             <Typography sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
