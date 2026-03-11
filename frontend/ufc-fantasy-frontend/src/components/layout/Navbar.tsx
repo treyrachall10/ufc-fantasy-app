@@ -83,8 +83,8 @@ export default function Navbar(){
                 <Typography
                     variant="h6"
                     noWrap
-                    component="a"
-                    href="#app-bar-with-responsive-menu"
+                    component={Link}
+                    to="/"
                     sx={{
                         mr: 2,
                         display: { xs: 'none', md: 'flex' },
@@ -93,6 +93,7 @@ export default function Navbar(){
                         letterSpacing: '.3rem',
                         color: 'inherit',
                         textDecoration: 'none',
+                        cursor: 'pointer',
                     }}
                 >
                     FantasyUFC
@@ -160,8 +161,8 @@ export default function Navbar(){
                     <Typography
                         variant="h5"
                         noWrap
-                        component="a"
-                        href="#app-bar-with-responsive-menu"
+                        component={Link}
+                        to="/"
                         sx={{
                         mr: 2,
                         display: { xs: 'flex', md: 'none' },
@@ -171,6 +172,7 @@ export default function Navbar(){
                         letterSpacing: '.3rem',
                         color: 'inherit',
                         textDecoration: 'none',
+                        cursor: 'pointer',
                         }}
                     >
                         FantasyUFC
