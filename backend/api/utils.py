@@ -135,7 +135,7 @@ def autopick_fighter(team, draft):
     """
     Automatically selects a random available fighter for the team during the draft.
     Prioritizes filling weight class slots, falling back to FLEX if all weight classes are filled.
-    Returns the randomly chosen fighter's FighterCareerStats object.
+    Returns the randomly chosen fighter's FighterCareerStats object and assigned slot type.
     
     :param team: Instance of Team model object
     :param draft: Instance of Draft model object
