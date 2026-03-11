@@ -1,7 +1,8 @@
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { useState } from 'react';
+import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query'
-import { Fighter } from '../../types/types';
+import { Fighter, PaginatedResponse } from '../../types/types';
 
 export default function FightersList() {
     {/* API fetching*/}    
