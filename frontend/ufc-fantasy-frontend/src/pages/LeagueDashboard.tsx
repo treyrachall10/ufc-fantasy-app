@@ -16,9 +16,6 @@ import Snackbar, { SnackbarCloseReason } from '@mui/material/Snackbar';
 import CloseIcon from '@mui/icons-material/Close';
 import { useContext } from 'react'
 import { AuthContext } from '../auth/AuthProvider'
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
@@ -33,84 +30,14 @@ interface SetDraftSatePayload {
     draft_date: string,
 }
 
-export interface ScheduleDraftDialogProps {
-  open: boolean;
-  onClose: (value: string) => void;
-  onSubmit: (date: Dayjs) => void;
-}
-
-function ScheduleDraftDialogue(props: ScheduleDraftDialogProps) {
-    const { onClose, open, onSubmit} = props;
-    const [draftDate, setDraftDate] = React.useState<Dayjs | null>(null)
-    const isInvalid = !!draftDate && draftDate.isBefore(dayjs());
-
-    // Ensure draft date in future
-    const validateDraftDate = () => {
-        if (!draftDate) return false;
-        return draftDate.isAfter(dayjs());
-    };
-
-    const handleClose = () => {
-        onClose('')
-    };
-
-    return (
-    <Dialog onClose={handleClose} open={open}>
-      <DialogTitle align='center'>Set Draft Date</DialogTitle>
-      <DialogContent 
-        sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 1,
-            p: 4
-        }}
-      >
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DateTimePicker 
-                label="Select Date and Time"
-                value={draftDate}
-                onChange={setDraftDate}
-                sx={{
-                    margin: 1
-                }}
-                slotProps={{
-                    textField: {
-                        error: Boolean(isInvalid),
-                        helperText: isInvalid ? "Date must be in the future" : "",
-                    }
-                }}
-                />
-            </LocalizationProvider>
-            <Button 
-                variant="contained" 
-                color='brandAlpha50'
-                disabled={!draftDate || isInvalid}
-                onClick={() => {
-                    if (!draftDate) return;
-                    onSubmit(draftDate);
-                }}
-                sx={{ 
-                    borderColor: 'brand.light',
-                    '&:hover': {
-                        borderColor: 'brand.main'
-                    }                        
-                }}
-                >
-                    Submit
-            </Button>
-        </DialogContent>
-    </Dialog>
-  );
-}
-
 export default function LeagueDashboard() {   
     const params = useParams();
     const authFetch = useAuthFetch();
     const { data: user, isLoading: userLoading } = useCurrentUser()
 
     const [open, setOpen] = React.useState(false);
-    const [dialogueOpen, setDialogueOpen] = React.useState(false);
+    const [draftPickerOpen, setDraftPickerOpen] = React.useState(false);
+    const [draftDate, setDraftDate] = React.useState<Dayjs | null>(null);
     const [joinCodeAnchorEl, setJoinCodeAnchorEl] = React.useState<HTMLButtonElement | null>(null);
     const [snackbarOpen, setSnackbarOpen] = React.useState(false);
 
@@ -166,18 +93,14 @@ export default function LeagueDashboard() {
         setOpen(true);
     }
 
-    const handleDialogueOpen = () => {
-        setDialogueOpen(true);
-    }
+    const isInvalidDraftDate = !!draftDate && draftDate.isBefore(dayjs());
 
-    const handleDialogueClose = (value: string) => {
-        setDialogueOpen(false);
-    }
-
-    const handleDialogueSubmit = (date: Dayjs) => {
+    const handleDraftDateAccept = (date: Dayjs | null) => {
+        if (!date || date.isBefore(dayjs())) return;
         scheduleDraftMutation.mutate({
             draft_date: date.toISOString(),
         });
+        setDraftPickerOpen(false);
     };
 
     const handleJoinCodeOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -246,36 +169,56 @@ export default function LeagueDashboard() {
         </Typography>
 );
 
-const ScheduleDraft = () => {
-    return (
-        <Stack spacing={0.5}>
-            <Button
-                variant="contained"
-                color="whiteAlpha20"
-                disabled={missing > 0}
-                onClick={handleDialogueOpen}
-                sx={{
-                    borderColor: 'gray900.main',
-                    '&:hover': {
-                        borderColor: 'gray800.main'
-                    },
-                    '&.Mui-disabled': {
-                        backgroundColor: 'hsla(0, 0%, 21%, 0.20)',
-                        color: 'text.secondary',
-                        borderColor: 'gray800.main',
-                    },
-                }}
-            >
-            Set Draft Date
-            </Button>
-            {missing > 0 && (
-            <Typography fontSize="0.75rem" color="text.secondary" alignSelf={'center'}>
-                Waiting for {missing} more teams
-            </Typography>
-            )}
-        </Stack>
-    )
-}
+const scheduleDraftSection = (
+    <Stack spacing={0.5}>
+        <Button
+            variant="contained"
+            color="whiteAlpha20"
+            disabled={missing > 0}
+            onClick={() => setDraftPickerOpen(true)}
+            sx={{
+                borderColor: 'gray900.main',
+                '&:hover': {
+                    borderColor: 'gray800.main'
+                },
+                '&.Mui-disabled': {
+                    backgroundColor: 'hsla(0, 0%, 21%, 0.20)',
+                    color: 'text.secondary',
+                    borderColor: 'gray800.main',
+                },
+            }}
+        >
+        Set Draft Date
+        </Button>
+        {draftPickerOpen && (
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DateTimePicker
+                    label="Select Draft Date & Time"
+                    value={draftDate}
+                    onChange={setDraftDate}
+                    onAccept={handleDraftDateAccept}
+                    onClose={() => setDraftPickerOpen(false)}
+                    open={draftPickerOpen}
+                    disablePast={true}
+                    sx={{
+                        margin: 1,
+                    }}
+                    slotProps={{
+                        textField: {
+                            error: Boolean(isInvalidDraftDate),
+                            helperText: isInvalidDraftDate ? "Date must be in the future" : "",
+                        },
+                    }}
+                />
+            </LocalizationProvider>
+        )}
+        {missing > 0 && (
+        <Typography fontSize="0.75rem" color="text.secondary" alignSelf={'center'}>
+            Waiting for {missing} more teams
+        </Typography>
+        )}
+    </Stack>
+)
 
 const DraftScheduled = () => {
     return (
@@ -464,14 +407,9 @@ const NonCreatorDraftNotScheduled = () => {
                                     </Popover>
                                 </>
                             )}
-                                {canScheduleDraft && <ScheduleDraft/>}
+                                {canScheduleDraft && scheduleDraftSection}
                                 {(isDraftScheduled || isDraftInProgress) && <DraftScheduled/>}
                                 {nonCreatorDraftNotScheduled && <NonCreatorDraftNotScheduled/>}
-                                <ScheduleDraftDialogue
-                                    onClose={handleDialogueClose}
-                                    open={dialogueOpen}
-                                    onSubmit={handleDialogueSubmit}
-                                />
                                 <Snackbar
                                     open={snackbarOpen}
                                     autoHideDuration={2000}

@@ -209,6 +209,48 @@ const theme = createTheme({
         
         minHeight: '100vh',
       },
+      ".MuiPickersLayout-root": {
+        border: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiPickersDay-root:not(.Mui-selected):hover": {
+        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiPickersYear-yearButton:hover": {
+        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiPickersMonth-monthButton:hover": {
+        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiDigitalClock-item:hover": {
+        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiMultiSectionDigitalClockSection-item:hover": {
+        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiPickersMeridiem-root:hover": {
+        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiPickersToolbar-root": {
+        borderBottom: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiPickersLayout-contentWrapper": {
+        borderBottom: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiDateCalendar-root": {
+        borderRight: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiMultiSectionDigitalClock-root": {
+        borderLeft: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiMultiSectionDigitalClockSection-root:not(:last-of-type)": {
+        borderRight: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiPickersActionBar-root": {
+        borderTop: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiPickersActionBar-root .MuiButton-root:hover": {
+        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
+      },
     },
   },
     MuiButton: {
