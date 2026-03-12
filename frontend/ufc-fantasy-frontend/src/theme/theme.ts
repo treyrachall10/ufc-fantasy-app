@@ -209,6 +209,52 @@ const theme = createTheme({
         
         minHeight: '100vh',
       },
+      ".MuiPickersLayout-root": {
+        border: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiPickersDay-root:not(.Mui-selected):hover": {
+        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiPickersToolbar-root": {
+        borderBottom: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiPickersLayout-contentWrapper": {
+        borderBottom: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiDateCalendar-root": {
+        borderRight: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiMultiSectionDigitalClock-root": {
+        borderLeft: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiMultiSectionDigitalClockSection-root:not(:last-of-type)": {
+        borderRight: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiPickersActionBar-root": {
+        borderTop: '1px solid hsla(0, 0%, 100%, 0.5)',
+      },
+      ".MuiPickersLayout-root .MuiPickersActionBar-root .MuiButton-root:hover": {
+        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
+      },
+      ".league-draft-picker .MuiPickersOutlinedInput-root": {
+        minWidth: 235,
+        borderRadius: '.5rem',
+      },
+      ".league-draft-picker .MuiPickersOutlinedInput-root fieldset": {
+        borderColor: 'hsla(0, 0%, 100%, 1)',
+      },
+      ".league-draft-picker .MuiPickersOutlinedInput-root:hover fieldset": {
+        borderColor: 'hsla(0, 0%, 100%, 1)',
+      },
+      ".league-draft-picker .MuiPickersOutlinedInput-root.Mui-focused fieldset": {
+        borderColor: 'hsla(0, 0%, 100%, 1)',
+      },
+      ".league-draft-picker .MuiPickersOutlinedInput-root.Mui-disabled fieldset": {
+        borderColor: 'hsla(0, 0%, 100%, 0.35)',
+      },
+      ".league-draft-picker.league-draft-picker--full .MuiPickersOutlinedInput-root fieldset": {
+        borderColor: 'hsla(0, 0%, 100%, 0.50)',
+      },
     },
   },
     MuiButton: {
