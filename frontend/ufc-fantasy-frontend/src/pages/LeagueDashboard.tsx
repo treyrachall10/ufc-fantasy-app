@@ -20,7 +20,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import type { Dayjs } from 'dayjs';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs'
 import { Link as RouterLink } from 'react-router-dom';
 import { LeagueInfo } from '../types/types';
@@ -33,6 +33,7 @@ interface SetDraftSatePayload {
 export default function LeagueDashboard() {   
     const params = useParams();
     const authFetch = useAuthFetch();
+    const queryClient = useQueryClient();
     const { data: user, isLoading: userLoading } = useCurrentUser()
 
     const [open, setOpen] = React.useState(false);
@@ -61,11 +62,8 @@ export default function LeagueDashboard() {
         return data
         },
 
-        // Do something if fails
-        onError: (error: any) => {
-        },
-
-        onSuccess: (data) => {
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['League'] });
         }
     })
 
