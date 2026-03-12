@@ -36,7 +36,6 @@ export default function LeagueDashboard() {
     const { data: user, isLoading: userLoading } = useCurrentUser()
 
     const [open, setOpen] = React.useState(false);
-    const [draftPickerOpen, setDraftPickerOpen] = React.useState(false);
     const [draftDate, setDraftDate] = React.useState<Dayjs | null>(null);
     const [joinCodeAnchorEl, setJoinCodeAnchorEl] = React.useState<HTMLButtonElement | null>(null);
     const [snackbarOpen, setSnackbarOpen] = React.useState(false);
@@ -61,14 +60,14 @@ export default function LeagueDashboard() {
     
         return data
         },
-    
+
         // Do something if fails
         onError: (error: any) => {
         },
-    
+
         onSuccess: (data) => {
         }
-    })  
+    })
 
     if (isPending || userLoading) return <span>Loading...</span>
     if (error) return <span>Oops!</span>
@@ -100,7 +99,6 @@ export default function LeagueDashboard() {
         scheduleDraftMutation.mutate({
             draft_date: date.toISOString(),
         });
-        setDraftPickerOpen(false);
     };
 
     const handleJoinCodeOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -171,47 +169,44 @@ export default function LeagueDashboard() {
 
 const scheduleDraftSection = (
     <Stack spacing={0.5}>
-        <Button
-            variant="contained"
-            color="whiteAlpha20"
-            disabled={missing > 0}
-            onClick={() => setDraftPickerOpen(true)}
-            sx={{
-                borderColor: 'gray900.main',
-                '&:hover': {
-                    borderColor: 'gray800.main'
-                },
-                '&.Mui-disabled': {
-                    backgroundColor: 'hsla(0, 0%, 21%, 0.20)',
-                    color: 'text.secondary',
-                    borderColor: 'gray800.main',
-                },
-            }}
-        >
-        Set Draft Date
-        </Button>
-        {draftPickerOpen && (
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DateTimePicker
-                    label="Select Draft Date & Time"
-                    value={draftDate}
-                    onChange={setDraftDate}
-                    onAccept={handleDraftDateAccept}
-                    onClose={() => setDraftPickerOpen(false)}
-                    open={draftPickerOpen}
-                    disablePast={true}
-                    sx={{
-                        margin: 1,
-                    }}
-                    slotProps={{
-                        textField: {
-                            error: Boolean(isInvalidDraftDate),
-                            helperText: isInvalidDraftDate ? "Date must be in the future" : "",
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DateTimePicker
+                label="Select Draft Date & Time"
+                value={draftDate}
+                onChange={setDraftDate}
+                onAccept={handleDraftDateAccept}
+                disablePast={true}
+                disabled={missing > 0}
+                desktopModeMediaQuery="@media (min-width:0px)"
+                sx={{
+                    margin: 1,
+                }}
+                slotProps={{
+                    actionBar: {
+                        actions: ['cancel', 'accept'],
+                    },
+                    textField: {
+                        className: `league-draft-picker ${missing === 0 ? 'league-draft-picker--full' : ''}`,
+                        size: 'small',
+                        error: Boolean(isInvalidDraftDate),
+                        helperText: isInvalidDraftDate ? "Date must be in the future" : "",
+                        sx: {
+                            width: 'fit-content',
+                            '& .MuiInputLabel-root': {
+                                color: 'text.secondary',
+                                whiteSpace: 'nowrap',
+                            },
+                            '& .MuiInputBase-input': {
+                                color: 'text.primary',
+                            },
+                            '& .MuiSvgIcon-root': {
+                                color: 'text.primary',
+                            },
                         },
-                    }}
-                />
-            </LocalizationProvider>
-        )}
+                    },
+                }}
+            />
+        </LocalizationProvider>
         {missing > 0 && (
         <Typography fontSize="0.75rem" color="text.secondary" alignSelf={'center'}>
             Waiting for {missing} more teams

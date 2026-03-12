@@ -215,21 +215,6 @@ const theme = createTheme({
       ".MuiPickersLayout-root .MuiPickersDay-root:not(.Mui-selected):hover": {
         backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
       },
-      ".MuiPickersLayout-root .MuiPickersYear-yearButton:hover": {
-        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
-      },
-      ".MuiPickersLayout-root .MuiPickersMonth-monthButton:hover": {
-        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
-      },
-      ".MuiPickersLayout-root .MuiDigitalClock-item:hover": {
-        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
-      },
-      ".MuiPickersLayout-root .MuiMultiSectionDigitalClockSection-item:hover": {
-        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
-      },
-      ".MuiPickersLayout-root .MuiPickersMeridiem-root:hover": {
-        backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
-      },
       ".MuiPickersLayout-root .MuiPickersToolbar-root": {
         borderBottom: '1px solid hsla(0, 0%, 100%, 0.5)',
       },
@@ -250,6 +235,25 @@ const theme = createTheme({
       },
       ".MuiPickersLayout-root .MuiPickersActionBar-root .MuiButton-root:hover": {
         backgroundColor: 'hsla(0, 91%, 43%, 0.5)',
+      },
+      ".league-draft-picker .MuiPickersOutlinedInput-root": {
+        minWidth: 235,
+        borderRadius: '.5rem',
+      },
+      ".league-draft-picker .MuiPickersOutlinedInput-root fieldset": {
+        borderColor: 'hsla(0, 0%, 100%, 1)',
+      },
+      ".league-draft-picker .MuiPickersOutlinedInput-root:hover fieldset": {
+        borderColor: 'hsla(0, 0%, 100%, 1)',
+      },
+      ".league-draft-picker .MuiPickersOutlinedInput-root.Mui-focused fieldset": {
+        borderColor: 'hsla(0, 0%, 100%, 1)',
+      },
+      ".league-draft-picker .MuiPickersOutlinedInput-root.Mui-disabled fieldset": {
+        borderColor: 'hsla(0, 0%, 100%, 0.35)',
+      },
+      ".league-draft-picker.league-draft-picker--full .MuiPickersOutlinedInput-root fieldset": {
+        borderColor: 'hsla(0, 0%, 100%, 0.50)',
       },
     },
   },
