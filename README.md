@@ -1,119 +1,214 @@
 # UFC Fantasy App
 
-**Dockerized Django backend and frontend (frontend not yet implemented)** for a UFC fantasy application.  
-This project is built for full-stack development using containers — ready for local development, future frontend integration, and eventual deployment.
+Containerized **Django backend** with a **React frontend** for a UFC fantasy sports application.
+
+The backend runs inside Docker and connects to a **Supabase PostgreSQL database**.  
+The frontend runs locally during development.
 
 ---
 
-## **Prerequisites**
+# Prerequisites
 
-Make sure you have the following installed before running:
+Install the following before running the project:
 
-- Docker Desktop  
-- Docker Compose  
-- Visual Studio Code  
-- VS Code Docker Extension (by Microsoft)
+- Docker Desktop
+- Node.js (v18+)
+- npm
+- Visual Studio Code (recommended)
+
+Optional:
+
+- VS Code Docker Extension (Microsoft)
 
 ---
 
-## **Local Development Setup**
+# Clone the Repository
 
-### 1. Clone the Repository
 ```bash
 git clone https://github.com/<your-username>/ufc-fantasy-app.git
 cd ufc-fantasy-app
 ```
 
-### 2. Build and Run Containers
+---
+
+# Database Setup (Supabase)
+
+This project uses **Supabase PostgreSQL** instead of a local Docker database.
+
+## 1. Create a Supabase Project
+
+Go to:
+
+https://supabase.com
+
+Create a new project.  
+This project is intended for **personal development use**.
+
+---
+
+## 2. Get the Database Connection Info
+
+In the Supabase dashboard:
+
+Project Settings → Database → Connect
+
+Change the connection method to:
+
+Transaction Pooler
+
+Copy the values provided under **View Parameters**.
+
+---
+
+## 3. Create the `.env` File
+
+Create a `.env` file in the **same directory as `docker-compose.yml`**.
+
+Example project structure:
+
+```
+ufc-fantasy-app/
+│
+├── docker-compose.yml
+├── .env
+```
+
+Add the database values using the format expected by Django `settings.py`.
+
+Example:
+
+```
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASSWORD=yourpassword
+DB_HOST=your-supabase-host
+DB_PORT=6543
+```
+
+Once this file exists, the Django container will connect to Supabase automatically.
+
+---
+
+# Running the Backend
+
+Build and start the container:
+
 ```bash
 docker compose up --build
 ```
 
-- The app will run at:  
-  ```bash
-  http://localhost:8000
-  ```
+When the container starts:
 
-### 3. Verify the Setup
-- You should see this in the terminal:  
-  ```bash
-  Django version 5.x, using settings 'ufc_fantasy.settings'
-  Starting development server at http://0.0.0.0:8000/
-  ```
-- Open your browser and go to:  
-  ```bash
-  http://localhost:8000
-  ```
+- Django connects to Supabase
+- Migrations run automatically
+- Database tables are created
 
----
+The API will run at:
 
-## **Stopping Containers**
-
-### Stop and clean up containers
-```bash
-Ctrl + C
-docker compose down
+```
+http://localhost:8000
 ```
 
-This stops the containers and removes them while keeping your database data in the persisted volume.
+---
+
+# Populate the Database
+
+After the container is running, open a shell inside the container.
+
+```
+docker exec -it <container-name> bash
+```
+
+Then run:
+
+```
+python manage.py refresh_ufc_data
+```
+
+This command:
+
+- Scrapes UFC data
+- Populates fighters
+- Populates events
+- Populates fights
+
+After this step the database is fully initialized.
 
 ---
 
-## **Production / VS Code Container Workflow**
+# Updating the Data
 
-If you’re using the VS Code Docker extension, you can work directly inside the running container without rebuilding each time.
+After new UFC events occur, update the database by running:
 
-### 1. Install the VS Code Docker Extension
-- Open VS Code → Extensions → search **“Docker”** → install (by Microsoft).
+```
+python manage.py refresh_ufc_data
+```
 
-### 2. Start the Containers
-```bash
+This should typically be done **once per week**.
+
+---
+
+# Frontend Setup
+
+Navigate to the frontend directory:
+
+```
+cd frontend/ufc-fantasy-frontend
+```
+
+Install dependencies:
+
+```
+npm install
+```
+
+Start the frontend development server:
+
+```
+npm start
+```
+
+---
+
+# Development Workflow
+
+During development you need **two running processes**.
+
+## Backend
+
+```
 docker compose up
 ```
 
-- Or, in Docker Desktop:  
-  ```bash
-  Open Docker Desktop → Containers → select "ufc-fantasy-app" → click "Start"
-  ```
+## Frontend
 
-### 3. Attach to the Running Container
-- In VS Code:
-  - Open the Docker extension panel  
-  - Expand **Containers → select the "web" container** (e.g., `ufc-fantasy-app_web_1`)  
-  - Right-click → **Attach Visual Studio Code**
-
-VS Code will open a new window directly inside the container’s environment.
-
-Once attached:
-- Edit Django code directly  
-- Run migrations or management commands in the built-in terminal  
-- See code changes instantly (Django auto-reloads with StatReloader)
-
-You do **not** have to rebuild after every change.
+```
+npm start
+```
 
 ---
 
-## **Long Term Plans**
-
-- Implement a frontend (React or Angular) served through Nginx  
-- Add user authentication and fantasy scoring logic  
-- Deploy to production (AWS, Azure, or Docker Hub image)
-
----
-
-## **Tech Stack**
+# Tech Stack
 
 | Component | Technology |
-|------------|-------------|
-| Backend | Django 5.x |
-| Database | PostgreSQL 14 |
-| Frontend | To be implemented |
+|-----------|------------|
+| Backend | Django 5 |
+| Database | Supabase PostgreSQL |
+| Frontend | React |
 | Containerization | Docker + Docker Compose |
-| Editor Integration | VS Code Docker Extension |
+| Package Manager | npm |
 
 ---
 
-## **Summary**
+# Project Summary
 
-This project is designed for collaborative, containerized development.  
-Anyone can clone, build, and run with one command — and use VS Code’s Docker tools to make direct changes inside the container environment.
+To run the project:
+
+1. Clone the repository
+2. Create a Supabase project
+3. Add database credentials to `.env`
+4. Run the Docker container
+5. Populate the database
+6. Start the frontend
+
+After these steps the entire application runs locally.
