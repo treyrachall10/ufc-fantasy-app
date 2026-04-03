@@ -4,12 +4,12 @@ import FighterTable from '../components/dataGrid/FighterTable';
 import DraftPlayerCard from '../components/Draftcards/DraftPlayerCard';
 import { useEffect, useState } from 'react';
 import AnimatedList from '../components/Animations/AnimatedList';
-import { Query, useQuery } from '@tanstack/react-query';
+import { Query, keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthFetch } from '../auth/authFetch';
 import { useParams } from 'react-router-dom';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridPaginationModel, GridRenderCellParams } from '@mui/x-data-grid';
 import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam, PaginatedResponse } from '../types/types';
 import { useRef } from 'react';
 
@@ -47,6 +47,8 @@ export default function DraftLobbyPage() {
     const isMobile = useMediaQuery('(max-width: 600px)');
     const queryClient = useQueryClient();
     const authFetch = useAuthFetch();
+    const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({ page: 0, pageSize: 25 });
+    const { page, pageSize } = paginationModel;
     
     // Draft Button Renderer for DataGrid - Calls the handleDraftPick function with the fighter's ID when clicked.
     const DraftButton = (params: GridRenderCellParams) => {
@@ -81,8 +83,16 @@ export default function DraftLobbyPage() {
 
     // Fetch Draftable Fighters for Draft Board
     const { data: draftableFightersData, isPending: isDraftableFightersPending, error: draftableFightersError} = useQuery<PaginatedResponse<DraftableFighter>>({
-        queryKey: ['draft', params.draftId, 'draftableFighters'],
-        queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/draftableFighters`).then(r => r.json()),
+        queryKey: ['draft', params.draftId, 'draftableFighters', page, pageSize],
+        queryFn: () => {
+            const queryParams = new URLSearchParams({
+                page: String(page + 1),
+                page_size: String(pageSize),
+            });
+
+            return authFetch(`http://localhost:8000/draft/${params.draftId}/draftableFighters?${queryParams.toString()}`).then(r => r.json());
+        },
+        placeholderData: keepPreviousData,
     })
 
     // Fetch League Info to get team names, league capacity, etc.
@@ -762,10 +772,12 @@ export default function DraftLobbyPage() {
                                         columns={columns} 
                                         
                                         pagination
-                                        pageSizeOptions={[15]}
-                                        initialState={{
-                                            pagination: { paginationModel: { pageSize: 15, page: 0 } },
-                                        }}
+                                        paginationMode="server"
+                                        paginationModel={paginationModel}
+                                        onPaginationModelChange={setPaginationModel}
+                                        rowCount={draftableFightersData?.count ?? 0}
+                                        pageSizeOptions={[25, 50, 100]}
+                                        loading={isDraftableFightersPending}
                                         
                                         disableRowSelectionOnClick // removes checkboxes
                                         disableColumnSorting // removes sorting. (if adding filtering remove this)
