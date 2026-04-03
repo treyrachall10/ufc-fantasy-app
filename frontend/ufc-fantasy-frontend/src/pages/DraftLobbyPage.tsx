@@ -10,7 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthFetch } from '../auth/authFetch';
 import { useParams } from 'react-router-dom';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam } from '../types/types';
+import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam, PaginatedResponse } from '../types/types';
 import { useRef } from 'react';
 
 // Payload type for drafting a fighter
@@ -80,7 +80,7 @@ export default function DraftLobbyPage() {
     })
 
     // Fetch Draftable Fighters for Draft Board
-    const { data: draftableFightersData, isPending: isDraftableFightersPending, error: draftableFightersError} = useQuery<DraftableFighter[]>({
+    const { data: draftableFightersData, isPending: isDraftableFightersPending, error: draftableFightersError} = useQuery<PaginatedResponse<DraftableFighter>>({
         queryKey: ['draft', params.draftId, 'draftableFighters'],
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/draftableFighters`).then(r => r.json()),
     })
@@ -279,7 +279,7 @@ export default function DraftLobbyPage() {
 
     // Transform raw API data into row format for the DataGrid
     // Convert weight class names to numeric values using the weightClassMap
-    const allRows = draftableFightersData?.map((item, index) => ({
+    const allRows = draftableFightersData?.results?.map((item, index) => ({
         id: item.fighter.fighter_id,
         weightClass: item.fighter.slot_type,
         fighter: item.fighter.full_name,
