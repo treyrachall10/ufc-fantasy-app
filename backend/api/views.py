@@ -5,7 +5,7 @@ from random import random
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import generics
+from rest_framework import generics, filters
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Prefetch
@@ -477,6 +477,8 @@ class GetFighterProfileViewSet(generics.ListAPIView):
     queryset = FighterCareerStats.objects.all()
     serializer_class = FighterSerializer
     pagination_class = FighterListPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['fighter__nick_name', 'fighter__full_name', 'fighter__normalized_name']
 
 @api_view(['GET'])
 def GetEventViewSet(request):
