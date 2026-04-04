@@ -2,7 +2,7 @@
     - Utility functions for api file
 """
 from django.utils import timezone
-from fantasy.models import Fighters, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick, LeagueMember
+from fantasy.models import Draft, Fighters, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick, LeagueMember
 from accounts.models import User
 import secrets
 import string
@@ -258,3 +258,10 @@ def get_or_create_user_from_token(request):
         user.email = email
         user.save(update_fields=["email"])
     return user
+
+def check_draft_completed(draft):
+    """
+    Check if draft is completed by querying the status of the draft and raise exception. 
+    """
+    if draft.status == Draft.Status.COMPLETED:
+        raise PermissionError("Draft functions are not available when draft is completed")
