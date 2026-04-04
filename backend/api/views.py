@@ -718,13 +718,16 @@ def GetDraftState(request, draft_id):
         )
     # Draft is live return draft status and current pick info 
     if draft.status == Draft.Status.IN_PROGRESS:
-        team_to_pick = DraftOrder.objects.get(draft=draft, pick_num=draft.current_pick).team
+        draft_order = DraftOrder.objects.get(draft=draft, pick_num=draft.current_pick)
+        team_to_pick = draft_order.team
         # Check time remaining for pick and if time has expired, auto pick for team to pick and advance draft
         time_elapsed = timezone.now() - draft.pick_start_time
         if time_elapsed >= timezone.timedelta(seconds=60): # 60 second pick timer
             fighter, slot_type = autopick_fighter(team=team_to_pick, draft=draft)
             if fighter and slot_type is not None:
                 execute_draft_pick(team=team_to_pick, fighter=fighter, draft=draft, pick_num=draft.current_pick, slot_type=slot_type)
+                if draft.current_pick > draft_order.count():
+                    draft.status = Draft.Status.COMPLETED
         return Response(
             {
                 "draft_status": draft.status,
