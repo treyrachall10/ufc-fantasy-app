@@ -411,27 +411,6 @@ export default function DraftLobbyPage() {
         ? [...baseColumns, draftColumn]
         : [...baseColumns, ...desktopOnlyColumns, averageColumn, draftColumn];
 
-    // 3. Helper Functions
-    // This function adds a new mock pick to the TOP of the history list.
-    const addPick = () => {
-        const newPick = {
-            id: Date.now(),
-            round: 2,
-            pick: 1,
-            user: 'Team Adan',
-            fighter: 'Illia Topuria',
-            wc: 'FW',
-        };
-        // The new pick goes first '...draftHistory' keeps the old ones after it.
-        setDraftHistory([newPick, ...draftHistory]);
-    };
-
-
-    const clearHistory = () => {
-        setDraftHistory([]);
-    };
-
-
     // Mock Recent Pick - Static
     // Mock Header Data
     const draftState = {
@@ -903,22 +882,7 @@ export default function DraftLobbyPage() {
                             <Typography variant="h3" sx={{ fontSize: '1rem', color: 'text.secondary' }}>
                                 Past Picks
                             </Typography>
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                                <Button onClick={clearHistory} variant="text" size="small" color="error" sx={{ minWidth: 'auto', px: 1 }}>
-                                    Clear
-                                </Button>
-                                <Button onClick={addPick} variant="text" size="small" sx={{ color: 'white', minWidth: 'auto', px: 1 }}>
-                                    Add
-                                </Button>
-                            </Box>
                         </Box>
-
-                        {/* 
-                            How the List Works:
-                            1. We pass the 'draftHistory' list to it.
-                            2. 'renderItem' tells it how to draw EACH box (using DraftPlayerCard).
-                            3. The component handles all the slide-in/fade-out animations automatically!
-                        */}
                         <Box sx={{ 
                             flex: 1, 
                             minHeight: 0, 
