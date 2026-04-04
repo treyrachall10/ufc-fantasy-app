@@ -30,16 +30,21 @@ export default function ListHeader(props: ListHeaderProps) {
                 value={props.searchValue ?? ''}
                 onChange={(event) => props.onSearchChange?.(event.target.value)}
                 onKeyDown={handleKeyDown}
-                sx={{bgcolor: 'black'}}
+                sx={{
+                    "& .MuiInputBase-root": {
+                        bgcolor: 'hsla(216, 33%, 3%, 1)',
+                    },
+                    
+                }}
                 slotProps={{
                     input: {
                         endAdornment: (
-                            <InputAdornment position="end" sx={{bgcolor: 'black'}}>
+                            <InputAdornment position="end" >
                                 <IconButton
                                     aria-label="search fighters"
                                     onClick={() => props.onSearchEnter?.()}
                                     edge="end"
-                                    sx={{bgcolor: 'black'}}
+
                                 >
                                     <SearchIcon sx={{ color: 'common.white' }} />
                                 </IconButton>
