@@ -740,8 +740,9 @@ def GetDraftOrder(request, draft_id):
 @method_decorator(require_auth(None), name='dispatch')
 class GetDraftableFighters(generics.ListAPIView):
     pagination_class = FighterListPagination
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['weight']
+    search_fields = ['full_name', 'normalized_name']
 
     def get_queryset(self):
         user = get_or_create_user_from_token(request=self.request)

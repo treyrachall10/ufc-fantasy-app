@@ -1,8 +1,11 @@
-import { Box, Grid, Paper, Stack, Typography, FormControl, Select, MenuItem, Avatar, Button, Menu, Dialog, DialogTitle, DialogContent, useMediaQuery } from '@mui/material';
+import { Box, Grid, Paper, Stack, Typography, FormControl, Select, MenuItem, Avatar, Button, Menu, Dialog, DialogTitle, DialogContent, useMediaQuery, TextField } from '@mui/material';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import SearchIcon from '@mui/icons-material/Search';
 import ListPageLayout from '../components/layout/ListPageLayout';
 import FighterTable from '../components/dataGrid/FighterTable';
 import DraftPlayerCard from '../components/Draftcards/DraftPlayerCard';
-import { useEffect, useState } from 'react';
+import { KeyboardEvent, useEffect, useState } from 'react';
 import AnimatedList from '../components/Animations/AnimatedList';
 import { Query, keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
@@ -62,6 +65,8 @@ export default function DraftLobbyPage() {
     const authFetch = useAuthFetch();
     const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({ page: 0, pageSize: 25 });
     const { page, pageSize } = paginationModel;
+    const [typedSearch, setTypedSearch] = useState('');
+    const [submittedSearch, setSubmittedSearch] = useState('');
     
     // State for weight class filter - holds the selected weight class text value
     const [selectedWeightClass, setSelectedWeightClass] = useState('');
@@ -77,6 +82,20 @@ export default function DraftLobbyPage() {
             setSelectedNumericWeightClass(numericValue || null);
         }
     }, [selectedWeightClass]);
+
+    useEffect(() => {
+        setPaginationModel((prev) => ({ ...prev, page: 0 }));
+    }, [selectedWeightClass, submittedSearch]);
+
+    const handleSearchSubmit = () => {
+        setSubmittedSearch(typedSearch.trim());
+    };
+
+    const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            handleSearchSubmit();
+        }
+    };
     
     // Draft Button Renderer for DataGrid - Calls the handleDraftPick function with the fighter's ID when clicked.
     const DraftButton = (params: GridRenderCellParams) => {
@@ -111,7 +130,7 @@ export default function DraftLobbyPage() {
 
     // Fetch Draftable Fighters for Draft Board
     const { data: draftableFightersData, isPending: isDraftableFightersPending, error: draftableFightersError} = useQuery<PaginatedResponse<DraftableFighter>>({
-        queryKey: ['draft', params.draftId, 'draftableFighters', page, pageSize, selectedNumericWeightClass],
+        queryKey: ['draft', params.draftId, 'draftableFighters', page, pageSize, selectedNumericWeightClass, submittedSearch],
         queryFn: () => {
             const queryParams = new URLSearchParams({
                 page: String(page + 1),
@@ -121,6 +140,10 @@ export default function DraftLobbyPage() {
             // Add weight class filter to API request if one is selected
             if (selectedNumericWeightClass) {
                 queryParams.set('weight', selectedNumericWeightClass.toString());
+            }
+
+            if (submittedSearch) {
+                queryParams.set('search', submittedSearch);
             }
 
             return authFetch(`http://localhost:8000/draft/${params.draftId}/draftableFighters?${queryParams.toString()}`).then(r => r.json());
@@ -778,6 +801,36 @@ export default function DraftLobbyPage() {
                                         <MenuItem value="SW">Strawweight (115)</MenuItem>
                                     </Select>
                                 </FormControl>
+
+                                <TextField
+                                    id="outlined-basic"
+                                    label="Search by fighter name"
+                                    variant="outlined"
+                                    value={typedSearch}
+                                    onChange={(event) => setTypedSearch(event.target.value)}
+                                    onKeyDown={handleSearchKeyDown}
+                                    sx={{
+                                        "& .MuiInputBase-root": {
+                                            bgcolor: 'hsla(216, 33%, 3%, 1)',
+                                        },
+                                    }}
+                                    slotProps={{
+                                        input: {
+                                            endAdornment: (
+                                                <InputAdornment position="end" >
+                                                    <IconButton
+                                                        aria-label="search fighters"
+                                                        onClick={handleSearchSubmit}
+                                                        edge="end"
+
+                                                    >
+                                                        <SearchIcon sx={{ color: 'common.white' }} />
+                                                    </IconButton>
+                                                </InputAdornment>
+                                            ),
+                                        },
+                                    }}
+                                ></TextField>
 
                                 {/* View Roster Button (xs/sm only) */}
                                 <Button
