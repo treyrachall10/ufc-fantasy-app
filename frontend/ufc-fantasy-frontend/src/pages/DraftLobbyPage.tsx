@@ -19,6 +19,19 @@ interface DraftFighterPayload {
     fighter_id: number;
 }
 
+// Weight class text to numeric mapping
+const WEIGHT_CLASS_MAP: Record<string, number> = {
+    'HW': 265,
+    'LHW': 205,
+    'MW': 185,
+    'WW': 170,
+    'LW': 155,
+    'FW': 145,
+    'BW': 135,
+    'FLW': 125,
+    'SW': 115,
+};
+
 // TypeScript interface for draft state
 interface DraftState {
     draft_status: string;
@@ -49,6 +62,21 @@ export default function DraftLobbyPage() {
     const authFetch = useAuthFetch();
     const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({ page: 0, pageSize: 25 });
     const { page, pageSize } = paginationModel;
+    
+    // State for weight class filter - holds the selected weight class text value
+    const [selectedWeightClass, setSelectedWeightClass] = useState('');
+    // State for numeric weight class translated from the text filter
+    const [selectedNumericWeightClass, setSelectedNumericWeightClass] = useState<number | null>(null);
+    
+    // Effect to translate weight class text to numeric value when filter changes
+    useEffect(() => {
+        if (selectedWeightClass === '') {
+            setSelectedNumericWeightClass(null);
+        } else {
+            const numericValue = WEIGHT_CLASS_MAP[selectedWeightClass];
+            setSelectedNumericWeightClass(numericValue || null);
+        }
+    }, [selectedWeightClass]);
     
     // Draft Button Renderer for DataGrid - Calls the handleDraftPick function with the fighter's ID when clicked.
     const DraftButton = (params: GridRenderCellParams) => {
@@ -83,12 +111,17 @@ export default function DraftLobbyPage() {
 
     // Fetch Draftable Fighters for Draft Board
     const { data: draftableFightersData, isPending: isDraftableFightersPending, error: draftableFightersError} = useQuery<PaginatedResponse<DraftableFighter>>({
-        queryKey: ['draft', params.draftId, 'draftableFighters', page, pageSize],
+        queryKey: ['draft', params.draftId, 'draftableFighters', page, pageSize, selectedNumericWeightClass],
         queryFn: () => {
             const queryParams = new URLSearchParams({
                 page: String(page + 1),
                 page_size: String(pageSize),
             });
+
+            // Add weight class filter to API request if one is selected
+            if (selectedNumericWeightClass) {
+                queryParams.set('weight', selectedNumericWeightClass.toString());
+            }
 
             return authFetch(`http://localhost:8000/draft/${params.draftId}/draftableFighters?${queryParams.toString()}`).then(r => r.json());
         },
@@ -146,8 +179,6 @@ export default function DraftLobbyPage() {
     const [rosterDialogOpen, setRosterDialogOpen] = useState(false);
     const [flexDialogOpen, setFlexDialogOpen] = useState(false);
     const [pendingFlexFighterId, setPendingFlexFighterId] = useState<number | null>(null);
-    
-    // Set default team to user's own team when draft state loads
     useEffect(() => {
         if (draftStateData?.user_team_id) {
             setSelectedTeamId(draftStateData.user_team_id);
@@ -258,9 +289,6 @@ export default function DraftLobbyPage() {
             invalidateDraftQueries(params);
         }
     })
-
-    // State for weight class filter - holds the selected weight class number or empty string for all
-    const [selectedWeightClass, setSelectedWeightClass] = useState('');
 
     // Time derived from server to show countdowns, current pick, etc.
     //get current time in seconds
