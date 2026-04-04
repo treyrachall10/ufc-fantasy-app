@@ -17,3 +17,4 @@ django-allauth
 dj-rest-auth
 djangorestframework-simplejwt
 authlib==1.3.0
+django-filter

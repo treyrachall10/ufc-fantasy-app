@@ -53,6 +53,9 @@ INSTALLED_APPS = [
     # Auth (API layer)
     'dj_rest_auth',
     'dj_rest_auth.registration',
+
+    # Filters
+    'django_filters',
 ]
 SITE_ID = 1
 CORS_ALLOW_ALL_ORIGINS = True
