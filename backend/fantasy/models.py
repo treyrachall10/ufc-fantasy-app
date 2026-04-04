@@ -1,5 +1,3 @@
-from django.db import models
-
 """
     - Populates the database with tables Fighters, Events, Fights, FightStats, RoundStats, and FighterCareerStats
     - Fighters serves as a primary key to FightStats and has a one-to-one relationship with FighterCareerStats and holds fighters metadata
@@ -9,6 +7,7 @@ from django.db import models
     - RoundStats holds a foreign key to FightStats and includes per round fight stats for each fighter for each fight
     - FighterCareerStats holds a one-to-one relationship with Fighters and contains fighters’ career stats
 """
+from django.db import models
 from django.conf import settings
 
 class Fighters(models.Model):

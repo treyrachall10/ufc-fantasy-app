@@ -63,7 +63,7 @@ def scrape_stats():
     # the code below continues to run to parse all missing events
     # new data is added to existing data and is written to file
 
-    if unparsed_events == True:
+    if unparsed_events:
         # read existing data files
         parsed_fight_details_df = pd.read_csv(config['fight_details_file_name'])
         parsed_fight_results_df = pd.read_csv(config['fight_results_file_name'])
@@ -185,7 +185,7 @@ def scrape_stats():
     # the code below continues to run to parse all missing fighters
     # new data is added to existing data and is written to file
 
-    if unparsed_fighters == True:
+    if unparsed_fighters:
 
         # read existing data files
         parsed_fighter_tott_df = pd.read_csv(config['fighter_tott_file_name'])

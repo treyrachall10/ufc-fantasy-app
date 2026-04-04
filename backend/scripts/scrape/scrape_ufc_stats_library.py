@@ -303,7 +303,8 @@ def organise_fight_stats(stats_from_soup):
     # group stats by fighter's name
     for name, stats in itertools.groupby(stats_from_soup, lambda x: x == stats_from_soup[0]):
         # create empty sublist to store each set of stats
-        if name: fighter_stats_clean.append([])
+        if name:
+            fighter_stats_clean.append([])
         # extend stats to sublist
         fighter_stats_clean[-1].extend(stats)
 
