@@ -38,7 +38,7 @@ from fantasy.models import (Fighters, Events, Fights, FighterCareerStats,
                             Team, Roster, Draft, DraftPick, DraftOrder)
 from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftable_fighters, get_or_create_user_from_token, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
-                    is_user_in_league, autopick_fighter, get_drafted_fighter_ids
+                    is_user_in_league, autopick_fighter, get_drafted_fighter_ids, check_draft_completed
                     )
 
 from accounts.models import User
@@ -202,6 +202,7 @@ def AddRosterSlot(request, draft_id):
     user = get_or_create_user_from_token(request=request)
     # Verify draft has been created for league
     draft = get_object_or_404(Draft, id=draft_id)
+    check_draft_completed(draft)
     # Gets League and team
     league = draft.league
     team = get_object_or_404(Team, id = request.data['team_id'], owner__owner__id=user.id)
@@ -293,6 +294,7 @@ def DraftFlexSlot(request, draft_id):
     user = get_or_create_user_from_token(request=request)
     # Verify draft has been created for league
     draft = get_object_or_404(Draft, id=draft_id)
+    check_draft_completed(draft)
     # Get League and team
     league = draft.league
     team = get_object_or_404(Team, id=request.data['team_id'], owner__owner__id=user.id)
@@ -746,12 +748,7 @@ def GetDraftOrder(request, draft_id):
     draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
     is_user_in_league(user, league.id) # Determine if user in league; raises error if not
-    # Check if draft is completed, return 403 to prevent users from seeing draft order 
-    if draft.status == Draft.Status.COMPLETED:
-        return Response(
-            {"detail": "Draft order is not available once draft is completed."},
-            status=403
-        )
+    check_draft_completed(draft)
     # Get draft order for league
     draft_order = DraftOrder.objects.filter(draft=draft).select_related('team').order_by('pick_num')
     serializer = DraftOrderSerializer(draft_order, many=True)
@@ -772,12 +769,7 @@ class GetDraftableFighters(generics.ListAPIView):
         draft = get_object_or_404(Draft, id=self.kwargs['draft_id'])
         league = draft.league
         is_user_in_league(user, league.id)
-        # Check if draft is completed, return 403 to prevent users from seeing draft order 
-        if draft.status == Draft.Status.COMPLETED:
-            return Response(
-                {"detail": "Draft order is not available once draft is completed."},
-                status=403
-            )
+        check_draft_completed(draft)
 
         drafted_fighter_ids = get_drafted_fighter_ids(draft=draft)
         return get_draftable_fighters(
@@ -828,6 +820,7 @@ class GetDraftableFighters(generics.ListAPIView):
 def GetDraftPickHistory(request, draft_id):
     user = get_or_create_user_from_token(request=request)
     draft = get_object_or_404(Draft, id=draft_id)
+    check_draft_completed(draft)
     league = draft.league
     is_user_in_league(user, league.id) # Determine if user in league; raises error if not
     draft_picks = DraftPick.objects.filter(draft=draft).select_related('fighter', 'team').order_by('-pick_num')
