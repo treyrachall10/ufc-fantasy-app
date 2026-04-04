@@ -4,8 +4,6 @@
     -   Converts to usable types for database
 """
 import pandas as pd
-import re
-import unicodedata
 from config import DATARAWPATH, DATACLEANPATH
 from scripts.utils import normalize_name
 from scripts.scrape.scrape_active_fighters import scrape_active_fighters_df

@@ -1,7 +1,6 @@
 '''
     Contains views for API
 '''
-from random import random
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -13,7 +12,6 @@ from django.db.models import Prefetch
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from dateutil.parser import parse
-from django.db.models import Max
 from django.shortcuts import get_object_or_404
 
 from api.pagination_classes import FighterListPagination
@@ -329,7 +327,7 @@ def DraftFlexSlot(request, draft_id):
             draft.save()
             return Response(
                 {
-                    "detail": f"Fighter has been drafted to FLEX. Draft is now completed.",
+                    "detail": "Fighter has been drafted to FLEX. Draft is now completed.",
                     "code": "draft_completed",
                     "draft_status": draft.status
                 },
@@ -337,7 +335,7 @@ def DraftFlexSlot(request, draft_id):
             )
         return Response(
             {
-                "detail": f"Fighter has been drafted to FLEX",
+                "detail": "Fighter has been drafted to FLEX",
                 "current_pick": draft.current_pick,
                 "pick_start_time": draft.pick_start_time,
                 "code": "pick_successful",

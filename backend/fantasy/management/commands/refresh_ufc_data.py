@@ -1,4 +1,4 @@
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from scripts.scrape.scrape_ufc_stats_unparsed_data import scrape_stats
 from scripts.parse_data import parse_all_data
 from scripts.db_population import populate_database

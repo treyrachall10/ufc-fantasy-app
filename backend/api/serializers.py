@@ -2,7 +2,7 @@
     Contains serializers for django views
 '''
 from rest_framework import serializers
-from fantasy.models import DraftOrder, DraftPick, Fighters, FighterCareerStats, Events, Fights, FightScore, FightStats, RoundScore, Team, League, Draft
+from fantasy.models import DraftOrder, DraftPick, Fighters, FighterCareerStats, Events, Fights, FightScore, RoundScore, Team, League, Draft
 
 class WinSerializer(serializers.HyperlinkedModelSerializer):
     total = serializers.IntegerField(source='wins', read_only=True)

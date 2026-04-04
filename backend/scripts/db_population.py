@@ -6,7 +6,7 @@ from datetime import datetime
 from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore, FightScore, FighterCareerStats
 from config import DATACLEANPATH, MODEL_MAP
 from scripts.utils import normalize_name
-from scripts.scoring import score_knockdowns, score_td_landed, score_sub_att, score_ctrl_time, score_win, score_round_finish, score_time
+from scripts.scoring import score_knockdowns, score_td_landed, score_sub_att, score_ctrl_time, score_round_finish, score_time
 
 
 def resolve_lookup_value(field_name, value):
@@ -232,7 +232,7 @@ def populate_fights_table():
                 update_fields=[field for field in model_fields if field not in unique_fields and field not in {"event", "winner"}],
             )
         except Exception as e:
-            print(f"ERROR bulk creating fights")
+            print("ERROR bulk creating fights")
             print(f"   {e}")
 
     # Bulk update existing records
@@ -240,7 +240,7 @@ def populate_fights_table():
         try:
             model_class.objects.bulk_update(objs=update_list, fields=model_fields)
         except Exception as e:
-            print(f"ERROR bulk updating fights")
+            print("ERROR bulk updating fights")
             print(f"   {e}")
 
     print(f"Created {len(create_list)} new fights rows.")
@@ -389,7 +389,7 @@ def populate_fight_stats_table():
                 update_fields=[field for field in model_fields if field not in unique_fields and field not in {"fight", "fighter"}],
             )
         except Exception as e:
-            print(f"ERROR bulk creating fight_stats")
+            print("ERROR bulk creating fight_stats")
             print(f"   {e}")
 
     # Bulk update existing records
@@ -397,7 +397,7 @@ def populate_fight_stats_table():
         try:
             model_class.objects.bulk_update(objs=update_list, fields=model_fields)
         except Exception as e:
-            print(f"ERROR bulk updating fight_stats")
+            print("ERROR bulk updating fight_stats")
             print(f"   {e}")
 
     print(f"Created {len(create_list)} new fight_stats rows.")
@@ -559,7 +559,7 @@ def populate_round_stats_table():
                 update_fields=[field for field in model_fields if field not in unique_fields and field != "fight_stats"],
             )
         except Exception as e:
-            print(f"ERROR bulk creating round_stats")
+            print("ERROR bulk creating round_stats")
             print(f"   {e}")
 
     # Bulk update existing records
@@ -567,7 +567,7 @@ def populate_round_stats_table():
         try:
             model_class.objects.bulk_update(objs=update_list, fields=model_fields)
         except Exception as e:
-            print(f"ERROR bulk updating round_stats")
+            print("ERROR bulk updating round_stats")
             print(f"   {e}")
 
     print(f"Created {len(create_list)} new round_stats rows.")
@@ -681,7 +681,7 @@ def populate_fighter_career_stats_table():
                 update_fields=[field for field in model_fields if field not in unique_fields and field != "fighter"],
             )
         except Exception as e:
-            print(f"ERROR bulk creating fighter_career_stats")
+            print("ERROR bulk creating fighter_career_stats")
             print(f"   {e}")
 
     # Bulk update existing records
@@ -689,7 +689,7 @@ def populate_fighter_career_stats_table():
         try:
             model_class.objects.bulk_update(objs=update_list, fields=model_fields)
         except Exception as e:
-            print(f"ERROR bulk updating fighter_career_stats")
+            print("ERROR bulk updating fighter_career_stats")
             print(f"   {e}")
 
     print(f"Created {len(create_list)} new fighter_career_stats rows.")
@@ -748,7 +748,6 @@ def populate_fight_score():
         'fightstats_set__roundstats_set__roundscore_set'
     ) # Filters every fight that needs scoring and prefetches related data
     objs = [] # Holds fight objects to bulk create
-    counter = 0
     # Iterate through fights; score fight; append to objs list
     for fight in fights:
         # Skip fights with no winner ONLY if it's not a draw

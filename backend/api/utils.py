@@ -2,12 +2,12 @@
     - Utility functions for api file
 """
 from django.utils import timezone
-from fantasy.models import Draft, Fighters, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick, LeagueMember, FighterCareerStats
+from fantasy.models import Fighters, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick, LeagueMember
 from accounts.models import User
 import secrets
 import string
 import random
-from django.db.models import Max, Prefetch
+from django.db.models import Prefetch
 
 def create_fantasy_for_fighter(fight, fighter,  round_stats):
     """
