@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from fantasy.models import *
+from fantasy.models import FighterCareerStats, Fighters
 
 def get_fighter(request, fighter_id):
     """
@@ -7,12 +7,12 @@ def get_fighter(request, fighter_id):
     """
     try:
         fighter = Fighters.objects.get(fighter_id=fighter_id)
-    except:
+    except Fighters.DoesNotExist:
         return JsonResponse({"error": "Fighter not found"}, status=404)
     
     try:
         fighter_career_stats = FighterCareerStats.objects.get(fighter=fighter)
-    except:
+    except FighterCareerStats.DoesNotExist:
         return JsonResponse({"error": "Career stats not available"}, status=404)
 
     fighter_data = {
