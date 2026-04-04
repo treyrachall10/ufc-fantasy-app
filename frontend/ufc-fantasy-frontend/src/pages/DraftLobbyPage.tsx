@@ -104,14 +104,14 @@ export default function DraftLobbyPage() {
         return (
             <Button
                 variant="contained"
-                color="whiteAlpha20"
+                color="brandAlpha50"
                 disabled={!canDraft}
                 onClick={() => handleDraftPick(Number(params.id))}
                 size={isMobile ? 'small' : undefined}
                 sx={{
                     textWrap: 'nowrap',
-                    borderColor: 'gray900.main',
-                    '&:hover': { borderColor: 'gray800.main' },
+                    borderColor: 'brand.light',
+                    '&:hover': { borderColor: 'brand.main' },
                     ...(isMobile && {
                         padding: '4px 10px',
                         fontSize: '0.7rem',
