@@ -746,7 +746,7 @@ def GetDraftOrder(request, draft_id):
     draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
     is_user_in_league(user, league.id) # Determine if user in league; raises error if not
-    # Check if draft is completed, return 403 if not to prevent users from seeing draft order 
+    # Check if draft is completed, return 403 to prevent users from seeing draft order 
     if draft.status == Draft.Status.COMPLETED:
         return Response(
             {"detail": "Draft order is not available once draft is completed."},
@@ -772,6 +772,12 @@ class GetDraftableFighters(generics.ListAPIView):
         draft = get_object_or_404(Draft, id=self.kwargs['draft_id'])
         league = draft.league
         is_user_in_league(user, league.id)
+        # Check if draft is completed, return 403 to prevent users from seeing draft order 
+        if draft.status == Draft.Status.COMPLETED:
+            return Response(
+                {"detail": "Draft order is not available once draft is completed."},
+                status=403
+            )
 
         drafted_fighter_ids = get_drafted_fighter_ids(draft=draft)
         return get_draftable_fighters(
