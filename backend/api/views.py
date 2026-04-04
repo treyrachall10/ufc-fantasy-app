@@ -746,6 +746,12 @@ def GetDraftOrder(request, draft_id):
     draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
     is_user_in_league(user, league.id) # Determine if user in league; raises error if not
+    # Check if draft is completed, return 403 if not to prevent users from seeing draft order 
+    if draft.status == Draft.Status.COMPLETED:
+        return Response(
+            {"detail": "Draft order is not available once draft is completed."},
+            status=403
+        )
     # Get draft order for league
     draft_order = DraftOrder.objects.filter(draft=draft).select_related('team').order_by('pick_num')
     serializer = DraftOrderSerializer(draft_order, many=True)
