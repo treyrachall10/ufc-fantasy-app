@@ -1,5 +1,5 @@
 first_name,last_name,dob,full_name,normalized_name,normalized_name_df2,nick_name,height,weight,reach,stance,is_active
-AJ,Cunningham,1994-09-07,AJ Cunningham,aj cunningham,aj cunningham,The Savage,70.0,135.0,71.0,Orthodox,True
+AJ,Cunningham,1994-09-07,AJ Cunningham,aj cunningham,aj cunningham,The Savage,70.0,135.0,71.0,Orthodox,False
 AJ,Dobson,1992-01-18,AJ Dobson,aj dobson,aj dobson,,73.0,185.0,76.0,Orthodox,True
 AJ,Fletcher,1997-02-18,AJ Fletcher,aj fletcher,aj fletcher,The Ghost,70.0,170.0,67.0,Switch,True
 AJ,Fonseca,,AJ Fonseca,aj fonseca,aj fonseca,,64.0,145.0,,,False
@@ -24,7 +24,7 @@ Aaron,Wilkinson,1987-01-31,Aaron Wilkinson,aaron wilkinson,aaron wilkinson,The D
 Abdellah,Er-Ramy,1996-09-19,Abdellah Er-Ramy,abdellah er ramy,abdellah er ramy,The Golden Boy,72.0,185.0,74.0,Orthodox,False
 Abdul,Razak Alhassan,1985-08-11,Abdul Razak Alhassan,abdul razak alhassan,abdul razak alhassan,,70.0,185.0,73.0,Orthodox,False
 Abdul Azeem,Badakhshi,,Abdul Azeem Badakhshi,abdul azeem badakhshi,abdul azeem badakhshi,The Afghan Lion,,145.0,,,True
-Abdul Rakhman,Yakhyaev,2001-01-03,Abdul Rakhman Yakhyaev,abdul rakhman yakhyaev,abdul rakhman yakhyaev,Hunter,74.0,205.0,78.0,Orthodox,True
+Abdul Rakhman,Yakhyaev,2001-01-03,Abdul Rakhman Yakhyaev,abdul rakhman yakhyaev,abdul rakhman yakhyaev,The Hunter,74.0,205.0,78.0,Orthodox,True
 Abdul-Kareem,Al-Selwady,1995-04-10,Abdul-Kareem Al-Selwady,abdul kareem al selwady,abdul kareem al selwady,Pride of Palestine,68.0,155.0,69.0,Orthodox,True
 Abdul-Kerim,Edilov,1991-11-25,Abdul-Kerim Edilov,abdul kerim edilov,abdul kerim edilov,,74.0,205.0,,Orthodox,False
 Abel,Cullum,1987-04-21,Abel Cullum,abel cullum,abel cullum,The Silent Assassin,67.0,139.0,,Orthodox,False
@@ -316,7 +316,7 @@ Antonio,Mendes,1981-04-19,Antonio Mendes,antonio mendes,antonio mendes,Samurai,7
 Antonio,Monteiro,1995-07-02,Antonio Monteiro,antonio monteiro,antonio monteiro,Junior Negao,67.0,145.0,70.0,Orthodox,False
 Antonio,Schembri,2074-06-01,Antonio Schembri,antonio schembri,antonio schembri,Nino,69.0,205.0,,Orthodox,False
 Antonio,Silva,1979-09-14,Antonio Silva,antonio silva,antonio silva,Bigfoot,76.0,264.0,82.0,Orthodox,False
-Antonio,Trocoli,1990-12-06,Antonio Trocoli,antonio trocoli,antonio trocoli,Malvado,78.0,185.0,79.0,Orthodox,True
+Antonio,Trocoli,1990-12-06,Antonio Trocoli,antonio trocoli,antonio trocoli,Malvado,78.0,185.0,79.0,Orthodox,False
 Antonio Braga,Neto,1987-10-29,Antonio Braga Neto,antonio braga neto,antonio braga neto,,75.0,185.0,77.0,Orthodox,False
 Antonio Rodrigo,Nogueira,1976-06-02,Antonio Rodrigo Nogueira,antonio rodrigo nogueira,antonio rodrigo nogueira,Minotauro,75.0,240.0,77.0,Orthodox,False
 Antony,Rea,1976-07-15,Antony Rea,antony rea,antony rea,Wild Thing,72.0,205.0,,Orthodox,False
@@ -415,6 +415,7 @@ Bendy,Casimir,1980-06-10,Bendy Casimir,bendy casimir,bendy casimir,,65.0,145.0,,
 Beneil,Dariush,1989-05-06,Beneil Dariush,beneil dariush,beneil dariush,,70.0,155.0,72.0,Southpaw,True
 Benito,Lopez,1994-04-06,Benito Lopez,benito lopez,benito lopez,Golden Boy,70.0,135.0,73.0,Switch,False
 Benjamin,Bennett,1994-05-08,Benjamin Bennett,benjamin bennett,benjamin bennett,Mr. Alaska,72.0,170.0,73.0,Switch,False
+Benjamin Donovan,Johnston,1990-10-11,Benjamin Donovan Johnston,benjamin donovan johnston,benjamin donovan johnston,,,185.0,,,False
 Benji,Radach,1979-04-05,Benji Radach,benji radach,benji radach,Razor,70.0,185.0,,Orthodox,False
 Benoit,Saint Denis,1995-12-18,Benoit Saint Denis,benoit saint denis,benoit saint denis,God of War,71.0,155.0,73.0,Southpaw,True
 Benson,Henderson,1983-11-16,Benson Henderson,benson henderson,benson henderson,Smooth,69.0,170.0,70.0,Southpaw,False
@@ -425,9 +426,8 @@ Besam,Yousef,1985-03-25,Besam Yousef,besam yousef,besam yousef,,71.0,170.0,,Orth
 Bethe,Correia,1983-06-22,Bethe Correia,bethe correia,bethe correia,Pitbull,65.0,135.0,64.0,Orthodox,False
 Bevon,Lewis,1991-05-05,Bevon Lewis,bevon lewis,bevon lewis,,75.0,185.0,79.0,Orthodox,False
 Bharat,Kandare,1987-06-20,Bharat Kandare,bharat kandare,bharat kandare,Daring,67.0,135.0,72.0,Orthodox,False
-Bia,Mesquita,1991-04-07,Bia Mesquita,bia mesquita,bia mesquita,,,135.0,,,True
+Bia,Mesquita,1991-04-07,Bia Mesquita,bia mesquita,bia mesquita,The Lady GOAT,,135.0,,,True
 Bibiano,Fernandes,1980-03-30,Bibiano Fernandes,bibiano fernandes,bibiano fernandes,,67.0,139.0,,Orthodox,False
-Bibulatov,Magomed,1988-08-22,Bibulatov Magomed,bibulatov magomed,bibulatov magomed,Chaborz,65.0,125.0,65.0,Orthodox,False
 Bill,Algeo,1989-06-09,Bill Algeo,bill algeo,bill algeo,Senor Perfecto,72.0,145.0,73.0,Switch,False
 Bill,Cooper,1984-05-05,Bill Cooper,bill cooper,bill cooper,,,155.0,,,False
 Bill,Duvall,,Bill Duvall,bill duvall,bill duvall,,74.0,185.0,,Southpaw,False
@@ -449,7 +449,9 @@ Blake,Watkins,,Blake Watkins,blake watkins,blake watkins,,,185.0,,,False
 Blas,Avena,1983-06-30,Blas Avena,blas avena,blas avena,The Disciple,72.0,170.0,74.0,Orthodox,False
 Blood,Diamond,1988-07-10,Blood Diamond,blood diamond,blood diamond,,71.0,170.0,76.0,Switch,True
 Bo,Cantrell,2069-02-08,Bo Cantrell,bo cantrell,bo cantrell,Redrum,74.0,235.0,,Orthodox,False
+Bo,Meng,1996-04-21,Bo Meng,bo meng,bo meng,,,115.0,,,False
 Bo,Nickal,1996-01-14,Bo Nickal,bo nickal,bo nickal,,73.0,185.0,76.0,Southpaw,True
+Bo Hyun,Park,1999-05-14,Bo Hyun Park,bo hyun park,bo hyun park,The Witch,,115.0,,,False
 Bob,Cook,,Bob Cook,bob cook,bob cook,Crazy,69.0,170.0,,Orthodox,False
 Bob,Gilstrap,,Bob Gilstrap,bob gilstrap,bob gilstrap,,75.0,200.0,,Orthodox,False
 Bob,Sapp,2074-09-22,Bob Sapp,bob sapp,bob sapp,The Beast,77.0,350.0,,Orthodox,False
@@ -563,12 +565,12 @@ Brogan,Walker,1988-08-02,Brogan Walker,brogan walker,brogan walker,The Bear,64.0
 Brok,Weaver,1991-12-05,Brok Weaver,brok weaver,brok weaver,Chata Tuska,72.0,155.0,73.0,Southpaw,False
 Bronson,Mohika,,Bronson Mohika,bronson mohika,bronson mohika,,,135.0,,,False
 Brooke,Mayo,,Brooke Mayo,brooke mayo,brooke mayo,The Bully,67.0,125.0,,,False
-Bruna,Brasil,1993-09-07,Bruna Brasil,bruna brasil,bruna brasil,,66.0,115.0,65.0,Orthodox,True
+Bruna,Brasil,1993-09-07,Bruna Brasil,bruna brasil,bruna brasil,,66.0,115.0,65.0,Orthodox,False
 Brunno,Ferreira,1992-11-04,Brunno Ferreira,brunno ferreira,brunno ferreira,The Hulk,70.0,185.0,72.0,Orthodox,True
 Bruno,Assis,1992-05-23,Bruno Assis,bruno assis,bruno assis,Brunao,74.0,185.0,,Orthodox,False
 Bruno,Carvalho,1982-06-07,Bruno Carvalho,bruno carvalho,bruno carvalho,,68.0,154.0,,,False
 Bruno,Korea,1991-06-28,Bruno Korea,bruno korea,bruno korea,,66.0,135.0,65.0,,False
-Bruno,Lopes,1993-04-24,Bruno Lopes,bruno lopes,bruno lopes,Brunao,74.0,205.0,74.0,Orthodox,True
+Bruno,Lopes,1993-04-24,Bruno Lopes,bruno lopes,bruno lopes,The Brazilian Cowboy,74.0,205.0,74.0,Orthodox,True
 Bruno,Oliveira,1984-05-02,Bruno Oliveira,bruno oliveira,bruno oliveira,,76.0,205.0,80.0,Orthodox,True
 Bruno,Santos,1987-07-17,Bruno Santos,bruno santos,bruno santos,Carioca,69.0,185.0,,Orthodox,False
 Bruno,Silva,1989-07-13,Bruno Silva,bruno silva,bruno silva,Blindado,72.0,185.0,74.0,Orthodox,True
@@ -912,6 +914,7 @@ Da'Mon,Blackshear,1994-08-12,Da'Mon Blackshear,da mon blackshear,da mon blackshe
 DaMarques,Johnson,1982-06-28,DaMarques Johnson,damarques johnson,damarques johnson,Darkness,73.0,170.0,75.0,Orthodox,False
 Dae Won,Kim,,Dae Won Kim,dae won kim,dae won kim,,71.0,180.0,,Orthodox,False
 Daermisi,Zhawupasi,1999-09-15,Daermisi Zhawupasi,daermisi zhawupasi,daermisi zhawupasi,,68.0,135.0,68.0,Switch,False
+Dagiisuren,Chagnaadorj,1999-12-31,Dagiisuren Chagnaadorj,dagiisuren chagnaadorj,dagiisuren chagnaadorj,,,145.0,,,False
 Daichi,Abe,1991-11-27,Daichi Abe,daichi abe,daichi abe,,71.0,170.0,71.0,Orthodox,False
 Daichi,Kamiya,1999-04-19,Daichi Kamiya,daichi kamiya,daichi kamiya,,68.0,155.0,68.0,Southpaw,False
 Daijiro,Matsui,2072-12-05,Daijiro Matsui,daijiro matsui,daijiro matsui,,69.0,200.0,,Orthodox,False
@@ -921,6 +924,7 @@ Daisuke,Nakamura,1980-06-10,Daisuke Nakamura,daisuke nakamura,daisuke nakamura,,
 Daisuke,Sugie,,Daisuke Sugie,daisuke sugie,daisuke sugie,Amazon,66.0,160.0,,Orthodox,False
 Dakota,Bush,1994-06-09,Dakota Bush,dakota bush,dakota bush,,70.0,155.0,73.0,Orthodox,False
 Dakota,Cochrane,1986-05-01,Dakota Cochrane,dakota cochrane,dakota cochrane,,68.0,155.0,,,False
+Dakota,Hope,1997-01-29,Dakota Hope,dakota hope,dakota hope,Huracan,66.0,155.0,68.0,,True
 Dalcha,Lungiambula,1987-07-31,Dalcha Lungiambula,dalcha lungiambula,dalcha lungiambula,Champion,68.0,185.0,76.0,Orthodox,False
 Dale,Hartt,1979-04-04,Dale Hartt,dale hartt,dale hartt,,70.0,155.0,69.0,Orthodox,False
 Damacio,Page,1982-09-30,Damacio Page,damacio page,damacio page,The Angel of Death,66.0,135.0,66.0,Orthodox,False
@@ -1338,15 +1342,16 @@ Ericka,Almeida,1989-03-05,Ericka Almeida,ericka almeida,ericka almeida,,66.0,115
 Erik,Apple,1977-08-26,Erik Apple,erik apple,erik apple,,72.0,170.0,,Orthodox,False
 Erik,Koch,1988-10-04,Erik Koch,erik koch,erik koch,Phoenix,70.0,170.0,71.0,Southpaw,False
 Erik,Perez,1989-11-19,Erik Perez,erik perez,erik perez,Goyito,68.0,135.0,68.0,Orthodox,False
-Erik,Silva,1987-03-16,Erik Silva,erik silva,erik silva,The King,69.0,145.0,71.0,Orthodox,True
+Erik,Silva,1987-03-16,Erik Silva,erik silva,erik silva,The King,69.0,145.0,71.0,Orthodox,False
 Erin,Blanchfield,1999-05-04,Erin Blanchfield,erin blanchfield,erin blanchfield,Cold Blooded,64.0,125.0,66.0,Orthodox,True
 Erisson,Ferreira,1991-05-03,Erisson Ferreira,erisson ferreira,erisson ferreira,Gato,66.0,125.0,70.0,Orthodox,True
 Ernest,Chavez,1983-06-27,Ernest Chavez,ernest chavez,ernest chavez,EJ,68.0,145.0,70.0,Orthodox,False
 Ernesta,Kareckaite,1998-07-05,Ernesta Kareckaite,ernesta kareckaite,ernesta kareckaite,Heavy-Handed,69.0,125.0,71.0,Orthodox,True
 Ernie,Juarez,1998-01-12,Ernie Juarez,ernie juarez,ernie juarez,The Young Titan,68.0,145.0,70.0,,False
 Ernie,Verdicia,,Ernie Verdicia,ernie verdicia,ernie verdicia,,71.0,199.0,,Orthodox,False
+Eros,Baluyot,1992-10-23,Eros Baluyot,eros baluyot,eros baluyot,,,125.0,,,False
 Errol,Zimmerman,1986-04-20,Errol Zimmerman,errol zimmerman,errol zimmerman,The Bonecrusher,75.0,185.0,,Orthodox,False
-Eryk,Anders,1987-04-21,Eryk Anders,eryk anders,eryk anders,Ya Boi,73.0,185.0,75.0,Southpaw,True
+Eryk,Anders,1987-04-21,Eryk Anders,eryk anders,eryk anders,Ya Boi,73.0,185.0,75.0,Southpaw,False
 Esteban,Ribovics,1996-04-27,Esteban Ribovics,esteban ribovics,esteban ribovics,El Gringo,70.0,155.0,69.0,Orthodox,True
 Estefani,Almeida,1988-10-17,Estefani Almeida,estefani almeida,estefani almeida,,64.0,125.0,,Orthodox,True
 Estevan,Payan,1982-03-14,Estevan Payan,estevan payan,estevan payan,El Terrible,70.0,145.0,,Orthodox,False
@@ -1379,6 +1384,7 @@ Fabricio,Werdum,1977-07-30,Fabricio Werdum,fabricio werdum,fabricio werdum,Vai C
 Falaniko,Vitale,2074-07-14,Falaniko Vitale,falaniko vitale,falaniko vitale,Niko,70.0,185.0,,Orthodox,False
 Fares,Ziam,1997-03-21,Fares Ziam,fares ziam,fares ziam,The Smile Killer,73.0,155.0,75.0,Orthodox,True
 Farid,Basharat,1997-08-02,Farid Basharat,farid basharat,farid basharat,Ferocious,68.0,135.0,71.0,Orthodox,True
+Farida,Abdueva,2004-05-15,Farida Abdueva,farida abdueva,farida abdueva,,,115.0,,,False
 Fatima,Kline,2000-07-12,Fatima Kline,fatima kline,fatima kline,The Archangel,66.0,115.0,67.0,Orthodox,True
 Fazlo,Mulabitinovic,,Fazlo Mulabitinovic,fazlo mulabitinovic,fazlo mulabitinovic,,,135.0,,,False
 Federico,Lopez,,Federico Lopez,federico lopez,federico lopez,Kiko,64.0,139.0,,Orthodox,False
@@ -1389,7 +1395,7 @@ Felicia,Spencer,1990-11-29,Felicia Spencer,felicia spencer,felicia spencer,FeeNo
 Felipe,Arantes,1988-02-09,Felipe Arantes,felipe arantes,felipe arantes,Sertanejo,68.0,135.0,73.0,Orthodox,False
 Felipe,Bunes,1989-10-29,Felipe Bunes,felipe bunes,felipe bunes,Felipinho,67.0,125.0,69.0,Orthodox,False
 Felipe,Colares,1994-03-31,Felipe Colares,felipe colares,felipe colares,Cabocao,68.0,145.0,69.0,Orthodox,False
-Felipe,Franco,2001-01-22,Felipe Franco,felipe franco,felipe franco,Negao,,205.0,,,True
+Felipe,Franco,2001-01-22,Felipe Franco,felipe franco,felipe franco,,,205.0,,,True
 Felipe,Lima,1998-05-07,Felipe Lima,felipe lima,felipe lima,Jungle Boy,66.0,135.0,68.0,Orthodox,True
 Felipe,Olivieri,1985-04-12,Felipe Olivieri,felipe olivieri,felipe olivieri,,69.0,155.0,,Orthodox,False
 Felipe,Pena,1991-10-19,Felipe Pena,felipe pena,felipe pena,Preguica,,,,,False
@@ -1481,7 +1487,7 @@ Gasan,Umalatov,1982-09-11,Gasan Umalatov,gasan umalatov,gasan umalatov,Cobra,71.
 Gaston,Bolanos,1992-09-14,Gaston Bolanos,gaston bolanos,gaston bolanos,The Dreamkiller,67.0,135.0,69.0,Orthodox,True
 Gaston,Reyno,1986-11-11,Gaston Reyno,gaston reyno,gaston reyno,Tonga,72.0,145.0,,,False
 Gauge,Young,2000-07-14,Gauge Young,gauge young,gauge young,Gee Money,69.0,155.0,70.0,Orthodox,True
-Gavin,Tucker,1986-06-17,Gavin Tucker,gavin tucker,gavin tucker,Guv'nor,66.0,145.0,66.0,Southpaw,True
+Gavin,Tucker,1986-06-17,Gavin Tucker,gavin tucker,gavin tucker,Guv'nor,66.0,145.0,66.0,Southpaw,False
 Geane,Herrera,1990-05-27,Geane Herrera,geane herrera,geane herrera,La Pulga,65.0,125.0,66.0,Orthodox,False
 Gegard,Mousasi,1985-08-01,Gegard Mousasi,gegard mousasi,gegard mousasi,,74.0,185.0,76.0,Orthodox,False
 Genaro,Valdez,1992-01-16,Genaro Valdez,genaro valdez,genaro valdez,Rayadito,69.0,155.0,72.0,Orthodox,False
@@ -1511,6 +1517,7 @@ Gerric,Hayes,,Gerric Hayes,gerric hayes,gerric hayes,,70.0,,,,False
 Gerry,Harris,,Gerry Harris,gerry harris,gerry harris,,80.0,270.0,,Orthodox,False
 Gesias,Cavalcante,1983-07-06,Gesias Cavalcante,gesias cavalcante,gesias cavalcante,JZ,68.0,155.0,71.0,Orthodox,False
 Geza,Kalman,,Geza Kalman,geza kalman,geza kalman,,73.0,200.0,,,False
+Gezhen,Re,,Gezhen Re,gezhen re,gezhen re,,,155.0,,,False
 Giacomo,Lemos,1989-06-23,Giacomo Lemos,giacomo lemos,giacomo lemos,,75.0,247.0,75.0,Orthodox,False
 Gian,Siqueira,1994-06-23,Gian Siqueira,gian siqueira,gian siqueira,Pitbull,73.0,170.0,74.0,Orthodox,False
 Gian,Villante,1985-08-18,Gian Villante,gian villante,gian villante,,75.0,230.0,76.0,Orthodox,False
@@ -2223,6 +2230,7 @@ Joselyne,Edwards,1995-09-29,Joselyne Edwards,joselyne edwards,joselyne edwards,L
 Joseph,Benavidez,1984-07-31,Joseph Benavidez,joseph benavidez,joseph benavidez,,64.0,125.0,65.0,Southpaw,False
 Joseph,Gigliotti,1993-08-13,Joseph Gigliotti,joseph gigliotti,joseph gigliotti,Capo,71.0,185.0,,Orthodox,False
 Joseph,Holmes,1995-07-04,Joseph Holmes,joseph holmes,joseph holmes,Uglyman Joe,76.0,185.0,80.0,Orthodox,False
+Joseph,Larcinese,1998-10-01,Joseph Larcinese,joseph larcinese,joseph larcinese,Big Sexy,,125.0,,,False
 Joseph,Morales,1994-08-22,Joseph Morales,joseph morales,joseph morales,Bopo,66.0,125.0,69.0,Switch,True
 Joseph,Sandoval,1986-05-11,Joseph Sandoval,joseph sandoval,joseph sandoval,,67.0,135.0,,Southpaw,False
 Josh,Appelt,1983-06-19,Josh Appelt,josh appelt,josh appelt,,70.0,255.0,,Southpaw,True
@@ -2235,7 +2243,7 @@ Josh,Clopton,1981-07-11,Josh Clopton,josh clopton,josh clopton,The Gentleman,66.
 Josh,Copeland,1982-10-20,Josh Copeland,josh copeland,josh copeland,Cuddly Bear,73.0,265.0,,Orthodox,False
 Josh,Culibao,1994-05-24,Josh Culibao,josh culibao,josh culibao,Kuya,70.0,145.0,73.0,Orthodox,False
 Josh,Diekmann,1976-10-09,Josh Diekmann,josh diekmann,josh diekmann,The Freight Train,64.0,246.0,,,False
-Josh,Emmett,1985-03-04,Josh Emmett,josh emmett,josh emmett,CC0,66.0,145.0,70.0,Orthodox,True
+Josh,Emmett,1985-03-04,Josh Emmett,josh emmett,josh emmett,,66.0,145.0,70.0,Orthodox,True
 Josh,Epps,1986-08-23,Josh Epps,josh epps,josh epps,,,130.0,,,False
 Josh,Ferguson,1988-05-13,Josh Ferguson,josh ferguson,josh ferguson,Taz,65.0,125.0,,Orthodox,False
 Josh,Fremd,1994-01-15,Josh Fremd,josh fremd,josh fremd,,76.0,185.0,76.0,Orthodox,False
@@ -2360,7 +2368,7 @@ KB,Bhullar,1991-10-12,KB Bhullar,kb bhullar,kb bhullar,The Bengal,76.0,185.0,78.
 KJ,Noons,1982-12-07,KJ Noons,kj noons,kj noons,King,70.0,155.0,70.0,Orthodox,False
 Kaan,Ofli,1993-06-19,Kaan Ofli,kaan ofli,kaan ofli,Genghis,67.0,145.0,66.0,Orthodox,True
 Kai,Asakura,1993-10-31,Kai Asakura,kai asakura,kai asakura,,68.0,125.0,69.0,Orthodox,True
-Kai,Kamaka,1995-01-05,Kai Kamaka,kai kamaka,kai kamaka,The Fighting Hawaiian,67.0,145.0,69.0,Orthodox,False
+Kai,Kamaka III,1995-01-05,Kai Kamaka III,kai kamaka iii,kai kamaka,Da Fighting Hawaiian,67.0,145.0,69.0,Orthodox,True
 Kai,Kara-France,1993-03-26,Kai Kara-France,kai kara france,kai kara france,Don't Blink,64.0,125.0,69.0,Orthodox,True
 Kai,Yoshida,1999-10-10,Kai Yoshida,kai yoshida,kai yoshida,Scorpion,67.0,125.0,69.0,Southpaw,False
 Kaik,Brito,1997-03-26,Kaik Brito,kaik brito,kaik brito,,71.0,170.0,72.0,Orthodox,True
@@ -2368,6 +2376,7 @@ Kailan,Hill,1994-12-01,Kailan Hill,kailan hill,kailan hill,,73.0,185.0,77.0,Sout
 Kailin,Curran,1991-04-11,Kailin Curran,kailin curran,kailin curran,,64.0,115.0,65.0,Orthodox,False
 Kain,Royer,,Kain Royer,kain royer,kain royer,,,185.0,,,False
 Kaitlin,Young,1985-09-15,Kaitlin Young,kaitlin young,kaitlin young,,69.0,135.0,,Orthodox,False
+Kaito,Oda,1998-02-13,Kaito Oda,kaito oda,kaito oda,,,125.0,,,False
 Kajan,Johnson,1984-04-21,Kajan Johnson,kajan johnson,kajan johnson,Ragin',71.0,155.0,75.0,Orthodox,False
 Kaleio,Romero,1996-04-19,Kaleio Romero,kaleio romero,kaleio romero,KO,70.0,145.0,69.0,Switch,True
 Kaleo,Kwan,2070-08-01,Kaleo Kwan,kaleo kwan,kaleo kwan,Leo Boy,67.0,155.0,,,False
@@ -2396,6 +2405,7 @@ Karol,Rosa,1994-12-30,Karol Rosa,karol rosa,karol rosa,,65.0,135.0,67.0,Orthodox
 Karolina,Kowalkiewicz,1985-10-15,Karolina Kowalkiewicz,karolina kowalkiewicz,karolina kowalkiewicz,,63.0,115.0,64.0,Orthodox,True
 Karolina,Wojcik,1994-12-09,Karolina Wojcik,karolina wojcik,karolina wojcik,Polish Assassin,62.0,115.0,,Orthodox,True
 Kasey,Tanner,1992-01-11,Kasey Tanner,kasey tanner,kasey tanner,,67.0,135.0,69.0,Orthodox,False
+Kasib,Murdoch,,Kasib Murdoch,kasib murdoch,kasib murdoch,Murder,,135.0,,,False
 Kathryn,Paprocki,1993-04-28,Kathryn Paprocki,kathryn paprocki,kathryn paprocki,,63.0,115.0,63.0,Orthodox,True
 Katlyn,Cerminara,1988-12-28,Katlyn Cerminara,katlyn cerminara,katlyn cerminara,Blonde Fighter,69.0,125.0,68.0,Orthodox,True
 Katsuaki,Furuki,1980-11-10,Katsuaki Furuki,katsuaki furuki,katsuaki furuki,,72.0,168.0,,,False
@@ -2505,6 +2515,7 @@ Kiefer,Crosbie,1990-04-05,Kiefer Crosbie,kiefer crosbie,kiefer crosbie,BDK,71.0,
 Kier,Gooch,1986-04-21,Kier Gooch,kier gooch,kier gooch,,,155.0,,,False
 Kiichi,Kunimoto,1981-05-01,Kiichi Kunimoto,kiichi kunimoto,kiichi kunimoto,Strasser,70.0,170.0,71.0,Orthodox,False
 Kim,Couture,2075-12-18,Kim Couture,kim couture,kim couture,Sugar Free,68.0,135.0,,Orthodox,False
+Kim,Tran,1996-11-22,Kim Tran,kim tran,kim tran,,,115.0,,,False
 Kim In,Seok,,Kim In Seok,kim in seok,kim in seok,,66.0,145.0,,Orthodox,False
 Kimo,Leopoldo,2068-01-05,Kimo Leopoldo,kimo leopoldo,kimo leopoldo,,75.0,235.0,,Orthodox,False
 Kin,Moy,,Kin Moy,kin moy,kin moy,Kong,65.0,135.0,,,False
@@ -2530,7 +2541,7 @@ Kotetsu,Boku,1977-05-27,Kotetsu Boku,kotetsu boku,kotetsu boku,,69.0,154.0,,Orth
 Koya,Kanda,1995-12-20,Koya Kanda,koya kanda,koya kanda,Bushido,69.0,145.0,75.0,Southpaw,True
 Koyomi,Matsushima,1992-10-08,Koyomi Matsushima,koyomi matsushima,koyomi matsushima,,67.0,145.0,66.0,Orthodox,False
 Kris,McCray,1981-09-24,Kris McCray,kris mccray,kris mccray,Savage,72.0,170.0,76.0,Orthodox,False
-Kris,Moutinho,1992-08-09,Kris Moutinho,kris moutinho,kris moutinho,,67.0,135.0,68.0,Southpaw,True
+Kris,Moutinho,1992-08-09,Kris Moutinho,kris moutinho,kris moutinho,,67.0,135.0,68.0,Southpaw,False
 Krishaun,Gilmore,,Krishaun Gilmore,krishaun gilmore,krishaun gilmore,,,,,,False
 Kristian,Rothaermel,2072-01-31,Kristian Rothaermel,kristian rothaermel,kristian rothaermel,,72.0,205.0,,Open Stance,False
 Kristof,Midoux,2074-07-30,Kristof Midoux,kristof midoux,kristof midoux,The Hurricane,73.0,220.0,,Orthodox,False
@@ -2545,6 +2556,7 @@ Kurt,Pellegrino,1979-05-07,Kurt Pellegrino,kurt pellegrino,kurt pellegrino,Batma
 Kurtis,Campbell,2002-07-29,Kurtis Campbell,kurtis campbell,kurtis campbell,The Pink Panther,,145.0,,,True
 Kuya,Ito,1996-10-07,Kuya Ito,kuya ito,kuya ito,Psycho Zombie,64.0,135.0,66.0,Orthodox,False
 Kwan,Ho Kwak,1989-06-18,Kwan Ho Kwak,kwan ho kwak,kwan ho kwak,,65.0,135.0,,Switch,False
+Kwan Woo,Lim,2001-07-27,Kwan Woo Lim,kwan woo lim,kwan woo lim,The Giant,,155.0,,,False
 Kwon,Wonil,1995-06-24,Kwon Wonil,kwon wonil,kwon wonil,Pretty Boy,70.0,135.0,71.0,Orthodox,False
 KyeungPyo,Kim,1992-01-29,KyeungPyo Kim,kyeungpyo kim,kyeungpyo kim,Redhorse,69.0,155.0,71.0,Orthodox,False
 Kyle,Bochniak,1987-02-05,Kyle Bochniak,kyle bochniak,kyle bochniak,Killer B,67.0,145.0,70.0,Orthodox,False
@@ -2667,8 +2679,8 @@ Lowell,Anderson,,Lowell Anderson,lowell anderson,lowell anderson,,66.0,160.0,,Or
 Lu,Kai,1994-03-01,Lu Kai,lu kai,lu kai,The Last Gladiator,69.0,145.0,69.0,Orthodox,True
 Lu,Zhengyong,,Lu Zhengyong,lu zhengyong,lu zhengyong,,,125.0,,,True
 Luan,Chagas,1993-06-17,Luan Chagas,luan chagas,luan chagas,Tarzan,72.0,170.0,75.0,Orthodox,False
-Luan,Lacerda,1993-01-07,Luan Lacerda,luan lacerda,luan lacerda,,67.0,135.0,71.0,Orthodox,True
-Luana,Carolina,1993-06-11,Luana Carolina,luana carolina,luana carolina,Dread,66.0,135.0,69.0,Orthodox,True
+Luan,Lacerda,1993-01-07,Luan Lacerda,luan lacerda,luan lacerda,,67.0,135.0,71.0,Orthodox,False
+Luana,Carolina,1993-06-11,Luana Carolina,luana carolina,luana carolina,Dread,66.0,135.0,69.0,Orthodox,False
 Luana,Pinheiro,1992-11-18,Luana Pinheiro,luana pinheiro,luana pinheiro,,62.0,115.0,62.0,Orthodox,True
 Luana,Santos,2000-04-16,Luana Santos,luana santos,luana santos,,66.0,135.0,67.0,Orthodox,True
 Luc,Bondole,,Luc Bondole,luc bondole,luc bondole,,74.0,205.0,,,False
@@ -2727,6 +2739,7 @@ Lyman,Good,1985-05-26,Lyman Good,lyman good,lyman good,Cyborg,72.0,170.0,74.0,Or
 Lyoto,Machida,1978-05-30,Lyoto Machida,lyoto machida,lyoto machida,The Dragon,73.0,185.0,74.0,Southpaw,False
 Mabelly,Lima,1994-01-25,Mabelly Lima,mabelly lima,mabelly lima,,62.0,135.0,,Orthodox,False
 Mac,Danzig,1980-01-02,Mac Danzig,mac danzig,mac danzig,,68.0,155.0,70.0,Orthodox,False
+Machi,Fukuda,2003-06-03,Machi Fukuda,machi fukuda,machi fukuda,,,115.0,,,False
 Maciej,Jewtuszko,1981-01-31,Maciej Jewtuszko,maciej jewtuszko,maciej jewtuszko,Irokez,72.0,155.0,,Southpaw,False
 Mack,Brewer,,Mack Brewer,mack brewer,mack brewer,,,205.0,,,False
 Mackens,Semerzier,1980-11-03,Mackens Semerzier,mackens semerzier,mackens semerzier,Da Menace,69.0,145.0,72.0,Orthodox,False
@@ -2738,6 +2751,7 @@ Magno,Almeida,1985-06-06,Magno Almeida,magno almeida,magno almeida,,72.0,155.0,,
 Magno,Dias,1996-11-30,Magno Dias,magno dias,magno dias,The Violence,,135.0,,,False
 Magnus,Cedenblad,1982-04-10,Magnus Cedenblad,magnus cedenblad,magnus cedenblad,Jycken,77.0,185.0,79.0,Orthodox,False
 Magomed,Ankalaev,1992-06-02,Magomed Ankalaev,magomed ankalaev,magomed ankalaev,,75.0,205.0,75.0,Orthodox,True
+Magomed,Bibulatov,1988-08-22,Magomed Bibulatov,magomed bibulatov,bibulatov magomed,Chaborz,65.0,125.0,65.0,Orthodox,False
 Magomed,Gadzhiyasulov,1993-11-04,Magomed Gadzhiyasulov,magomed gadzhiyasulov,magomed gadzhiyasulov,,74.0,205.0,75.0,Orthodox,False
 Magomed,Mustafaev,1988-08-02,Magomed Mustafaev,magomed mustafaev,magomed mustafaev,The Sniper,68.0,155.0,71.0,Orthodox,False
 Magomed,Sultanakhmedov,,Magomed Sultanakhmedov,magomed sultanakhmedov,magomed sultanakhmedov,,74.0,185.0,,Southpaw,False
@@ -2946,6 +2960,7 @@ Matthew,Lopez,1987-01-21,Matthew Lopez,matthew lopez,matthew lopez,,67.0,135.0,6
 Matthew,Riddle,1986-01-14,Matthew Riddle,matthew riddle,matthew riddle,Deep Waters,73.0,170.0,76.0,Southpaw,False
 Matthew,Semelsberger,1992-11-23,Matthew Semelsberger,matthew semelsberger,matthew semelsberger,Semi The Jedi,73.0,170.0,75.0,Switch,False
 Matthieu,Duclos,1995-04-04,Matthieu Duclos,matthieu duclos,matthieu duclos,,75.0,185.0,77.0,Orthodox,False
+Matty,Iann,2000-10-26,Matty Iann,matty iann,matty iann,Ironside,,135.0,,,False
 Maurice,Eazel,,Maurice Eazel,maurice eazel,maurice eazel,,67.0,135.0,,,False
 Maurice,Greene,1986-07-05,Maurice Greene,maurice greene,maurice greene,The Crochet Boss,79.0,258.0,80.0,Orthodox,False
 Maurice,Mitchell,1987-06-29,Maurice Mitchell,maurice mitchell,maurice mitchell,The AK Kid,69.0,145.0,,Orthodox,False
@@ -3002,7 +3017,7 @@ Michael,McDonald,1991-01-15,Michael McDonald,michael mcdonald,michael mcdonald,M
 Michael,McDonald,2065-02-06,Michael McDonald,michael mcdonald,michael mcdonald,The Black Sniper,71.0,205.0,,Orthodox,False
 Michael,Morales,1999-06-24,Michael Morales,michael morales,michael morales,,72.0,170.0,79.0,Orthodox,True
 Michael,Oliveira,1998-01-21,Michael Oliveira,michael oliveira,michael oliveira,PQD,,170.0,,,True
-Michael,Page,1987-04-07,Michael Page,michael page,michael page,Venom,75.0,185.0,79.0,Switch,True
+Michael,Page,1987-04-07,Michael Page,michael page,michael page,Venom,75.0,185.0,79.0,Switch,False
 Michael,Patt,,Michael Patt,michael patt,michael patt,,72.0,205.0,,Orthodox,False
 Michael,Trizano,1991-12-31,Michael Trizano,michael trizano,michael trizano,The Lone Wolf,71.0,145.0,71.0,Orthodox,False
 Michal,Figlak,1996-08-15,Michal Figlak,michal figlak,michal figlak,Mad Dog,70.0,155.0,70.0,Orthodox,False
@@ -3114,7 +3129,7 @@ Moise,Rimbon,1977-04-20,Moise Rimbon,moise rimbon,moise rimbon,Swamp,70.0,205.0,
 Molly,McCann,1990-05-04,Molly McCann,molly mccann,molly mccann,Meatball,64.0,115.0,62.0,Orthodox,False
 Montana,De La Rosa,1995-02-14,Montana De La Rosa,montana de la rosa,montana de la rosa,,67.0,125.0,68.0,Orthodox,False
 Montel,Jackson,1992-04-24,Montel Jackson,montel jackson,montel jackson,Quik,70.0,135.0,75.0,Southpaw,True
-Montse,Rendon,1989-03-16,Montse Rendon,montse rendon,montse rendon,Monster,68.0,135.0,68.0,Orthodox,True
+Montse,Rendon,1989-03-16,Montse Rendon,montse rendon,montse rendon,Monster,68.0,135.0,68.0,Orthodox,False
 Montserrat Conejo,Ruiz,1993-02-03,Montserrat Conejo Ruiz,montserrat conejo ruiz,montserrat conejo ruiz,,60.0,115.0,61.0,Southpaw,True
 Morgan,Charriere,1995-10-26,Morgan Charriere,morgan charriere,morgan charriere,The Last Pirate,68.0,145.0,69.0,Orthodox,True
 Mostapha,Al-Turk,2073-07-14,Mostapha Al-Turk,mostapha al turk,mostapha al turk,,74.0,245.0,77.0,Orthodox,False
@@ -3171,7 +3186,7 @@ Nate,Smith,1995-04-09,Nate Smith,nate smith,nate smith,The Savage,66.0,125.0,69.
 Nathan,Coy,1978-07-24,Nathan Coy,nathan coy,nathan coy,Soulforce,70.0,170.0,69.0,Southpaw,False
 Nathan,Fletcher,1998-01-03,Nathan Fletcher,nathan fletcher,nathan fletcher,,67.0,135.0,70.0,Orthodox,True
 Nathan,Jones,2070-08-21,Nathan Jones,nathan jones,nathan jones,,83.0,345.0,,Orthodox,False
-Nathaniel,Wood,1993-05-08,Nathaniel Wood,nathaniel wood,nathaniel wood,The Prospect,66.0,145.0,69.0,Orthodox,True
+Nathaniel,Wood,1993-05-08,Nathaniel Wood,nathaniel wood,nathaniel wood,The Last Kingsman,66.0,145.0,69.0,Orthodox,True
 Navajo,Stirling,1997-11-07,Navajo Stirling,navajo stirling,navajo stirling,,76.0,205.0,79.0,Orthodox,True
 Nayara,Maia,1990-07-25,Nayara Maia,nayara maia,nayara maia,Capita,65.0,125.0,66.0,Orthodox,True
 Nazareno,Malegarie,1986-05-16,Nazareno Malegarie,nazareno malegarie,nazareno malegarie,El Tigre,68.0,155.0,,,False
@@ -3272,6 +3287,7 @@ Osamu,Tachihikari,,Osamu Tachihikari,osamu tachihikari,osamu tachihikari,,77.0,3
 Oscar,Cota,1984-10-15,Oscar Cota,oscar cota,oscar cota,Elevation,72.0,230.0,72.0,Orthodox,True
 Oskar,Piechota,1990-01-24,Oskar Piechota,oskar piechota,oskar piechota,Imadlo,72.0,185.0,76.0,Southpaw,False
 Otari,Tanzilovi,1998-04-09,Otari Tanzilovi,otari tanzilovi,otari tanzilovi,,70.0,135.0,70.0,Orthodox,False
+Otgonbaatar,Boldbaatar,2002-12-25,Otgonbaatar Boldbaatar,otgonbaatar boldbaatar,otgonbaatar boldbaatar,Conqueror,,125.0,,,False
 Ottman,Azaitar,1990-02-20,Ottman Azaitar,ottman azaitar,ottman azaitar,Bulldozer,68.0,155.0,71.0,Switch,True
 Oumar,Sy,1995-11-21,Oumar Sy,oumar sy,oumar sy,,76.0,205.0,83.0,Orthodox,True
 Ovince,Saint Preux,1983-04-08,Ovince Saint Preux,ovince saint preux,ovince saint preux,,75.0,205.0,80.0,Southpaw,False
@@ -3296,7 +3312,7 @@ Pat,Miletich,2068-03-09,Pat Miletich,pat miletich,pat miletich,The Croatian Sens
 Pat,Pytlik,1989-04-24,Pat Pytlik,pat pytlik,pat pytlik,,72.0,170.0,73.0,Orthodox,False
 Pat,Sabatini,1990-11-09,Pat Sabatini,pat sabatini,pat sabatini,,68.0,145.0,70.0,Orthodox,True
 Pat,Schilling,1988-08-28,Pat Schilling,pat schilling,pat schilling,Thrilling,68.0,145.0,,Orthodox,False
-Patchy,Mix,1993-08-16,Patchy Mix,patchy mix,patchy mix,No Love,71.0,135.0,70.0,Southpaw,True
+Patchy,Mix,1993-08-16,Patchy Mix,patchy mix,patchy mix,No Love,71.0,135.0,70.0,Southpaw,False
 Patricia,Alujas,1996-05-08,Patricia Alujas,patricia alujas,patricia alujas,The Angel,64.0,115.0,64.0,Orthodox,True
 Patricio,Freire,1987-07-07,Patricio Freire,patricio freire,patricio freire,Pitbull,66.0,145.0,67.0,Orthodox,False
 Patrick,Cote,1980-02-29,Patrick Cote,patrick cote,patrick cote,The Predator,71.0,170.0,75.0,Orthodox,False
@@ -3368,7 +3384,7 @@ Phil,Davis,1984-09-25,Phil Davis,phil davis,phil davis,Mr. Wonderful,74.0,205.0,
 Phil,Harris,1983-09-04,Phil Harris,phil harris,phil harris,Billy,64.0,125.0,65.0,Orthodox,False
 Phil,Hawes,1989-01-08,Phil Hawes,phil hawes,phil hawes,No Hype,72.0,185.0,77.0,Orthodox,True
 Phil,Johns,2068-10-22,Phil Johns,phil johns,phil johns,,62.0,170.0,,Southpaw,False
-Phil,Rowe,1990-07-18,Phil Rowe,phil rowe,phil rowe,The Fresh Prince,75.0,170.0,80.0,Orthodox,True
+Phil,Rowe,1990-07-18,Phil Rowe,phil rowe,phil rowe,The Fresh Prince,75.0,170.0,80.0,Orthodox,False
 Philip,De Fries,1986-04-21,Philip De Fries,philip de fries,philip de fries,,77.0,250.0,79.0,Orthodox,False
 Philip,Perez,,Philip Perez,philip perez,philip perez,,65.0,155.0,,Southpaw,False
 Philip,Preece,,Philip Preece,philip preece,philip preece,,68.0,205.0,,Orthodox,False
@@ -3397,6 +3413,7 @@ Quillan,Salkilld,1999-12-28,Quillan Salkilld,quillan salkilld,quillan salkilld,,
 Quinn,Mulhern,1984-09-20,Quinn Mulhern,quinn mulhern,quinn mulhern,,75.0,155.0,,Orthodox,False
 Quinton,Jackson,1978-06-20,Quinton Jackson,quinton jackson,quinton jackson,Rampage,73.0,205.0,73.0,Orthodox,False
 RJ,Clifford,,RJ Clifford,rj clifford,rj clifford,,,160.0,,,False
+Rabindra,Dhant,1998-11-30,Rabindra Dhant,rabindra dhant,rabindra dhant,,,135.0,,,False
 Rachael,Ostovich,1991-02-25,Rachael Ostovich,rachael ostovich,rachael ostovich,,63.0,125.0,62.0,Orthodox,False
 Radley,Da Silva,1995-06-20,Radley Da Silva,radley da silva,radley da silva,Snake Eyes,69.0,145.0,71.0,Orthodox,False
 Rafa,Garcia,1994-08-05,Rafa Garcia,rafa garcia,rafa garcia,Gifted,67.0,155.0,70.0,Orthodox,True
@@ -3476,7 +3493,6 @@ Rayanne,dos Santos,1995-06-08,Rayanne dos Santos,rayanne dos santos,rayanne dos 
 Raymond,Daniels,,Raymond Daniels,raymond daniels,raymond daniels,,74.0,185.0,,Southpaw,False
 Razak,Al-Hassan,1982-05-14,Razak Al-Hassan,razak al hassan,razak al hassan,,74.0,205.0,,Orthodox,False
 Reese,Andy,2073-03-31,Reese Andy,reese andy,reese andy,Riptide,72.0,205.0,,Orthodox,False
-Regina,Malpica,2004-10-19,Regina Malpica,regina malpica,regina malpica,Kill Bill,,125.0,,,False
 Regina,Tarin,2004-10-19,Regina Tarin,regina tarin,regina malpica rivera,Kill Bill,,135.0,,,True
 Reginaldo,Vieira,1982-11-26,Reginaldo Vieira,reginaldo vieira,reginaldo vieira,,67.0,135.0,65.0,Orthodox,False
 Rei,Tsuruya,2002-06-22,Rei Tsuruya,rei tsuruya,rei tsuruya,,66.0,125.0,68.0,Orthodox,True
@@ -3708,6 +3724,9 @@ Ryan,Thomas,1984-11-05,Ryan Thomas,ryan thomas,ryan thomas,The Tank Engine,72.0,
 Ryan,Tobar,,Ryan Tobar,ryan tobar,ryan tobar,,,155.0,,,False
 Ryo,Chonan,1976-10-08,Ryo Chonan,ryo chonan,ryo chonan,Piranah,69.0,170.0,70.0,Orthodox,False
 Ryo,Kawamura,1981-06-29,Ryo Kawamura,ryo kawamura,ryo kawamura,,71.0,205.0,,Orthodox,False
+Ryo,Tajima,1999-08-14,Ryo Tajima,ryo tajima,ryo tajima,,,135.0,,,False
+Ryoga,Arimoto,1998-12-07,Ryoga Arimoto,ryoga arimoto,ryoga arimoto,,,125.0,,,False
+Ryuho,Miyaguchi,1998-01-27,Ryuho Miyaguchi,ryuho miyaguchi,ryuho miyaguchi,,,135.0,,,False
 Ryuichi,Murata,,Ryuichi Murata,ryuichi murata,ryuichi murata,,68.0,183.0,,Orthodox,False
 Ryuki,Ueyama,1976-04-17,Ryuki Ueyama,ryuki ueyama,ryuki ueyama,,71.0,180.0,,Southpaw,False
 Ryuta,Sakurai,,Ryuta Sakurai,ryuta sakurai,ryuta sakurai,,67.0,183.0,,Orthodox,False
@@ -3998,6 +4017,7 @@ Takahiro,Oba,,Takahiro Oba,takahiro oba,takahiro oba,,68.0,200.0,,Southpaw,False
 Takanori,Gomi,1978-09-22,Takanori Gomi,takanori gomi,takanori gomi,The Fireball Kid,67.0,155.0,70.0,Southpaw,False
 Takashi,Sato,1990-06-09,Takashi Sato,takashi sato,takashi sato,Ten,70.0,170.0,73.0,Southpaw,False
 Takashi,Sugiura,2070-05-31,Takashi Sugiura,takashi sugiura,takashi sugiura,,71.0,225.0,,Southpaw,False
+Takaya,Suzuki,2004-09-04,Takaya Suzuki,takaya suzuki,takaya suzuki,,,125.0,,,False
 Takayo,Hashi,1977-10-02,Takayo Hashi,takayo hashi,takayo hashi,,64.0,135.0,,Orthodox,False
 Takayuki,Okada,,Takayuki Okada,takayuki okada,takayuki okada,Giant Ochiai,73.0,290.0,,Orthodox,False
 Takenori,Sato,1985-06-08,Takenori Sato,takenori sato,takenori sato,,70.0,170.0,,Southpaw,False
@@ -4036,7 +4056,7 @@ Teemu,Packalen,1987-05-22,Teemu Packalen,teemu packalen,teemu packalen,Pacu,73.0
 Teila,Tuli,2069-06-14,Teila Tuli,teila tuli,teila tuli,,72.0,430.0,,Orthodox,False
 Tereza,Bleda,2001-11-30,Tereza Bleda,tereza bleda,tereza bleda,,69.0,125.0,71.0,Orthodox,True
 Terrance,McKinney,1994-09-15,Terrance McKinney,terrance mckinney,terrance mckinney,T. Wrecks,70.0,155.0,73.0,Switch,True
-Terrance,Saeteurn,1995-05-30,Terrance Saeteurn,terrance saeteurn,terrance saeteurn,Wrong Turn,66.0,125.0,67.0,Orthodox,True
+Terrance,Saeteurn,1995-05-30,Terrance Saeteurn,terrance saeteurn,terrance saeteurn,Wrong Turn,66.0,125.0,67.0,Orthodox,False
 Terrell,Brown,1983-04-13,Terrell Brown,terrell brown,terrell brown,,,185.0,,,False
 Terrence,Mitchell,1989-12-30,Terrence Mitchell,terrence mitchell,terrence mitchell,,70.0,135.0,74.0,Orthodox,True
 Terrion,Ware,1986-03-31,Terrion Ware,terrion ware,terrion ware,Flash,68.0,135.0,71.0,Orthodox,False
@@ -4193,6 +4213,7 @@ Tyler,Hill,1991-08-10,Tyler Hill,tyler hill,tyler hill,,75.0,170.0,,Switch,False
 Tyler,Stinson,1986-01-17,Tyler Stinson,tyler stinson,tyler stinson,The Evolution,75.0,170.0,,,False
 Tyler,Toner,1983-03-31,Tyler Toner,tyler toner,tyler toner,,68.0,145.0,70.0,Orthodox,False
 Tyra,Parker,,Tyra Parker,tyra parker,tyra parker,,65.0,115.0,,Orthodox,False
+Tyrell,Fortune,2004-10-19,Tyrell Fortune,tyrell fortune,regina malpica,,,125.0,,,True
 Tyron,Woodley,1982-04-07,Tyron Woodley,tyron woodley,tyron woodley,The Chosen One,69.0,170.0,74.0,Orthodox,False
 Tyrone,Roberts,,Tyrone Roberts,tyrone roberts,tyrone roberts,Native Warrior,69.0,185.0,,Orthodox,False
 Tyson,Griffin,1984-04-20,Tyson Griffin,tyson griffin,tyson griffin,,66.0,145.0,68.0,Orthodox,False
@@ -4327,6 +4348,7 @@ Xavier,Franklin,1996-10-15,Xavier Franklin,xavier franklin,xavier franklin,Mr. B
 Xavier,Siller,1994-06-06,Xavier Siller,xavier siller,xavier siller,Young Guns,65.0,125.0,,,False
 Xiao,Long,1998-04-13,Xiao Long,xiao long,xiao long,,68.0,135.0,70.0,Orthodox,True
 Xie,Bin,1998-02-28,Xie Bin,xie bin,xie bin,The Stalker,68.0,145.0,72.0,Orthodox,False
+Xiong,Jingnan,1988-01-12,Xiong Jingnan,xiong jingnan,xiong jingnan,The Panda,,115.0,,,False
 Xue Do,Won,,Xue Do Won,xue do won,xue do won,,67.0,165.0,,,False
 Yadier,del Valle,1996-07-29,Yadier del Valle,yadier del valle,yadier del valle,The Cuban Problem,69.0,145.0,69.0,Southpaw,True
 Yair,Rodriguez,1992-10-06,Yair Rodriguez,yair rodriguez,yair rodriguez,El Pantera,71.0,145.0,71.0,Orthodox,True
@@ -4347,6 +4369,7 @@ Yasuhito,Namekawa,2074-10-27,Yasuhito Namekawa,yasuhito namekawa,yasuhito nameka
 Yazan,Hajeh,1992-09-04,Yazan Hajeh,yazan hajeh,yazan hajeh,Yazzle Dazzle,69.0,145.0,,Orthodox,True
 Yazmin,Jauregui,1999-02-28,Yazmin Jauregui,yazmin jauregui,yazmin jauregui,,63.0,115.0,64.0,Orthodox,True
 YeDam,Seo,1992-03-20,YeDam Seo,yedam seo,yedam seo,,63.0,115.0,63.0,Orthodox,False
+Yi Sak,Lee,2000-01-01,Yi Sak Lee,yi sak lee,yi sak lee,,,185.0,,,True
 Yin,Shuai,1997-01-01,Yin Shuai,yin shuai,yin shuai,Black Panther,65.0,125.0,66.0,Southpaw,False
 Yoel,Romero,1977-04-30,Yoel Romero,yoel romero,yoel romero,Soldier of God,72.0,185.0,73.0,Southpaw,False
 Yohan,Banks,,Yohan Banks,yohan banks,yohan banks,,,,,,False
@@ -4367,14 +4390,17 @@ Yoshinori,Horie,1995-05-10,Yoshinori Horie,yoshinori horie,yoshinori horie,,68.0
 Yoshiro,Maeda,1981-10-31,Yoshiro Maeda,yoshiro maeda,yoshiro maeda,,67.0,139.0,68.0,Southpaw,False
 Yoshiyuki,Yoshida,2074-05-10,Yoshiyuki Yoshida,yoshiyuki yoshida,yoshiyuki yoshida,Zenko,71.0,170.0,70.0,Southpaw,False
 Yosuke,Nishijima,2073-05-15,Yosuke Nishijima,yosuke nishijima,yosuke nishijima,,69.0,205.0,,Orthodox,False
+Youmin,Shin,,Youmin Shin,youmin shin,youmin shin,,,135.0,,,False
 Young,Hwang,1988-09-02,Young Hwang,young hwang,young hwang,,69.0,135.0,,,False
 Young Sam,Jung,1985-10-27,Young Sam Jung,young sam jung,young sam jung,,68.0,139.0,,Orthodox,False
 YoungJae,Song,1996-01-03,YoungJae Song,youngjae song,youngjae song,Super Rookie,67.0,145.0,70.0,Orthodox,False
 Yousri,Belgaroui,1992-06-02,Yousri Belgaroui,yousri belgaroui,yousri belgaroui,,77.0,185.0,79.0,Orthodox,True
 Youssef,Zalal,1996-09-04,Youssef Zalal,youssef zalal,youssef zalal,The Moroccan Devil,70.0,145.0,72.0,Switch,True
+Yudi,Cahyadi,,Yudi Cahyadi,yudi cahyadi,yudi cahyadi,Sanda,,145.0,,,False
 Yuele,Huang,2000-07-04,Yuele Huang,yuele huang,yuele huang,,,145.0,,,False
 Yuhi,Sano,2065-02-02,Yuhi Sano,yuhi sano,yuhi sano,,71.0,243.0,,Orthodox,False
 Yui Chul,Nam,1981-07-16,Yui Chul Nam,yui chul nam,yui chul nam,The Korean Bulldozer,69.0,145.0,,Orthodox,False
+Yuito,Yanagawa,2000-10-16,Yuito Yanagawa,yuito yanagawa,yuito yanagawa,,,145.0,,,False
 Yuji,Ephoevi-Ga,1999-10-19,Yuji Ephoevi-Ga,yuji ephoevi ga,yuji ephoevi ga,The Chef,69.0,155.0,75.0,Switch,False
 Yuji,Hisamatsu,2071-09-18,Yuji Hisamatsu,yuji hisamatsu,yuji hisamatsu,,70.0,185.0,,,False
 Yuji,Nagata,2068-04-24,Yuji Nagata,yuji nagata,yuji nagata,,72.0,225.0,,Orthodox,False
@@ -4386,6 +4412,7 @@ Yukiya,Naito,,Yukiya Naito,yukiya naito,yukiya naito,,73.0,205.0,,Orthodox,False
 Yuma,Horiuchi,1997-09-22,Yuma Horiuchi,yuma horiuchi,yuma horiuchi,Ichiban,66.0,125.0,67.0,Switch,False
 YunSeong,Jang,2002-11-04,YunSeong Jang,yunseong jang,yunseong jang,,72.0,170.0,72.0,Orthodox,False
 Yuneisy,Duben,1996-07-08,Yuneisy Duben,yuneisy duben,yuneisy duben,,64.0,125.0,65.0,Orthodox,True
+Yunosuke,Minami,2000-09-10,Yunosuke Minami,yunosuke minami,yunosuke minami,,,135.0,,,False
 Yura,Naito,1996-04-26,Yura Naito,yura naito,yura naito,2 FACE,72.0,185.0,74.0,Orthodox,False
 Yuri,Panferov,1996-08-30,Yuri Panferov,yuri panferov,yuri panferov,The Russian Polar Bear,73.0,185.0,72.0,Orthodox,False
 Yuri,Vaulin,,Yuri Vaulin,yuri vaulin,yuri vaulin,,76.0,197.0,,Southpaw,False

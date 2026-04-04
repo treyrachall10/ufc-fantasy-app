@@ -1,4 +1,256 @@
 event,bout,round_number,fighter,kd,sig_str_landed,sig_str_attempted,total_str_landed,total_str_attempted,td_landed,td_attempted,sub_att,ctrl_time,reversals,head_str_landed,head_str_attempted,body_str_landed,body_str_attempted,leg_str_landed,leg_str_attempted,distance_str_landed,distance_str_attempted,clinch_str_landed,clinch_str_attempted,ground_str_landed,ground_str_attempted
+UFC Fight Night: Adesanya vs. Pyfer,Israel Adesanya vs. Joe Pyfer,1.0,Israel Adesanya,0.0,24.0,42.0,37.0,56.0,0.0,0.0,0.0,0,0.0,13.0,30.0,2.0,2.0,9.0,10.0,24.0,42.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Israel Adesanya vs. Joe Pyfer,2.0,Israel Adesanya,0.0,18.0,33.0,21.0,36.0,0.0,2.0,0.0,0,0.0,9.0,24.0,6.0,6.0,3.0,3.0,18.0,32.0,0.0,1.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Israel Adesanya vs. Joe Pyfer,1.0,Joe Pyfer,0.0,9.0,23.0,9.0,23.0,1.0,4.0,0.0,61,0.0,7.0,19.0,1.0,2.0,1.0,2.0,6.0,17.0,1.0,4.0,2.0,2.0
+UFC Fight Night: Adesanya vs. Pyfer,Israel Adesanya vs. Joe Pyfer,2.0,Joe Pyfer,0.0,27.0,47.0,43.0,67.0,1.0,4.0,0.0,103,0.0,26.0,45.0,1.0,1.0,0.0,1.0,12.0,25.0,1.0,3.0,14.0,19.0
+UFC Fight Night: Adesanya vs. Pyfer,Alexa Grasso vs. Maycee Barber,1.0,Alexa Grasso,1.0,12.0,38.0,12.0,38.0,0.0,0.0,1.0,2,0.0,8.0,31.0,0.0,0.0,4.0,7.0,11.0,37.0,0.0,0.0,1.0,1.0
+UFC Fight Night: Adesanya vs. Pyfer,Alexa Grasso vs. Maycee Barber,1.0,Maycee Barber,0.0,5.0,25.0,5.0,25.0,0.0,0.0,0.0,0,0.0,4.0,24.0,0.0,0.0,1.0,1.0,5.0,25.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Michael Chiesa vs. Niko Price,1.0,Michael Chiesa,0.0,0.0,1.0,0.0,1.0,1.0,2.0,1.0,23,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Michael Chiesa vs. Niko Price,1.0,Niko Price,0.0,1.0,3.0,1.0,3.0,1.0,1.0,0.0,8,0.0,0.0,2.0,1.0,1.0,0.0,0.0,0.0,2.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Julian Erosa vs. Lerryan Douglas,1.0,Julian Erosa,0.0,17.0,46.0,18.0,47.0,0.0,0.0,0.0,3,0.0,13.0,40.0,2.0,2.0,2.0,4.0,16.0,45.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Julian Erosa vs. Lerryan Douglas,1.0,Lerryan Douglas,2.0,29.0,48.0,30.0,49.0,0.0,0.0,0.0,5,0.0,18.0,37.0,3.0,3.0,8.0,8.0,25.0,39.0,2.0,6.0,2.0,3.0
+UFC Fight Night: Adesanya vs. Pyfer,Mansur Abdul-Malik vs. Yousri Belgaroui,1.0,Mansur Abdul-Malik,0.0,7.0,24.0,7.0,24.0,0.0,0.0,0.0,0,0.0,3.0,14.0,1.0,4.0,3.0,6.0,7.0,24.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Mansur Abdul-Malik vs. Yousri Belgaroui,2.0,Mansur Abdul-Malik,0.0,7.0,20.0,7.0,21.0,2.0,4.0,0.0,80,0.0,5.0,17.0,2.0,3.0,0.0,0.0,5.0,15.0,2.0,5.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Mansur Abdul-Malik vs. Yousri Belgaroui,3.0,Mansur Abdul-Malik,0.0,2.0,16.0,2.0,16.0,1.0,4.0,0.0,47,0.0,2.0,14.0,0.0,2.0,0.0,0.0,2.0,16.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Mansur Abdul-Malik vs. Yousri Belgaroui,1.0,Yousri Belgaroui,0.0,22.0,47.0,22.0,47.0,0.0,0.0,0.0,0,0.0,3.0,18.0,6.0,13.0,13.0,16.0,22.0,47.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Mansur Abdul-Malik vs. Yousri Belgaroui,2.0,Yousri Belgaroui,1.0,44.0,63.0,55.0,74.0,0.0,0.0,0.0,51,0.0,30.0,47.0,10.0,12.0,4.0,4.0,31.0,46.0,11.0,14.0,2.0,3.0
+UFC Fight Night: Adesanya vs. Pyfer,Mansur Abdul-Malik vs. Yousri Belgaroui,3.0,Yousri Belgaroui,1.0,28.0,46.0,30.0,49.0,0.0,0.0,0.0,8,0.0,21.0,38.0,6.0,7.0,1.0,1.0,22.0,40.0,6.0,6.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Terrance McKinney vs. Kyle Nelson,1.0,Terrance McKinney,0.0,13.0,27.0,15.0,29.0,0.0,0.0,0.0,13,0.0,12.0,26.0,1.0,1.0,0.0,0.0,5.0,5.0,0.0,0.0,8.0,22.0
+UFC Fight Night: Adesanya vs. Pyfer,Terrance McKinney vs. Kyle Nelson,1.0,Kyle Nelson,0.0,1.0,3.0,1.0,3.0,0.0,0.0,0.0,0,0.0,0.0,2.0,0.0,0.0,1.0,1.0,1.0,3.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Ignacio Bahamondes vs. Tofiq Musayev,1.0,Ignacio Bahamondes,0.0,20.0,39.0,21.0,45.0,0.0,0.0,0.0,0,0.0,6.0,14.0,8.0,14.0,6.0,11.0,18.0,36.0,2.0,3.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Ignacio Bahamondes vs. Tofiq Musayev,2.0,Ignacio Bahamondes,1.0,9.0,16.0,19.0,28.0,0.0,1.0,2.0,10,0.0,7.0,14.0,2.0,2.0,0.0,0.0,2.0,5.0,2.0,3.0,5.0,8.0
+UFC Fight Night: Adesanya vs. Pyfer,Ignacio Bahamondes vs. Tofiq Musayev,3.0,Ignacio Bahamondes,0.0,3.0,7.0,6.0,10.0,0.0,0.0,0.0,67,1.0,3.0,6.0,0.0,1.0,0.0,0.0,2.0,6.0,0.0,0.0,1.0,1.0
+UFC Fight Night: Adesanya vs. Pyfer,Ignacio Bahamondes vs. Tofiq Musayev,1.0,Tofiq Musayev,0.0,11.0,32.0,20.0,42.0,1.0,3.0,0.0,38,0.0,6.0,21.0,3.0,6.0,2.0,5.0,8.0,25.0,2.0,5.0,1.0,2.0
+UFC Fight Night: Adesanya vs. Pyfer,Ignacio Bahamondes vs. Tofiq Musayev,2.0,Tofiq Musayev,0.0,17.0,29.0,44.0,74.0,1.0,1.0,0.0,258,0.0,15.0,27.0,2.0,2.0,0.0,0.0,1.0,3.0,0.0,0.0,16.0,26.0
+UFC Fight Night: Adesanya vs. Pyfer,Ignacio Bahamondes vs. Tofiq Musayev,3.0,Tofiq Musayev,0.0,6.0,11.0,29.0,51.0,1.0,1.0,0.0,175,1.0,6.0,11.0,0.0,0.0,0.0,0.0,3.0,6.0,0.0,0.0,3.0,5.0
+UFC Fight Night: Adesanya vs. Pyfer,Chase Hooper vs. Lance Gibson Jr.,1.0,Chase Hooper,0.0,11.0,32.0,13.0,34.0,0.0,2.0,0.0,6,0.0,3.0,18.0,5.0,8.0,3.0,6.0,11.0,31.0,0.0,1.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Chase Hooper vs. Lance Gibson Jr.,1.0,Lance Gibson Jr.,1.0,13.0,22.0,19.0,28.0,0.0,0.0,0.0,7,0.0,6.0,13.0,2.0,3.0,5.0,6.0,7.0,14.0,6.0,8.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Marcin Tybura vs. Tyrell Fortune,1.0,Marcin Tybura,0.0,8.0,22.0,13.0,28.0,0.0,0.0,0.0,0,0.0,5.0,16.0,2.0,4.0,1.0,2.0,4.0,17.0,4.0,5.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Marcin Tybura vs. Tyrell Fortune,2.0,Marcin Tybura,0.0,19.0,50.0,21.0,52.0,0.0,0.0,0.0,0,0.0,8.0,35.0,7.0,11.0,4.0,4.0,17.0,47.0,2.0,3.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Marcin Tybura vs. Tyrell Fortune,3.0,Marcin Tybura,0.0,20.0,38.0,51.0,73.0,0.0,1.0,0.0,41,0.0,9.0,26.0,11.0,12.0,0.0,0.0,15.0,32.0,5.0,6.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Marcin Tybura vs. Tyrell Fortune,1.0,Tyrell Fortune,0.0,9.0,15.0,18.0,26.0,1.0,2.0,0.0,183,0.0,8.0,14.0,1.0,1.0,0.0,0.0,2.0,4.0,2.0,2.0,5.0,9.0
+UFC Fight Night: Adesanya vs. Pyfer,Marcin Tybura vs. Tyrell Fortune,2.0,Tyrell Fortune,0.0,13.0,26.0,13.0,26.0,0.0,0.0,0.0,0,0.0,11.0,24.0,2.0,2.0,0.0,0.0,12.0,25.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Marcin Tybura vs. Tyrell Fortune,3.0,Tyrell Fortune,0.0,8.0,18.0,18.0,29.0,2.0,3.0,0.0,124,0.0,5.0,15.0,3.0,3.0,0.0,0.0,4.0,14.0,3.0,3.0,1.0,1.0
+UFC Fight Night: Adesanya vs. Pyfer,Casey O'Neill vs. Gabriella Fernandes,1.0,Casey O'Neill,1.0,25.0,66.0,25.0,66.0,0.0,0.0,0.0,0,0.0,16.0,54.0,3.0,6.0,6.0,6.0,25.0,66.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Casey O'Neill vs. Gabriella Fernandes,1.0,Gabriella Fernandes,0.0,8.0,33.0,8.0,33.0,0.0,0.0,0.0,0,0.0,3.0,27.0,3.0,3.0,2.0,3.0,8.0,33.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Navajo Stirling vs. Bruno Lopes,1.0,Navajo Stirling,0.0,22.0,54.0,23.0,57.0,0.0,0.0,0.0,8,0.0,5.0,28.0,13.0,17.0,4.0,9.0,21.0,53.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Navajo Stirling vs. Bruno Lopes,2.0,Navajo Stirling,1.0,41.0,65.0,67.0,100.0,0.0,0.0,0.0,83,0.0,25.0,46.0,8.0,10.0,8.0,9.0,22.0,43.0,1.0,2.0,18.0,20.0
+UFC Fight Night: Adesanya vs. Pyfer,Navajo Stirling vs. Bruno Lopes,1.0,Bruno Lopes,0.0,16.0,36.0,23.0,43.0,0.0,4.0,0.0,50,0.0,9.0,25.0,3.0,5.0,4.0,6.0,12.0,31.0,4.0,5.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Navajo Stirling vs. Bruno Lopes,2.0,Bruno Lopes,0.0,12.0,27.0,13.0,28.0,0.0,4.0,0.0,10,0.0,6.0,17.0,3.0,4.0,3.0,6.0,11.0,26.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Ricky Simon vs. Adrian Yanez,1.0,Ricky Simon,0.0,12.0,55.0,12.0,55.0,0.0,1.0,0.0,0,0.0,9.0,48.0,1.0,4.0,2.0,3.0,12.0,55.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Ricky Simon vs. Adrian Yanez,2.0,Ricky Simon,0.0,15.0,35.0,23.0,45.0,2.0,3.0,0.0,126,0.0,13.0,31.0,1.0,3.0,1.0,1.0,9.0,28.0,2.0,2.0,4.0,5.0
+UFC Fight Night: Adesanya vs. Pyfer,Ricky Simon vs. Adrian Yanez,3.0,Ricky Simon,0.0,17.0,49.0,17.0,49.0,0.0,1.0,0.0,0,0.0,11.0,42.0,5.0,6.0,1.0,1.0,17.0,49.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Ricky Simon vs. Adrian Yanez,1.0,Adrian Yanez,0.0,16.0,46.0,16.0,46.0,0.0,0.0,0.0,0,0.0,15.0,45.0,1.0,1.0,0.0,0.0,16.0,46.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Ricky Simon vs. Adrian Yanez,2.0,Adrian Yanez,0.0,15.0,29.0,16.0,30.0,0.0,0.0,0.0,0,0.0,13.0,26.0,2.0,3.0,0.0,0.0,15.0,29.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Ricky Simon vs. Adrian Yanez,3.0,Adrian Yanez,1.0,40.0,94.0,41.0,95.0,0.0,0.0,0.0,6,0.0,35.0,88.0,3.0,4.0,2.0,2.0,36.0,81.0,0.0,0.0,4.0,13.0
+UFC Fight Night: Adesanya vs. Pyfer,Alexia Thainara vs. Bruna Brasil,1.0,Alexia Thainara,0.0,29.0,59.0,41.0,75.0,3.0,5.0,1.0,136,0.0,11.0,32.0,8.0,14.0,10.0,13.0,25.0,55.0,2.0,2.0,2.0,2.0
+UFC Fight Night: Adesanya vs. Pyfer,Alexia Thainara vs. Bruna Brasil,2.0,Alexia Thainara,0.0,28.0,51.0,59.0,85.0,1.0,3.0,0.0,225,0.0,14.0,34.0,12.0,14.0,2.0,3.0,18.0,37.0,6.0,8.0,4.0,6.0
+UFC Fight Night: Adesanya vs. Pyfer,Alexia Thainara vs. Bruna Brasil,3.0,Alexia Thainara,0.0,16.0,40.0,37.0,67.0,2.0,3.0,1.0,213,0.0,7.0,25.0,5.0,9.0,4.0,6.0,10.0,27.0,4.0,8.0,2.0,5.0
+UFC Fight Night: Adesanya vs. Pyfer,Alexia Thainara vs. Bruna Brasil,1.0,Bruna Brasil,0.0,16.0,23.0,25.0,33.0,0.0,0.0,0.0,0,0.0,5.0,11.0,5.0,5.0,6.0,7.0,15.0,22.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Alexia Thainara vs. Bruna Brasil,2.0,Bruna Brasil,0.0,15.0,20.0,33.0,39.0,0.0,1.0,0.0,0,0.0,4.0,8.0,10.0,11.0,1.0,1.0,10.0,15.0,5.0,5.0,0.0,0.0
+UFC Fight Night: Adesanya vs. Pyfer,Alexia Thainara vs. Bruna Brasil,3.0,Bruna Brasil,0.0,6.0,13.0,14.0,22.0,0.0,0.0,0.0,0,0.0,4.0,10.0,0.0,1.0,2.0,2.0,6.0,13.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Movsar Evloev vs. Lerone Murphy,1.0,Movsar Evloev,0.0,11.0,31.0,11.0,31.0,0.0,0.0,0.0,0,0.0,3.0,21.0,6.0,7.0,2.0,3.0,11.0,31.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Movsar Evloev vs. Lerone Murphy,2.0,Movsar Evloev,0.0,17.0,37.0,17.0,37.0,0.0,0.0,0.0,0,0.0,9.0,24.0,7.0,11.0,1.0,2.0,17.0,37.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Movsar Evloev vs. Lerone Murphy,3.0,Movsar Evloev,0.0,25.0,50.0,26.0,52.0,1.0,1.0,0.0,23,0.0,12.0,34.0,11.0,13.0,2.0,3.0,25.0,50.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Movsar Evloev vs. Lerone Murphy,4.0,Movsar Evloev,0.0,21.0,35.0,30.0,45.0,3.0,4.0,0.0,79,0.0,16.0,29.0,5.0,5.0,0.0,1.0,15.0,25.0,1.0,2.0,5.0,8.0
+UFC Fight Night: Evloev vs. Murphy,Movsar Evloev vs. Lerone Murphy,5.0,Movsar Evloev,0.0,12.0,36.0,40.0,69.0,5.0,5.0,0.0,132,0.0,7.0,26.0,4.0,8.0,1.0,2.0,12.0,35.0,0.0,0.0,0.0,1.0
+UFC Fight Night: Evloev vs. Murphy,Movsar Evloev vs. Lerone Murphy,1.0,Lerone Murphy,0.0,14.0,49.0,14.0,49.0,0.0,0.0,0.0,0,0.0,6.0,35.0,4.0,8.0,4.0,6.0,14.0,49.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Movsar Evloev vs. Lerone Murphy,2.0,Lerone Murphy,0.0,24.0,57.0,24.0,57.0,0.0,0.0,0.0,0,0.0,12.0,41.0,7.0,10.0,5.0,6.0,24.0,57.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Movsar Evloev vs. Lerone Murphy,3.0,Lerone Murphy,0.0,23.0,48.0,23.0,48.0,0.0,0.0,0.0,0,0.0,12.0,35.0,8.0,9.0,3.0,4.0,23.0,48.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Movsar Evloev vs. Lerone Murphy,4.0,Lerone Murphy,0.0,16.0,39.0,16.0,39.0,0.0,0.0,0.0,0,0.0,6.0,24.0,5.0,8.0,5.0,7.0,16.0,39.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Movsar Evloev vs. Lerone Murphy,5.0,Lerone Murphy,0.0,12.0,46.0,12.0,46.0,0.0,0.0,0.0,0,0.0,9.0,40.0,0.0,3.0,3.0,3.0,12.0,45.0,0.0,1.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Luke Riley vs. Michael Aswell Jr.,1.0,Luke Riley,0.0,33.0,56.0,45.0,68.0,0.0,0.0,0.0,0,0.0,22.0,42.0,10.0,11.0,1.0,3.0,30.0,53.0,3.0,3.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Luke Riley vs. Michael Aswell Jr.,2.0,Luke Riley,0.0,35.0,70.0,35.0,70.0,0.0,0.0,0.0,0,0.0,22.0,55.0,10.0,11.0,3.0,4.0,34.0,69.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Luke Riley vs. Michael Aswell Jr.,3.0,Luke Riley,0.0,32.0,51.0,33.0,54.0,0.0,0.0,0.0,0,0.0,21.0,37.0,11.0,14.0,0.0,0.0,26.0,44.0,6.0,7.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Luke Riley vs. Michael Aswell Jr.,1.0,Michael Aswell Jr.,0.0,20.0,59.0,54.0,95.0,0.0,0.0,0.0,65,0.0,17.0,52.0,3.0,6.0,0.0,1.0,18.0,53.0,2.0,6.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Luke Riley vs. Michael Aswell Jr.,2.0,Michael Aswell Jr.,0.0,30.0,81.0,36.0,87.0,0.0,0.0,0.0,29,0.0,22.0,69.0,8.0,12.0,0.0,0.0,29.0,77.0,1.0,4.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Luke Riley vs. Michael Aswell Jr.,3.0,Michael Aswell Jr.,0.0,11.0,40.0,17.0,51.0,1.0,1.0,0.0,75,0.0,9.0,37.0,2.0,3.0,0.0,0.0,11.0,39.0,0.0,1.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Michael Page vs. Sam Patterson,1.0,Michael Page,0.0,5.0,12.0,5.0,12.0,0.0,0.0,0.0,0,0.0,3.0,7.0,1.0,4.0,1.0,1.0,5.0,12.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Michael Page vs. Sam Patterson,2.0,Michael Page,0.0,10.0,24.0,11.0,25.0,0.0,0.0,0.0,0,0.0,6.0,16.0,3.0,4.0,1.0,4.0,10.0,24.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Michael Page vs. Sam Patterson,3.0,Michael Page,0.0,12.0,19.0,17.0,24.0,0.0,0.0,0.0,26,0.0,8.0,15.0,0.0,0.0,4.0,4.0,12.0,19.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Michael Page vs. Sam Patterson,1.0,Sam Patterson,0.0,4.0,11.0,4.0,11.0,0.0,0.0,0.0,0,0.0,2.0,8.0,1.0,1.0,1.0,2.0,4.0,11.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Michael Page vs. Sam Patterson,2.0,Sam Patterson,0.0,2.0,26.0,5.0,29.0,0.0,0.0,0.0,44,0.0,1.0,24.0,0.0,0.0,1.0,2.0,2.0,26.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Michael Page vs. Sam Patterson,3.0,Sam Patterson,0.0,6.0,27.0,16.0,38.0,0.0,2.0,0.0,123,0.0,1.0,18.0,3.0,5.0,2.0,4.0,4.0,23.0,2.0,4.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Iwo Baraniewski vs. Austen Lane,1.0,Iwo Baraniewski,1.0,10.0,13.0,10.0,13.0,0.0,0.0,0.0,4,0.0,9.0,12.0,0.0,0.0,1.0,1.0,2.0,5.0,0.0,0.0,8.0,8.0
+UFC Fight Night: Evloev vs. Murphy,Iwo Baraniewski vs. Austen Lane,1.0,Austen Lane,0.0,0.0,4.0,0.0,4.0,0.0,0.0,0.0,0,0.0,0.0,3.0,0.0,0.0,0.0,1.0,0.0,4.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Roman Dolidze vs. Christian Leroy Duncan,1.0,Roman Dolidze,0.0,2.0,6.0,3.0,7.0,2.0,2.0,0.0,153,0.0,2.0,6.0,0.0,0.0,0.0,0.0,2.0,6.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Roman Dolidze vs. Christian Leroy Duncan,2.0,Roman Dolidze,0.0,5.0,19.0,9.0,24.0,0.0,1.0,0.0,93,0.0,4.0,18.0,0.0,0.0,1.0,1.0,4.0,18.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Roman Dolidze vs. Christian Leroy Duncan,3.0,Roman Dolidze,0.0,3.0,9.0,28.0,63.0,1.0,1.0,0.0,181,0.0,2.0,7.0,0.0,0.0,1.0,2.0,3.0,9.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Roman Dolidze vs. Christian Leroy Duncan,1.0,Christian Leroy Duncan,0.0,16.0,29.0,23.0,36.0,0.0,1.0,0.0,37,0.0,5.0,17.0,2.0,3.0,9.0,9.0,13.0,24.0,1.0,2.0,2.0,3.0
+UFC Fight Night: Evloev vs. Murphy,Roman Dolidze vs. Christian Leroy Duncan,2.0,Christian Leroy Duncan,0.0,20.0,44.0,28.0,54.0,0.0,0.0,0.0,31,0.0,6.0,24.0,3.0,5.0,11.0,15.0,20.0,42.0,0.0,2.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Roman Dolidze vs. Christian Leroy Duncan,3.0,Christian Leroy Duncan,0.0,18.0,26.0,27.0,35.0,0.0,1.0,0.0,0,0.0,7.0,11.0,1.0,4.0,10.0,11.0,18.0,26.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Kurtis Campbell vs. Danny Silva,1.0,Kurtis Campbell,0.0,15.0,36.0,15.0,38.0,2.0,5.0,0.0,116,0.0,10.0,24.0,2.0,8.0,3.0,4.0,13.0,34.0,2.0,2.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Kurtis Campbell vs. Danny Silva,2.0,Kurtis Campbell,0.0,2.0,5.0,2.0,5.0,0.0,0.0,0.0,0,0.0,2.0,5.0,0.0,0.0,0.0,0.0,2.0,5.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Kurtis Campbell vs. Danny Silva,1.0,Danny Silva,0.0,6.0,20.0,9.0,23.0,1.0,1.0,0.0,56,1.0,3.0,16.0,2.0,3.0,1.0,1.0,5.0,17.0,0.0,2.0,1.0,1.0
+UFC Fight Night: Evloev vs. Murphy,Kurtis Campbell vs. Danny Silva,2.0,Danny Silva,2.0,10.0,12.0,11.0,13.0,0.0,0.0,0.0,9,0.0,8.0,10.0,2.0,2.0,0.0,0.0,6.0,6.0,4.0,5.0,0.0,1.0
+UFC Fight Night: Evloev vs. Murphy,Mason Jones vs. Axel Sola,1.0,Mason Jones,0.0,18.0,46.0,27.0,55.0,0.0,0.0,0.0,0,0.0,12.0,39.0,4.0,5.0,2.0,2.0,16.0,40.0,2.0,6.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Mason Jones vs. Axel Sola,2.0,Mason Jones,0.0,34.0,73.0,35.0,76.0,0.0,0.0,0.0,0,0.0,26.0,62.0,5.0,8.0,3.0,3.0,30.0,68.0,4.0,5.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Mason Jones vs. Axel Sola,3.0,Mason Jones,0.0,58.0,117.0,61.0,120.0,0.0,0.0,0.0,5,0.0,38.0,92.0,20.0,24.0,0.0,1.0,37.0,85.0,20.0,31.0,1.0,1.0
+UFC Fight Night: Evloev vs. Murphy,Mason Jones vs. Axel Sola,1.0,Axel Sola,0.0,15.0,32.0,18.0,38.0,2.0,4.0,0.0,105,0.0,13.0,28.0,2.0,4.0,0.0,0.0,14.0,28.0,1.0,4.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Mason Jones vs. Axel Sola,2.0,Axel Sola,0.0,22.0,51.0,22.0,51.0,0.0,0.0,0.0,23,0.0,14.0,42.0,8.0,9.0,0.0,0.0,22.0,50.0,0.0,1.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Mason Jones vs. Axel Sola,3.0,Axel Sola,0.0,28.0,52.0,28.0,52.0,1.0,3.0,0.0,11,0.0,22.0,46.0,6.0,6.0,0.0,0.0,25.0,47.0,3.0,5.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Nathaniel Wood vs. Losene Keita,1.0,Nathaniel Wood,0.0,17.0,56.0,17.0,56.0,0.0,1.0,0.0,0,0.0,7.0,42.0,2.0,3.0,8.0,11.0,17.0,55.0,0.0,1.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Nathaniel Wood vs. Losene Keita,2.0,Nathaniel Wood,0.0,19.0,56.0,19.0,56.0,0.0,0.0,0.0,0,0.0,9.0,42.0,0.0,0.0,10.0,14.0,19.0,56.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Nathaniel Wood vs. Losene Keita,3.0,Nathaniel Wood,0.0,31.0,66.0,31.0,66.0,0.0,0.0,0.0,0,0.0,16.0,44.0,0.0,0.0,15.0,22.0,31.0,66.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Nathaniel Wood vs. Losene Keita,1.0,Losene Keita,0.0,11.0,26.0,11.0,26.0,0.0,0.0,0.0,0,0.0,8.0,22.0,3.0,4.0,0.0,0.0,11.0,26.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Nathaniel Wood vs. Losene Keita,2.0,Losene Keita,0.0,23.0,42.0,23.0,42.0,0.0,0.0,0.0,0,0.0,14.0,32.0,7.0,8.0,2.0,2.0,23.0,42.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Nathaniel Wood vs. Losene Keita,3.0,Losene Keita,0.0,18.0,51.0,18.0,51.0,0.0,0.0,0.0,0,0.0,14.0,47.0,3.0,3.0,1.0,1.0,18.0,51.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Mario Pinto vs. Felipe Franco,1.0,Mario Pinto,0.0,16.0,28.0,37.0,49.0,0.0,2.0,0.0,28,0.0,12.0,23.0,2.0,3.0,2.0,2.0,12.0,23.0,4.0,5.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Mario Pinto vs. Felipe Franco,2.0,Mario Pinto,0.0,9.0,20.0,39.0,53.0,1.0,5.0,0.0,140,0.0,6.0,17.0,2.0,2.0,1.0,1.0,6.0,16.0,3.0,4.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Mario Pinto vs. Felipe Franco,3.0,Mario Pinto,0.0,9.0,10.0,61.0,64.0,1.0,7.0,0.0,207,0.0,7.0,8.0,2.0,2.0,0.0,0.0,2.0,3.0,6.0,6.0,1.0,1.0
+UFC Fight Night: Evloev vs. Murphy,Mario Pinto vs. Felipe Franco,1.0,Felipe Franco,0.0,9.0,25.0,16.0,32.0,0.0,0.0,0.0,0,0.0,6.0,21.0,2.0,3.0,1.0,1.0,8.0,24.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Mario Pinto vs. Felipe Franco,2.0,Felipe Franco,0.0,3.0,19.0,11.0,27.0,0.0,1.0,0.0,0,0.0,1.0,17.0,2.0,2.0,0.0,0.0,2.0,18.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Mario Pinto vs. Felipe Franco,3.0,Felipe Franco,0.0,9.0,16.0,33.0,41.0,0.0,0.0,0.0,0,0.0,6.0,13.0,3.0,3.0,0.0,0.0,3.0,9.0,6.0,7.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Mantas Kondratavicius vs. Antonio Trocoli,1.0,Mantas Kondratavicius,0.0,28.0,42.0,41.0,56.0,0.0,0.0,0.0,112,0.0,19.0,33.0,9.0,9.0,0.0,0.0,19.0,32.0,9.0,10.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Mantas Kondratavicius vs. Antonio Trocoli,2.0,Mantas Kondratavicius,1.0,39.0,47.0,73.0,88.0,1.0,2.0,1.0,217,0.0,35.0,43.0,4.0,4.0,0.0,0.0,16.0,22.0,7.0,7.0,16.0,18.0
+UFC Fight Night: Evloev vs. Murphy,Mantas Kondratavicius vs. Antonio Trocoli,3.0,Mantas Kondratavicius,0.0,8.0,18.0,21.0,33.0,1.0,2.0,0.0,37,0.0,7.0,17.0,1.0,1.0,0.0,0.0,7.0,14.0,1.0,2.0,0.0,2.0
+UFC Fight Night: Evloev vs. Murphy,Mantas Kondratavicius vs. Antonio Trocoli,1.0,Antonio Trocoli,0.0,6.0,14.0,9.0,19.0,0.0,1.0,0.0,93,0.0,2.0,10.0,2.0,2.0,2.0,2.0,4.0,12.0,2.0,2.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Mantas Kondratavicius vs. Antonio Trocoli,2.0,Antonio Trocoli,0.0,5.0,10.0,7.0,12.0,0.0,4.0,0.0,8,0.0,3.0,7.0,0.0,1.0,2.0,2.0,5.0,10.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Mantas Kondratavicius vs. Antonio Trocoli,3.0,Antonio Trocoli,0.0,6.0,15.0,13.0,23.0,1.0,7.0,0.0,202,0.0,5.0,11.0,1.0,4.0,0.0,0.0,6.0,13.0,0.0,2.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Louie Sutherland vs. Brando Pericic,1.0,Louie Sutherland,0.0,9.0,18.0,9.0,18.0,1.0,3.0,0.0,40,0.0,5.0,14.0,2.0,2.0,2.0,2.0,7.0,15.0,2.0,3.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Louie Sutherland vs. Brando Pericic,1.0,Brando Pericic,0.0,19.0,26.0,34.0,46.0,0.0,0.0,0.0,19,0.0,13.0,20.0,6.0,6.0,0.0,0.0,5.0,9.0,9.0,10.0,5.0,7.0
+UFC Fight Night: Evloev vs. Murphy,Shem Rock vs. Abdul-Kareem Al-Selwady,1.0,Shem Rock,0.0,17.0,46.0,22.0,51.0,0.0,1.0,0.0,30,0.0,10.0,37.0,4.0,6.0,3.0,3.0,15.0,43.0,1.0,1.0,1.0,2.0
+UFC Fight Night: Evloev vs. Murphy,Shem Rock vs. Abdul-Kareem Al-Selwady,2.0,Shem Rock,0.0,11.0,36.0,11.0,36.0,0.0,3.0,0.0,24,0.0,7.0,30.0,3.0,5.0,1.0,1.0,10.0,35.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Shem Rock vs. Abdul-Kareem Al-Selwady,3.0,Shem Rock,0.0,19.0,46.0,19.0,47.0,1.0,2.0,0.0,1,0.0,9.0,34.0,9.0,11.0,1.0,1.0,18.0,45.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Shem Rock vs. Abdul-Kareem Al-Selwady,1.0,Abdul-Kareem Al-Selwady,0.0,27.0,52.0,28.0,53.0,0.0,1.0,0.0,2,0.0,16.0,33.0,2.0,2.0,9.0,17.0,25.0,47.0,2.0,4.0,0.0,1.0
+UFC Fight Night: Evloev vs. Murphy,Shem Rock vs. Abdul-Kareem Al-Selwady,2.0,Abdul-Kareem Al-Selwady,0.0,25.0,50.0,48.0,76.0,0.0,0.0,0.0,10,0.0,14.0,36.0,5.0,6.0,6.0,8.0,24.0,48.0,1.0,2.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Shem Rock vs. Abdul-Kareem Al-Selwady,3.0,Abdul-Kareem Al-Selwady,0.0,29.0,44.0,29.0,44.0,0.0,3.0,0.0,7,0.0,18.0,33.0,6.0,6.0,5.0,5.0,22.0,35.0,5.0,5.0,2.0,4.0
+UFC Fight Night: Evloev vs. Murphy,Shanelle Dyer vs. Ravena Oliveira,1.0,Shanelle Dyer,0.0,32.0,47.0,33.0,48.0,0.0,0.0,0.0,28,0.0,13.0,24.0,8.0,8.0,11.0,15.0,28.0,43.0,4.0,4.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Shanelle Dyer vs. Ravena Oliveira,2.0,Shanelle Dyer,0.0,17.0,31.0,17.0,31.0,1.0,1.0,0.0,6,0.0,9.0,18.0,5.0,9.0,3.0,4.0,7.0,14.0,4.0,7.0,6.0,10.0
+UFC Fight Night: Evloev vs. Murphy,Shanelle Dyer vs. Ravena Oliveira,1.0,Ravena Oliveira,0.0,20.0,67.0,26.0,73.0,0.0,1.0,0.0,5,0.0,11.0,54.0,8.0,9.0,1.0,4.0,18.0,65.0,2.0,2.0,0.0,0.0
+UFC Fight Night: Evloev vs. Murphy,Shanelle Dyer vs. Ravena Oliveira,2.0,Ravena Oliveira,0.0,6.0,13.0,6.0,13.0,0.0,0.0,0.0,7,0.0,5.0,11.0,1.0,1.0,0.0,1.0,6.0,13.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Josh Emmett vs. Kevin Vallejos,1.0,Josh Emmett,0.0,3.0,12.0,3.0,12.0,0.0,1.0,0.0,0,0.0,2.0,11.0,1.0,1.0,0.0,0.0,3.0,12.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Josh Emmett vs. Kevin Vallejos,1.0,Kevin Vallejos,2.0,36.0,55.0,43.0,68.0,0.0,0.0,0.0,38,0.0,30.0,49.0,4.0,4.0,2.0,2.0,12.0,21.0,10.0,14.0,14.0,20.0
+UFC Fight Night: Emmett vs. Vallejos,Amanda Lemos vs. Gillian Robertson,1.0,Amanda Lemos,0.0,25.0,37.0,27.0,39.0,0.0,0.0,0.0,100,1.0,18.0,29.0,6.0,6.0,1.0,2.0,12.0,23.0,1.0,1.0,12.0,13.0
+UFC Fight Night: Emmett vs. Vallejos,Amanda Lemos vs. Gillian Robertson,2.0,Amanda Lemos,0.0,10.0,19.0,11.0,22.0,1.0,1.0,0.0,14,0.0,7.0,16.0,1.0,1.0,2.0,2.0,9.0,18.0,0.0,0.0,1.0,1.0
+UFC Fight Night: Emmett vs. Vallejos,Amanda Lemos vs. Gillian Robertson,3.0,Amanda Lemos,0.0,7.0,17.0,13.0,23.0,0.0,0.0,1.0,10,0.0,6.0,16.0,1.0,1.0,0.0,0.0,6.0,16.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Amanda Lemos vs. Gillian Robertson,1.0,Gillian Robertson,0.0,5.0,15.0,9.0,20.0,1.0,2.0,0.0,98,1.0,2.0,7.0,1.0,2.0,2.0,6.0,5.0,15.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Amanda Lemos vs. Gillian Robertson,2.0,Gillian Robertson,0.0,2.0,3.0,26.0,28.0,1.0,1.0,0.0,246,0.0,0.0,0.0,0.0,0.0,2.0,3.0,2.0,3.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Amanda Lemos vs. Gillian Robertson,3.0,Gillian Robertson,0.0,5.0,8.0,29.0,33.0,1.0,4.0,0.0,213,1.0,3.0,5.0,1.0,2.0,1.0,1.0,3.0,5.0,1.0,1.0,1.0,2.0
+UFC Fight Night: Emmett vs. Vallejos,Andre Fili vs. Jose Delgado,1.0,Andre Fili,0.0,19.0,39.0,19.0,39.0,1.0,1.0,0.0,23,0.0,15.0,32.0,2.0,4.0,2.0,3.0,19.0,39.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Andre Fili vs. Jose Delgado,2.0,Andre Fili,0.0,18.0,39.0,19.0,41.0,1.0,1.0,0.0,11,1.0,16.0,36.0,2.0,2.0,0.0,1.0,18.0,39.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Andre Fili vs. Jose Delgado,3.0,Andre Fili,0.0,25.0,63.0,32.0,74.0,2.0,4.0,0.0,25,0.0,15.0,53.0,7.0,7.0,3.0,3.0,24.0,61.0,0.0,0.0,1.0,2.0
+UFC Fight Night: Emmett vs. Vallejos,Andre Fili vs. Jose Delgado,1.0,Jose Delgado,0.0,23.0,46.0,26.0,49.0,0.0,1.0,0.0,0,0.0,7.0,26.0,7.0,11.0,9.0,9.0,23.0,46.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Andre Fili vs. Jose Delgado,2.0,Jose Delgado,0.0,30.0,62.0,34.0,66.0,1.0,2.0,0.0,31,0.0,9.0,35.0,15.0,21.0,6.0,6.0,22.0,49.0,6.0,11.0,2.0,2.0
+UFC Fight Night: Emmett vs. Vallejos,Andre Fili vs. Jose Delgado,3.0,Jose Delgado,0.0,41.0,61.0,43.0,64.0,0.0,0.0,0.0,5,0.0,21.0,38.0,12.0,15.0,8.0,8.0,38.0,58.0,3.0,3.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Marwan Rahiki vs. Harry Hardwick,1.0,Marwan Rahiki,0.0,44.0,83.0,44.0,83.0,0.0,0.0,0.0,0,0.0,26.0,59.0,7.0,12.0,11.0,12.0,44.0,83.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Marwan Rahiki vs. Harry Hardwick,2.0,Marwan Rahiki,0.0,46.0,81.0,49.0,88.0,0.0,0.0,0.0,95,0.0,34.0,67.0,11.0,13.0,1.0,1.0,44.0,77.0,2.0,4.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Marwan Rahiki vs. Harry Hardwick,1.0,Harry Hardwick,0.0,40.0,94.0,44.0,102.0,0.0,0.0,0.0,36,0.0,23.0,74.0,7.0,8.0,10.0,12.0,40.0,93.0,0.0,1.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Marwan Rahiki vs. Harry Hardwick,2.0,Harry Hardwick,0.0,25.0,55.0,32.0,62.0,0.0,1.0,0.0,8,0.0,16.0,43.0,4.0,5.0,5.0,7.0,25.0,55.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Ion Cutelaba vs. Oumar Sy,1.0,Ion Cutelaba,0.0,14.0,20.0,40.0,49.0,1.0,2.0,1.0,147,0.0,4.0,9.0,4.0,5.0,6.0,6.0,10.0,15.0,1.0,1.0,3.0,4.0
+UFC Fight Night: Emmett vs. Vallejos,Ion Cutelaba vs. Oumar Sy,1.0,Oumar Sy,0.0,5.0,11.0,5.0,11.0,0.0,1.0,0.0,18,0.0,1.0,7.0,0.0,0.0,4.0,4.0,5.0,11.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Charles Johnson vs. Bruno Silva,1.0,Charles Johnson,0.0,18.0,34.0,18.0,36.0,0.0,2.0,0.0,0,0.0,7.0,18.0,7.0,10.0,4.0,6.0,11.0,26.0,7.0,8.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Charles Johnson vs. Bruno Silva,2.0,Charles Johnson,0.0,33.0,60.0,38.0,65.0,0.0,1.0,0.0,0,0.0,17.0,37.0,10.0,16.0,6.0,7.0,29.0,56.0,4.0,4.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Charles Johnson vs. Bruno Silva,3.0,Charles Johnson,0.0,34.0,68.0,54.0,88.0,0.0,3.0,0.0,6,0.0,19.0,46.0,13.0,20.0,2.0,2.0,21.0,50.0,13.0,18.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Charles Johnson vs. Bruno Silva,1.0,Bruno Silva,0.0,12.0,19.0,15.0,22.0,0.0,2.0,0.0,53,0.0,6.0,11.0,2.0,4.0,4.0,4.0,12.0,19.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Charles Johnson vs. Bruno Silva,2.0,Bruno Silva,0.0,27.0,53.0,37.0,66.0,0.0,3.0,0.0,81,0.0,18.0,39.0,6.0,9.0,3.0,5.0,27.0,52.0,0.0,1.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Charles Johnson vs. Bruno Silva,3.0,Bruno Silva,0.0,34.0,64.0,49.0,83.0,0.0,3.0,0.0,89,0.0,28.0,56.0,6.0,8.0,0.0,0.0,32.0,60.0,2.0,4.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Chris Curtis vs. Myktybek Orolbai,1.0,Chris Curtis,0.0,2.0,10.0,12.0,20.0,0.0,0.0,0.0,0,0.0,1.0,9.0,1.0,1.0,0.0,0.0,2.0,10.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Chris Curtis vs. Myktybek Orolbai,2.0,Chris Curtis,0.0,6.0,13.0,20.0,28.0,0.0,0.0,0.0,6,0.0,4.0,11.0,2.0,2.0,0.0,0.0,4.0,11.0,1.0,1.0,1.0,1.0
+UFC Fight Night: Emmett vs. Vallejos,Chris Curtis vs. Myktybek Orolbai,3.0,Chris Curtis,0.0,4.0,8.0,25.0,33.0,0.0,0.0,0.0,0,0.0,1.0,5.0,3.0,3.0,0.0,0.0,3.0,7.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Chris Curtis vs. Myktybek Orolbai,1.0,Myktybek Orolbai,0.0,16.0,21.0,49.0,65.0,7.0,8.0,0.0,242,0.0,13.0,16.0,2.0,2.0,1.0,3.0,3.0,5.0,0.0,0.0,13.0,16.0
+UFC Fight Night: Emmett vs. Vallejos,Chris Curtis vs. Myktybek Orolbai,2.0,Myktybek Orolbai,0.0,2.0,3.0,25.0,26.0,7.0,9.0,0.0,253,0.0,0.0,1.0,0.0,0.0,2.0,2.0,0.0,1.0,1.0,1.0,1.0,1.0
+UFC Fight Night: Emmett vs. Vallejos,Chris Curtis vs. Myktybek Orolbai,3.0,Myktybek Orolbai,0.0,2.0,4.0,9.0,11.0,5.0,7.0,0.0,258,0.0,0.0,1.0,1.0,2.0,1.0,1.0,2.0,4.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Vitor Petrino vs. Steven Asplund,1.0,Vitor Petrino,0.0,19.0,37.0,19.0,38.0,0.0,3.0,0.0,23,0.0,14.0,32.0,2.0,2.0,3.0,3.0,19.0,36.0,0.0,1.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Vitor Petrino vs. Steven Asplund,2.0,Vitor Petrino,0.0,34.0,52.0,34.0,52.0,0.0,1.0,0.0,54,0.0,25.0,42.0,3.0,3.0,6.0,7.0,34.0,52.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Vitor Petrino vs. Steven Asplund,3.0,Vitor Petrino,0.0,39.0,72.0,39.0,72.0,0.0,0.0,0.0,0,0.0,20.0,52.0,13.0,13.0,6.0,7.0,39.0,72.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Vitor Petrino vs. Steven Asplund,1.0,Steven Asplund,1.0,20.0,45.0,32.0,59.0,0.0,0.0,0.0,12,0.0,14.0,39.0,3.0,3.0,3.0,3.0,17.0,41.0,1.0,2.0,2.0,2.0
+UFC Fight Night: Emmett vs. Vallejos,Vitor Petrino vs. Steven Asplund,2.0,Steven Asplund,0.0,14.0,50.0,14.0,50.0,0.0,0.0,0.0,0,0.0,12.0,45.0,1.0,3.0,1.0,2.0,14.0,50.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Vitor Petrino vs. Steven Asplund,3.0,Steven Asplund,0.0,27.0,63.0,27.0,63.0,0.0,0.0,0.0,0,0.0,22.0,56.0,0.0,2.0,5.0,5.0,27.0,63.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Elijah Smith vs. SuYoung You,1.0,Elijah Smith,0.0,3.0,6.0,5.0,8.0,0.0,0.0,0.0,79,1.0,1.0,4.0,1.0,1.0,1.0,1.0,2.0,5.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Elijah Smith vs. SuYoung You,2.0,Elijah Smith,1.0,13.0,21.0,13.0,21.0,0.0,0.0,1.0,16,0.0,13.0,21.0,0.0,0.0,0.0,0.0,3.0,8.0,2.0,2.0,8.0,11.0
+UFC Fight Night: Emmett vs. Vallejos,Elijah Smith vs. SuYoung You,1.0,SuYoung You,0.0,1.0,1.0,18.0,24.0,4.0,7.0,0.0,162,0.0,1.0,1.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Elijah Smith vs. SuYoung You,2.0,SuYoung You,0.0,2.0,2.0,3.0,3.0,0.0,1.0,0.0,0,0.0,2.0,2.0,0.0,0.0,0.0,0.0,2.0,2.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Bolaji Oki vs. Manoel Sousa,1.0,Bolaji Oki,0.0,20.0,26.0,42.0,50.0,1.0,1.0,0.0,171,0.0,8.0,14.0,9.0,9.0,3.0,3.0,3.0,7.0,12.0,12.0,5.0,7.0
+UFC Fight Night: Emmett vs. Vallejos,Bolaji Oki vs. Manoel Sousa,2.0,Bolaji Oki,0.0,32.0,72.0,34.0,74.0,0.0,1.0,0.0,28,0.0,16.0,49.0,11.0,18.0,5.0,5.0,28.0,65.0,4.0,6.0,0.0,1.0
+UFC Fight Night: Emmett vs. Vallejos,Bolaji Oki vs. Manoel Sousa,3.0,Bolaji Oki,0.0,32.0,72.0,32.0,72.0,0.0,0.0,0.0,4,0.0,18.0,48.0,8.0,17.0,6.0,7.0,31.0,71.0,1.0,1.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Bolaji Oki vs. Manoel Sousa,1.0,Manoel Sousa,1.0,10.0,21.0,23.0,35.0,0.0,0.0,1.0,59,0.0,8.0,18.0,2.0,2.0,0.0,1.0,4.0,12.0,5.0,5.0,1.0,4.0
+UFC Fight Night: Emmett vs. Vallejos,Bolaji Oki vs. Manoel Sousa,2.0,Manoel Sousa,0.0,13.0,66.0,15.0,68.0,0.0,2.0,0.0,0,0.0,7.0,56.0,4.0,8.0,2.0,2.0,12.0,61.0,1.0,5.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Bolaji Oki vs. Manoel Sousa,3.0,Manoel Sousa,1.0,48.0,92.0,48.0,93.0,0.0,1.0,0.0,10,0.0,33.0,76.0,10.0,11.0,5.0,5.0,46.0,88.0,2.0,4.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Brad Tavares vs. Eryk Anders,1.0,Brad Tavares,0.0,18.0,35.0,18.0,35.0,0.0,0.0,0.0,0,0.0,7.0,23.0,10.0,11.0,1.0,1.0,6.0,18.0,12.0,17.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Brad Tavares vs. Eryk Anders,2.0,Brad Tavares,1.0,18.0,31.0,21.0,34.0,0.0,0.0,0.0,29,0.0,11.0,22.0,6.0,8.0,1.0,1.0,13.0,21.0,2.0,4.0,3.0,6.0
+UFC Fight Night: Emmett vs. Vallejos,Brad Tavares vs. Eryk Anders,3.0,Brad Tavares,0.0,12.0,20.0,16.0,26.0,0.0,1.0,0.0,0,0.0,11.0,19.0,1.0,1.0,0.0,0.0,12.0,20.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Brad Tavares vs. Eryk Anders,1.0,Eryk Anders,0.0,20.0,41.0,33.0,56.0,0.0,4.0,0.0,190,0.0,17.0,34.0,3.0,7.0,0.0,0.0,4.0,14.0,16.0,27.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Brad Tavares vs. Eryk Anders,2.0,Eryk Anders,0.0,11.0,31.0,22.0,52.0,0.0,1.0,0.0,145,1.0,6.0,24.0,5.0,7.0,0.0,0.0,7.0,21.0,3.0,9.0,1.0,1.0
+UFC Fight Night: Emmett vs. Vallejos,Brad Tavares vs. Eryk Anders,3.0,Eryk Anders,0.0,4.0,12.0,13.0,25.0,3.0,4.0,0.0,225,0.0,3.0,11.0,1.0,1.0,0.0,0.0,4.0,12.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Bia Mesquita vs. Montse Rendon,1.0,Bia Mesquita,0.0,18.0,27.0,31.0,40.0,1.0,1.0,1.0,106,0.0,16.0,25.0,1.0,1.0,1.0,1.0,6.0,6.0,0.0,1.0,12.0,20.0
+UFC Fight Night: Emmett vs. Vallejos,Bia Mesquita vs. Montse Rendon,1.0,Montse Rendon,0.0,0.0,8.0,0.0,8.0,0.0,0.0,0.0,0,0.0,0.0,6.0,0.0,1.0,0.0,1.0,0.0,8.0,0.0,0.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Luan Lacerda vs. Hecher Sosa,1.0,Luan Lacerda,0.0,19.0,43.0,22.0,47.0,2.0,3.0,0.0,104,0.0,9.0,24.0,7.0,15.0,3.0,4.0,13.0,36.0,6.0,7.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Luan Lacerda vs. Hecher Sosa,2.0,Luan Lacerda,0.0,23.0,64.0,24.0,67.0,0.0,3.0,0.0,34,0.0,15.0,48.0,8.0,16.0,0.0,0.0,22.0,60.0,1.0,4.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Luan Lacerda vs. Hecher Sosa,3.0,Luan Lacerda,0.0,20.0,61.0,26.0,68.0,2.0,5.0,0.0,48,0.0,11.0,46.0,7.0,13.0,2.0,2.0,18.0,54.0,2.0,7.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Luan Lacerda vs. Hecher Sosa,1.0,Hecher Sosa,0.0,22.0,50.0,33.0,64.0,0.0,0.0,0.0,6,0.0,15.0,37.0,2.0,8.0,5.0,5.0,20.0,44.0,2.0,6.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Luan Lacerda vs. Hecher Sosa,2.0,Hecher Sosa,0.0,42.0,90.0,49.0,100.0,0.0,0.0,0.0,10,0.0,25.0,68.0,13.0,17.0,4.0,5.0,34.0,80.0,8.0,10.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Luan Lacerda vs. Hecher Sosa,3.0,Hecher Sosa,0.0,40.0,81.0,55.0,99.0,0.0,0.0,0.0,18,0.0,27.0,65.0,10.0,12.0,3.0,4.0,34.0,65.0,6.0,16.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Piera Rodriguez vs. Sam Hughes,1.0,Piera Rodriguez,0.0,40.0,85.0,41.0,87.0,0.0,3.0,0.0,64,0.0,18.0,59.0,16.0,19.0,6.0,7.0,29.0,70.0,11.0,15.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Piera Rodriguez vs. Sam Hughes,2.0,Piera Rodriguez,0.0,30.0,63.0,32.0,66.0,1.0,1.0,0.0,74,0.0,15.0,46.0,13.0,15.0,2.0,2.0,17.0,48.0,12.0,14.0,1.0,1.0
+UFC Fight Night: Emmett vs. Vallejos,Piera Rodriguez vs. Sam Hughes,3.0,Piera Rodriguez,0.0,37.0,83.0,38.0,84.0,0.0,2.0,0.0,17,0.0,19.0,58.0,16.0,21.0,2.0,4.0,26.0,70.0,11.0,13.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Piera Rodriguez vs. Sam Hughes,1.0,Sam Hughes,0.0,33.0,43.0,37.0,47.0,0.0,4.0,0.0,22,0.0,13.0,23.0,9.0,9.0,11.0,11.0,30.0,40.0,3.0,3.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Piera Rodriguez vs. Sam Hughes,2.0,Sam Hughes,0.0,22.0,37.0,27.0,44.0,0.0,2.0,0.0,0,0.0,16.0,29.0,2.0,4.0,4.0,4.0,18.0,33.0,4.0,4.0,0.0,0.0
+UFC Fight Night: Emmett vs. Vallejos,Piera Rodriguez vs. Sam Hughes,3.0,Sam Hughes,0.0,22.0,64.0,27.0,69.0,0.0,1.0,0.0,0,0.0,18.0,58.0,2.0,4.0,2.0,2.0,17.0,59.0,5.0,5.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Max Holloway vs. Charles Oliveira,1.0,Max Holloway,0.0,8.0,13.0,11.0,16.0,0.0,0.0,0.0,0,0.0,5.0,10.0,2.0,2.0,1.0,1.0,8.0,13.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Max Holloway vs. Charles Oliveira,2.0,Max Holloway,0.0,5.0,7.0,16.0,18.0,0.0,0.0,0.0,0,0.0,3.0,4.0,2.0,3.0,0.0,0.0,5.0,7.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Max Holloway vs. Charles Oliveira,3.0,Max Holloway,0.0,2.0,5.0,10.0,13.0,0.0,0.0,0.0,0,0.0,1.0,4.0,1.0,1.0,0.0,0.0,2.0,5.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Max Holloway vs. Charles Oliveira,4.0,Max Holloway,0.0,6.0,11.0,8.0,13.0,0.0,0.0,0.0,0,0.0,6.0,11.0,0.0,0.0,0.0,0.0,6.0,11.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Max Holloway vs. Charles Oliveira,5.0,Max Holloway,0.0,5.0,9.0,28.0,32.0,0.0,0.0,0.0,96,0.0,3.0,7.0,1.0,1.0,1.0,1.0,4.0,8.0,1.0,1.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Max Holloway vs. Charles Oliveira,1.0,Charles Oliveira,0.0,10.0,14.0,19.0,25.0,1.0,1.0,2.0,270,0.0,7.0,11.0,0.0,0.0,3.0,3.0,6.0,8.0,1.0,1.0,3.0,5.0
+UFC 326: Holloway vs. Oliveira 2,Max Holloway vs. Charles Oliveira,2.0,Charles Oliveira,0.0,13.0,15.0,24.0,26.0,1.0,2.0,2.0,280,0.0,11.0,13.0,2.0,2.0,0.0,0.0,2.0,4.0,0.0,0.0,11.0,11.0
+UFC 326: Holloway vs. Oliveira 2,Max Holloway vs. Charles Oliveira,3.0,Charles Oliveira,0.0,9.0,14.0,18.0,23.0,1.0,4.0,0.0,269,0.0,7.0,10.0,1.0,3.0,1.0,1.0,3.0,7.0,1.0,1.0,5.0,6.0
+UFC 326: Holloway vs. Oliveira 2,Max Holloway vs. Charles Oliveira,4.0,Charles Oliveira,0.0,9.0,11.0,25.0,36.0,1.0,3.0,0.0,256,0.0,6.0,8.0,2.0,2.0,1.0,1.0,4.0,6.0,0.0,0.0,5.0,5.0
+UFC 326: Holloway vs. Oliveira 2,Max Holloway vs. Charles Oliveira,5.0,Charles Oliveira,0.0,9.0,12.0,24.0,27.0,1.0,3.0,0.0,174,0.0,6.0,9.0,2.0,2.0,1.0,1.0,9.0,12.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Caio Borralho vs. Reinier de Ridder,1.0,Caio Borralho,0.0,24.0,42.0,24.0,42.0,0.0,0.0,0.0,0,0.0,14.0,26.0,3.0,8.0,7.0,8.0,23.0,41.0,0.0,0.0,1.0,1.0
+UFC 326: Holloway vs. Oliveira 2,Caio Borralho vs. Reinier de Ridder,2.0,Caio Borralho,0.0,14.0,25.0,22.0,33.0,0.0,0.0,0.0,41,0.0,6.0,16.0,2.0,3.0,6.0,6.0,14.0,25.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Caio Borralho vs. Reinier de Ridder,3.0,Caio Borralho,0.0,19.0,31.0,25.0,37.0,1.0,1.0,0.0,131,0.0,12.0,23.0,4.0,5.0,3.0,3.0,18.0,29.0,0.0,0.0,1.0,2.0
+UFC 326: Holloway vs. Oliveira 2,Caio Borralho vs. Reinier de Ridder,1.0,Reinier de Ridder,0.0,19.0,51.0,30.0,62.0,2.0,5.0,0.0,86,0.0,9.0,37.0,3.0,6.0,7.0,8.0,19.0,51.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Caio Borralho vs. Reinier de Ridder,2.0,Reinier de Ridder,0.0,17.0,43.0,23.0,50.0,0.0,3.0,0.0,80,0.0,12.0,37.0,4.0,5.0,1.0,1.0,15.0,41.0,2.0,2.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Caio Borralho vs. Reinier de Ridder,3.0,Reinier de Ridder,0.0,19.0,47.0,58.0,87.0,0.0,0.0,0.0,0,0.0,16.0,43.0,3.0,4.0,0.0,0.0,19.0,47.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Rob Font vs. Raul Rosas Jr.,1.0,Rob Font,0.0,7.0,20.0,8.0,21.0,0.0,1.0,0.0,0,0.0,4.0,15.0,1.0,3.0,2.0,2.0,7.0,20.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Rob Font vs. Raul Rosas Jr.,2.0,Rob Font,0.0,0.0,2.0,8.0,10.0,0.0,0.0,0.0,13,1.0,0.0,2.0,0.0,0.0,0.0,0.0,0.0,2.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Rob Font vs. Raul Rosas Jr.,3.0,Rob Font,0.0,3.0,9.0,13.0,19.0,0.0,0.0,0.0,0,0.0,2.0,8.0,1.0,1.0,0.0,0.0,3.0,9.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Rob Font vs. Raul Rosas Jr.,1.0,Raul Rosas Jr.,0.0,5.0,22.0,12.0,29.0,5.0,6.0,0.0,131,0.0,2.0,18.0,0.0,0.0,3.0,4.0,5.0,22.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Rob Font vs. Raul Rosas Jr.,2.0,Raul Rosas Jr.,0.0,1.0,5.0,17.0,23.0,3.0,3.0,0.0,247,1.0,1.0,5.0,0.0,0.0,0.0,0.0,1.0,4.0,0.0,0.0,0.0,1.0
+UFC 326: Holloway vs. Oliveira 2,Rob Font vs. Raul Rosas Jr.,3.0,Raul Rosas Jr.,0.0,2.0,6.0,18.0,23.0,8.0,9.0,0.0,227,0.0,2.0,6.0,0.0,0.0,0.0,0.0,2.0,6.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Drew Dober vs. Michael Johnson,1.0,Drew Dober,0.0,11.0,29.0,11.0,29.0,0.0,0.0,0.0,0,0.0,2.0,14.0,5.0,9.0,4.0,6.0,11.0,29.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Drew Dober vs. Michael Johnson,2.0,Drew Dober,1.0,11.0,26.0,11.0,26.0,0.0,0.0,0.0,0,0.0,7.0,19.0,2.0,5.0,2.0,2.0,10.0,25.0,0.0,0.0,1.0,1.0
+UFC 326: Holloway vs. Oliveira 2,Drew Dober vs. Michael Johnson,1.0,Michael Johnson,0.0,18.0,51.0,18.0,51.0,0.0,0.0,0.0,0,0.0,9.0,31.0,0.0,11.0,9.0,9.0,18.0,51.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Drew Dober vs. Michael Johnson,2.0,Michael Johnson,0.0,9.0,25.0,9.0,25.0,0.0,0.0,0.0,0,0.0,9.0,24.0,0.0,0.0,0.0,1.0,9.0,25.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Gregory Rodrigues vs. Brunno Ferreira,1.0,Gregory Rodrigues,1.0,2.0,6.0,2.0,6.0,0.0,0.0,0.0,0,0.0,1.0,4.0,1.0,2.0,0.0,0.0,2.0,6.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Gregory Rodrigues vs. Brunno Ferreira,1.0,Brunno Ferreira,0.0,2.0,5.0,2.0,5.0,0.0,0.0,0.0,0,0.0,1.0,2.0,0.0,1.0,1.0,2.0,2.0,5.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Cody Garbrandt vs. Xiao Long,1.0,Cody Garbrandt,0.0,10.0,20.0,10.0,20.0,0.0,2.0,0.0,27,0.0,6.0,16.0,2.0,2.0,2.0,2.0,7.0,16.0,3.0,4.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Cody Garbrandt vs. Xiao Long,2.0,Cody Garbrandt,0.0,7.0,15.0,7.0,15.0,0.0,1.0,0.0,11,0.0,4.0,12.0,2.0,2.0,1.0,1.0,5.0,13.0,2.0,2.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Cody Garbrandt vs. Xiao Long,3.0,Cody Garbrandt,0.0,11.0,19.0,11.0,19.0,0.0,5.0,0.0,15,0.0,3.0,11.0,7.0,7.0,1.0,1.0,5.0,13.0,6.0,6.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Cody Garbrandt vs. Xiao Long,1.0,Xiao Long,0.0,20.0,31.0,20.0,31.0,0.0,0.0,0.0,0,0.0,3.0,10.0,2.0,4.0,15.0,17.0,20.0,31.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Cody Garbrandt vs. Xiao Long,2.0,Xiao Long,0.0,21.0,41.0,22.0,42.0,0.0,1.0,0.0,0,0.0,3.0,16.0,6.0,7.0,12.0,18.0,21.0,40.0,0.0,1.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Cody Garbrandt vs. Xiao Long,3.0,Xiao Long,0.0,18.0,36.0,28.0,46.0,1.0,1.0,0.0,47,0.0,5.0,15.0,11.0,17.0,2.0,4.0,10.0,28.0,3.0,3.0,5.0,5.0
+UFC 326: Holloway vs. Oliveira 2,Donte Johnson vs. Cody Brundage,1.0,Donte Johnson,0.0,10.0,25.0,29.0,44.0,0.0,0.0,0.0,0,0.0,8.0,23.0,1.0,1.0,1.0,1.0,10.0,25.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Donte Johnson vs. Cody Brundage,2.0,Donte Johnson,0.0,13.0,30.0,28.0,46.0,0.0,0.0,0.0,181,1.0,12.0,28.0,0.0,1.0,1.0,1.0,3.0,16.0,0.0,0.0,10.0,14.0
+UFC 326: Holloway vs. Oliveira 2,Donte Johnson vs. Cody Brundage,3.0,Donte Johnson,0.0,22.0,51.0,27.0,56.0,0.0,0.0,0.0,31,0.0,15.0,41.0,3.0,6.0,4.0,4.0,22.0,51.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Donte Johnson vs. Cody Brundage,1.0,Cody Brundage,0.0,5.0,20.0,6.0,23.0,1.0,2.0,0.0,201,0.0,4.0,19.0,0.0,0.0,1.0,1.0,5.0,19.0,0.0,1.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Donte Johnson vs. Cody Brundage,2.0,Cody Brundage,0.0,6.0,14.0,8.0,16.0,1.0,2.0,0.0,45,0.0,1.0,8.0,2.0,3.0,3.0,3.0,6.0,14.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Donte Johnson vs. Cody Brundage,3.0,Cody Brundage,0.0,20.0,49.0,20.0,49.0,0.0,3.0,0.0,16,0.0,14.0,43.0,0.0,0.0,6.0,6.0,20.0,49.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Ricky Turcios vs. Alberto Montes,1.0,Ricky Turcios,0.0,19.0,53.0,33.0,67.0,0.0,2.0,0.0,114,0.0,13.0,46.0,2.0,3.0,4.0,4.0,17.0,51.0,2.0,2.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Ricky Turcios vs. Alberto Montes,2.0,Ricky Turcios,0.0,3.0,7.0,3.0,7.0,0.0,1.0,0.0,0,0.0,1.0,5.0,1.0,1.0,1.0,1.0,3.0,7.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Ricky Turcios vs. Alberto Montes,1.0,Alberto Montes,0.0,26.0,47.0,33.0,54.0,0.0,0.0,0.0,9,0.0,16.0,35.0,8.0,10.0,2.0,2.0,20.0,41.0,6.0,6.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Ricky Turcios vs. Alberto Montes,2.0,Alberto Montes,0.0,6.0,11.0,6.0,11.0,0.0,0.0,1.0,12,0.0,3.0,7.0,2.0,3.0,1.0,1.0,6.0,11.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Cody Durden vs. Nyamjargal Tumendemberel,1.0,Cody Durden,0.0,4.0,8.0,21.0,25.0,3.0,6.0,0.0,111,0.0,1.0,5.0,0.0,0.0,3.0,3.0,3.0,6.0,1.0,1.0,0.0,1.0
+UFC 326: Holloway vs. Oliveira 2,Cody Durden vs. Nyamjargal Tumendemberel,2.0,Cody Durden,0.0,4.0,11.0,8.0,15.0,0.0,1.0,0.0,37,1.0,4.0,11.0,0.0,0.0,0.0,0.0,4.0,10.0,0.0,0.0,0.0,1.0
+UFC 326: Holloway vs. Oliveira 2,Cody Durden vs. Nyamjargal Tumendemberel,3.0,Cody Durden,0.0,0.0,2.0,25.0,29.0,0.0,1.0,0.0,142,2.0,0.0,2.0,0.0,0.0,0.0,0.0,0.0,2.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Cody Durden vs. Nyamjargal Tumendemberel,1.0,Nyamjargal Tumendemberel,0.0,9.0,13.0,15.0,19.0,1.0,1.0,1.0,97,0.0,5.0,8.0,1.0,1.0,3.0,4.0,3.0,7.0,1.0,1.0,5.0,5.0
+UFC 326: Holloway vs. Oliveira 2,Cody Durden vs. Nyamjargal Tumendemberel,2.0,Nyamjargal Tumendemberel,0.0,12.0,22.0,20.0,30.0,2.0,2.0,0.0,171,0.0,11.0,20.0,0.0,1.0,1.0,1.0,4.0,12.0,0.0,0.0,8.0,10.0
+UFC 326: Holloway vs. Oliveira 2,Cody Durden vs. Nyamjargal Tumendemberel,3.0,Nyamjargal Tumendemberel,0.0,4.0,7.0,8.0,11.0,1.0,1.0,0.0,144,2.0,4.0,6.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,4.0,7.0
+UFC 326: Holloway vs. Oliveira 2,Sumudaerji vs. Jesus Aguilar,1.0,Sumudaerji,0.0,16.0,44.0,19.0,47.0,1.0,1.0,0.0,13,0.0,10.0,34.0,1.0,3.0,5.0,7.0,16.0,44.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Sumudaerji vs. Jesus Aguilar,2.0,Sumudaerji,0.0,17.0,47.0,19.0,50.0,1.0,1.0,0.0,82,0.0,9.0,32.0,6.0,13.0,2.0,2.0,14.0,44.0,0.0,0.0,3.0,3.0
+UFC 326: Holloway vs. Oliveira 2,Sumudaerji vs. Jesus Aguilar,3.0,Sumudaerji,0.0,29.0,57.0,31.0,59.0,2.0,3.0,0.0,61,0.0,25.0,50.0,4.0,7.0,0.0,0.0,25.0,53.0,3.0,3.0,1.0,1.0
+UFC 326: Holloway vs. Oliveira 2,Sumudaerji vs. Jesus Aguilar,1.0,Jesus Aguilar,0.0,13.0,35.0,16.0,38.0,0.0,1.0,0.0,59,0.0,4.0,19.0,4.0,6.0,5.0,10.0,12.0,34.0,1.0,1.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Sumudaerji vs. Jesus Aguilar,2.0,Jesus Aguilar,0.0,6.0,27.0,10.0,34.0,0.0,2.0,0.0,0,0.0,1.0,14.0,1.0,9.0,4.0,4.0,6.0,27.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Sumudaerji vs. Jesus Aguilar,3.0,Jesus Aguilar,0.0,12.0,44.0,16.0,48.0,1.0,2.0,0.0,66,0.0,7.0,30.0,3.0,9.0,2.0,5.0,12.0,44.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Rafael Tobias vs. Diyar Nurgozhay,1.0,Rafael Tobias,0.0,10.0,38.0,10.0,38.0,0.0,0.0,0.0,0,0.0,5.0,29.0,3.0,5.0,2.0,4.0,9.0,37.0,1.0,1.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Rafael Tobias vs. Diyar Nurgozhay,2.0,Rafael Tobias,0.0,16.0,34.0,28.0,46.0,1.0,6.0,0.0,104,0.0,16.0,33.0,0.0,1.0,0.0,0.0,7.0,22.0,0.0,1.0,9.0,11.0
+UFC 326: Holloway vs. Oliveira 2,Rafael Tobias vs. Diyar Nurgozhay,3.0,Rafael Tobias,0.0,13.0,29.0,14.0,30.0,1.0,2.0,1.0,47,0.0,8.0,24.0,4.0,4.0,1.0,1.0,10.0,25.0,3.0,4.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Rafael Tobias vs. Diyar Nurgozhay,1.0,Diyar Nurgozhay,0.0,36.0,57.0,36.0,58.0,0.0,0.0,0.0,18,0.0,13.0,30.0,14.0,18.0,9.0,9.0,31.0,51.0,4.0,4.0,1.0,2.0
+UFC 326: Holloway vs. Oliveira 2,Rafael Tobias vs. Diyar Nurgozhay,2.0,Diyar Nurgozhay,0.0,27.0,46.0,32.0,51.0,0.0,0.0,0.0,63,1.0,14.0,32.0,9.0,10.0,4.0,4.0,19.0,31.0,1.0,2.0,7.0,13.0
+UFC 326: Holloway vs. Oliveira 2,Rafael Tobias vs. Diyar Nurgozhay,3.0,Diyar Nurgozhay,0.0,31.0,40.0,32.0,41.0,0.0,1.0,0.0,7,0.0,6.0,9.0,14.0,19.0,11.0,12.0,31.0,40.0,0.0,0.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Luke Fernandez vs. Rodolfo Bellato,1.0,Luke Fernandez,0.0,16.0,33.0,26.0,43.0,0.0,0.0,0.0,22,0.0,12.0,28.0,3.0,4.0,1.0,1.0,9.0,26.0,7.0,7.0,0.0,0.0
+UFC 326: Holloway vs. Oliveira 2,Luke Fernandez vs. Rodolfo Bellato,1.0,Rodolfo Bellato,1.0,30.0,46.0,32.0,48.0,0.0,0.0,0.0,11,0.0,24.0,39.0,4.0,5.0,2.0,2.0,9.0,18.0,1.0,1.0,20.0,27.0
 UFC Fight Night: Moreno vs. Kavanagh,Brandon Moreno vs. Lone'er Kavanagh,1.0,Brandon Moreno,0.0,19.0,40.0,19.0,40.0,0.0,0.0,0.0,0,0.0,14.0,34.0,3.0,4.0,2.0,2.0,19.0,40.0,0.0,0.0,0.0,0.0
 UFC Fight Night: Moreno vs. Kavanagh,Brandon Moreno vs. Lone'er Kavanagh,2.0,Brandon Moreno,0.0,24.0,54.0,24.0,54.0,0.0,1.0,0.0,0,0.0,13.0,40.0,6.0,9.0,5.0,5.0,23.0,53.0,1.0,1.0,0.0,0.0
 UFC Fight Night: Moreno vs. Kavanagh,Brandon Moreno vs. Lone'er Kavanagh,3.0,Brandon Moreno,0.0,16.0,40.0,31.0,56.0,0.0,3.0,0.0,81,0.0,13.0,35.0,2.0,4.0,1.0,1.0,16.0,39.0,0.0,1.0,0.0,0.0
