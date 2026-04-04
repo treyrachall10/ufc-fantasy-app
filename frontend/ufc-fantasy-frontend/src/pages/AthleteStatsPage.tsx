@@ -1,19 +1,15 @@
 import { Container, Grid, Box, Typography, Stack} from "@mui/material";
 import { DataGrid } from '@mui/x-data-grid';
-import Sidebar from "../components/layout/Sidebar";
-import QuickStatCard from "../components/statHolders/QuickStatCard";
-import FightsList from "../components/lists/FightsList";
 import WinLossChart from "../components/charts/WinLossChart";
 import FantasyTrendLineChart from "../components/charts/FantasyTrendLineChart";
 import FightResultBadge from "../components/badges/FightResultBadge";
-import { FantasyFightScore, Fight, FighterWithCareerStats, FightForFighter } from "../types/types";
+import { FantasyFightScore, FighterWithCareerStats, FightForFighter } from "../types/types";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router";
 
 export default function AthleteStatsPage(){
     const  params = useParams()
     const id = params.id; 
-    {/* API fetching*/}    
     const { data: fighterData,
             isPending: fighterPending,
             error: fighterError } = useQuery<FighterWithCareerStats>({

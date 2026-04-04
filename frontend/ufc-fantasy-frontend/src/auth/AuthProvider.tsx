@@ -1,9 +1,6 @@
-import { createContext, useState, ReactNode, useEffect } from 'react';
-import { getToken, clearToken, saveToken } from './auth';
-import { useQuery } from "@tanstack/react-query";
-import { useAuthFetch } from './authFetch';
+import { createContext, useState, ReactNode } from 'react';
+import { getToken } from './auth';
 import { useAuth0, User } from '@auth0/auth0-react';
-import { useCurrentUser } from './useCurrentUser';
 
 interface AuthContextType {
   token: string | null;
@@ -22,11 +19,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 // Component job is to own the authentication state
 export function AuthProvider({ children }: AuthProviderProps) {
   const {user, isAuthenticated, isLoading} = useAuth0();
-  const authFetch = useAuthFetch();
-  const [token, setToken] = useState<string | null>(getToken());
-  const [userState, setUserState] = useState<User | null>(null);
-  const [profileComplete, setProfileComplete] = useState<boolean>(false);
-  const { data } = useCurrentUser();
+  const [token] = useState<string | null>(getToken());
 
   return (
     <AuthContext.Provider value={{ token, user: user, isAuthenticated, isLoading }}>

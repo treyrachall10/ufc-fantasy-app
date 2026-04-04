@@ -1,20 +1,18 @@
-import { Box, Grid, Paper, Stack, Typography, FormControl, Select, MenuItem, Avatar, Button, Menu, Dialog, DialogTitle, DialogContent, useMediaQuery, TextField } from '@mui/material';
+import { Box, Grid, Paper, Stack, Typography, FormControl, Select, MenuItem, Avatar, Button, Dialog, DialogTitle, DialogContent, useMediaQuery, TextField } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import SearchIcon from '@mui/icons-material/Search';
 import ListPageLayout from '../components/layout/ListPageLayout';
-import FighterTable from '../components/dataGrid/FighterTable';
 import DraftPlayerCard from '../components/Draftcards/DraftPlayerCard';
 import { KeyboardEvent, useEffect, useState } from 'react';
 import AnimatedList from '../components/Animations/AnimatedList';
-import { Query, keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthFetch } from '../auth/authFetch';
 import { useParams } from 'react-router-dom';
 import { DataGrid, GridColDef, GridPaginationModel, GridRenderCellParams } from '@mui/x-data-grid';
 import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam, PaginatedResponse } from '../types/types';
-import { useRef } from 'react';
 
 // Payload type for drafting a fighter
 interface DraftFighterPayload {
@@ -67,6 +65,10 @@ export default function DraftLobbyPage() {
     const { page, pageSize } = paginationModel;
     const [typedSearch, setTypedSearch] = useState('');
     const [submittedSearch, setSubmittedSearch] = useState('');
+    const [selectedTeamId, setSelectedTeamId] = useState<number | undefined>();
+    const [rosterDialogOpen, setRosterDialogOpen] = useState(false);
+    const [flexDialogOpen, setFlexDialogOpen] = useState(false);
+    const [pendingFlexFighterId, setPendingFlexFighterId] = useState<number | null>(null);
     
     // State for weight class filter - holds the selected weight class text value
     const [selectedWeightClass, setSelectedWeightClass] = useState('');
@@ -122,14 +124,14 @@ export default function DraftLobbyPage() {
         )
     }
     // Fetch Draft State Data in rolling intervals using refetchinterval to keep the timer, current pick, and status updated in real-time
-    const { data: draftStateData, isPending: isDraftStatePending, error: draftStateError} = useQuery<DraftState>({
+    const { data: draftStateData } = useQuery<DraftState>({
         queryKey: ['draft', params.draftId, 'state'],
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/state`).then(r => r.json()),
         refetchInterval: 1000, // Refetch every 1000 milliseconds (1 second)
     })
 
     // Fetch Draftable Fighters for Draft Board
-    const { data: draftableFightersData, isPending: isDraftableFightersPending, error: draftableFightersError} = useQuery<PaginatedResponse<DraftableFighter>>({
+    const { data: draftableFightersData, isPending: isDraftableFightersPending } = useQuery<PaginatedResponse<DraftableFighter>>({
         queryKey: ['draft', params.draftId, 'draftableFighters', page, pageSize, selectedNumericWeightClass, submittedSearch],
         queryFn: () => {
             const queryParams = new URLSearchParams({
@@ -152,19 +154,19 @@ export default function DraftLobbyPage() {
     })
 
     // Fetch League Info to get team names, league capacity, etc.
-    const { data: leagueData, isPending: isLeagueDataPending, error: leagueDataError} = useQuery<LeagueInfo>({
+    const { data: leagueData } = useQuery<LeagueInfo>({
         queryKey: ['League', params.leagueId],
         queryFn: () => authFetch(`http://localhost:8000/league/${params.leagueId}`).then(r => r.json()),
     })
 
     // Fetch Draft Order.
-    const { data: draftOrderData, isPending: isDraftOrderPending, error: draftOrderError} = useQuery<DraftOrderTeam[]>({
+    const { data: draftOrderData } = useQuery<DraftOrderTeam[]>({
         queryKey: ['draft', params.draftId, 'draftOrder'],
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/draftOrder`).then(r => r.json()),
     })
 
     // Fetch Past Picks to show draft history on the right column
-    const { data: pastPicksData, isPending: isPastPicksPending, error: pastPicksError} = useQuery({
+    const { data: pastPicksData } = useQuery({
         queryKey: ['draft', params.draftId, 'pastPicks'],
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/pastPicks`).then(r => r.json()),
     })
@@ -179,7 +181,7 @@ export default function DraftLobbyPage() {
 
         queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
         queryClient.invalidateQueries({ queryKey: ['team', selectedTeamId] });
-    }, [draftStateData?.current_pick]);
+    }, [draftStateData?.current_pick, params.draftId, queryClient, selectedTeamId]);
 
     // Effect to update the past picks reference when new picks are added to trigger animations in the AnimatedList component
     useEffect(() => {
@@ -193,15 +195,8 @@ export default function DraftLobbyPage() {
             fighter: pick.fighter.full_name,
             wc: pick.fighter.weight,
         })) || []);
-    }, [pastPicksData]);
+    }, [pastPicksData, leagueData?.league.capacity]);
 
-    // Reference for the past picks container to add new picks with an animation when they are added to the history list
-    const pastPicksRef = useRef(pastPicksData || []);
-
-    const [selectedTeamId, setSelectedTeamId] = useState<number | undefined>();
-    const [rosterDialogOpen, setRosterDialogOpen] = useState(false);
-    const [flexDialogOpen, setFlexDialogOpen] = useState(false);
-    const [pendingFlexFighterId, setPendingFlexFighterId] = useState<number | null>(null);
     useEffect(() => {
         if (draftStateData?.user_team_id) {
             setSelectedTeamId(draftStateData.user_team_id);
@@ -209,7 +204,7 @@ export default function DraftLobbyPage() {
     }, [draftStateData?.user_team_id]);
 
     // Fetch selected team's roster data to show in the left column. This query depends on 'selectedTeamId' and will only run when it's set.
-    const {data: rosterData, isPending: isRosterDataPending, error: rosterDataError} = useQuery<TeamDataResponse>({
+    const {data: rosterData} = useQuery<TeamDataResponse>({
         queryKey: ['team', selectedTeamId],
         queryFn: () => authFetch(`http://localhost:8000/team/${selectedTeamId}`).then(r => r.json()),
         enabled: !!selectedTeamId, // Only run this query if selectedTeamId is available
@@ -438,15 +433,6 @@ export default function DraftLobbyPage() {
 
 
     // Mock Recent Pick - Static
-    const recentPick = {
-        id: 106,
-        round: 1,
-        pick: 6,
-        user: 'Team Adan',
-        fighter: 'Illia Topuria',
-        wc: 'FW',
-    };
-
     // Mock Header Data
     const draftState = {
         round: 2,

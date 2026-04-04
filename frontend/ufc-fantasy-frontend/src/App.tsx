@@ -6,7 +6,7 @@ import AthleteStatsPage from './pages/AthleteStatsPage';
 import LeagueDashboard from './pages/LeagueDashboard';
 import JoinLeague from './pages/JoinLeague';
 import HomePage from './pages/Home';
-import { Box, CssBaseline } from '@mui/material';
+import { CssBaseline } from '@mui/material';
 import UserTeamPage from './pages/UserTeamPage';
 import DraftLobbyPage from './pages/DraftLobbyPage';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -27,7 +27,6 @@ import LeagueCreation from './pages/LeagueCreation';
 import theme from './theme/theme';
 import { ThemeProvider } from "@mui/material/styles";
 import Callback from './pages/Callback';
-import { R } from '@tanstack/react-query-devtools/build/legacy/ReactQueryDevtools-ChNsB-ya';
 import FinishSignup from './pages/FinishSignup';
 
 function App() {

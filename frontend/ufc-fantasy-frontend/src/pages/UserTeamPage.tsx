@@ -1,15 +1,12 @@
 import ListPageLayout from "../components/layout/ListPageLayout";
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, Typography, Stack } from '@mui/material';
-import { AuthContext } from "../auth/AuthProvider";
-import { useContext } from "react";
 import { useParams } from "react-router-dom";
 import { useAuthFetch } from "../auth/authFetch";
 import { useQuery } from "@tanstack/react-query";
 import { TeamDataResponse } from "../types/types";
 
 export default function UserTeamPage() {
-    const auth = useContext(AuthContext)!
     const authFetch = useAuthFetch();
     const params = useParams();
 

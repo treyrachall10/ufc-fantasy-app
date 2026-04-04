@@ -16,7 +16,6 @@ export default function FightersList({ searchTerm = '' }: FightersListProps) {
         setPaginationModel((prev) => ({ ...prev, page: 0 }));
     }, [searchTerm]);
 
-    {/* API fetching*/}    
     const { data, isPending, error } = useQuery<PaginatedResponse<Fighter>>({
         queryKey: ['fighterListData', page, pageSize, searchTerm],
         queryFn: () => {

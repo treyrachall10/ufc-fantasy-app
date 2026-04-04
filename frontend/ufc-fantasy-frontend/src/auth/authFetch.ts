@@ -1,4 +1,4 @@
-import { getToken, clearToken } from "./auth";
+import { clearToken } from "./auth";
 import { useAuth0 } from '@auth0/auth0-react';
 
 export const useAuthFetch = () => {

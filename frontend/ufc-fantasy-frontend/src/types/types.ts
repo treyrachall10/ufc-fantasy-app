@@ -1,6 +1,3 @@
-import { Navigate } from 'react-router-dom';
-import exp from "constants";
-
 export interface Fighter {
     fighter_id: number,
     first_name: string,

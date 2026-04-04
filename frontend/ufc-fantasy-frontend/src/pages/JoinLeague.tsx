@@ -8,11 +8,6 @@ import FormControl from '@mui/material/FormControl';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from "@tanstack/react-query";
-
-import ToggleButton, { toggleButtonClasses } from '@mui/material/ToggleButton';
-import ToggleButtonGroup, {
-  toggleButtonGroupClasses,
-} from '@mui/material/ToggleButtonGroup';
 import { useAuthFetch } from '../auth/authFetch';
 
 type JoinPayload = {
@@ -90,7 +85,7 @@ export default function JoinLeague(){
         const key = document.getElementById('key') as HTMLInputElement
 
         let isValid = true;
-        if (key.value.length != 8) {
+        if (key.value.length !== 8) {
             setJoinKeyError(true);
             setJoinKeyErrorMessage('Join key must be exactly 8 characters.');
             isValid = false;

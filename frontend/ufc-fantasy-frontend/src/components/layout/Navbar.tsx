@@ -11,9 +11,6 @@ import * as React from 'react';
 import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
 import { Link } from 'react-router-dom';
-import { useContext } from 'react';
-import { AuthContext } from '../../auth/AuthProvider';
-import { useNavigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
 
 const pages = [{
@@ -27,10 +24,7 @@ const pages = [{
         ]
 
 export default function Navbar(){
-    const { loginWithRedirect, logout, user, isAuthenticated, isLoading } = useAuth0();
-    const navigate = useNavigate();
-    // Gives access to token state directly
-    const auth = useContext(AuthContext)!;
+    const { loginWithRedirect, logout, user, isAuthenticated } = useAuth0();
 
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
     const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);

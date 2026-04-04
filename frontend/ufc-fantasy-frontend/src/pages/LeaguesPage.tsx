@@ -2,7 +2,7 @@ import ListPageLayout from "../components/layout/ListPageLayout";
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, Typography, Stack } from '@mui/material';
 import { Link, Button } from '@mui/material';
-import { Router, Link as RouterLink} from "react-router-dom";
+import { Link as RouterLink} from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthFetch } from "../auth/authFetch";
 

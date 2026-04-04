@@ -1,8 +1,7 @@
-import { Box, LinearProgress, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import FantasyStatRow from "./FantasyStatRow";
 import StatToggler from "../Controls/StatToggler";
 import { useState } from "react";
-import { RadarChart, Radar, PolarAngleAxis, PolarRadiusAxis, Legend, PolarGrid } from 'recharts';
 import { DetailedFantasyScore } from "../../types/types";
 
 interface FantasyScoreBreakdownProps {

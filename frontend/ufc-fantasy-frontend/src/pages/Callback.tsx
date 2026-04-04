@@ -1,23 +1,11 @@
 import { useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { useAuthFetch } from '../auth/authFetch';
 import { useCurrentUser } from '../auth/useCurrentUser';
 
-type ApiMeResponse = {
-	user: {
-		id: number;
-		email: string;
-		username: string;
-	};
-	profile_complete: boolean;
-};
-
 export default function Callback() {
-	const authFetch = useAuthFetch();
 	const navigate = useNavigate();
-	const { data: user, isLoading, isError } = useCurrentUser()
+	const { data: user } = useCurrentUser()
 
 	useEffect(() => {
 		if (user?.profile_complete === false) {

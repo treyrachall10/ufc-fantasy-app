@@ -1,6 +1,4 @@
-import { Container, 
-        Grid, 
-        Box, 
+import { Box, 
         Typography,
         Button,
         Stack,
@@ -12,8 +10,6 @@ import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined';
 import SportsMartialArtsOutlinedIcon from '@mui/icons-material/SportsMartialArtsOutlined';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import { Link } from 'react-router-dom';
-import { AuthContext } from "../auth/AuthProvider";
-import { useContext } from "react";
 import { useAuth0 } from '@auth0/auth0-react';
 
 const cards = [
@@ -166,7 +162,7 @@ export default function HomePage() {
             </Stack>
             {/*Hover Cards*/}
             <Stack direction={'row'} spacing={2}>
-                {cards.map((card, index) => (
+                {cards.map((card) => (
                     <Card 
                         key={card.id} 
                         elevation={0} 

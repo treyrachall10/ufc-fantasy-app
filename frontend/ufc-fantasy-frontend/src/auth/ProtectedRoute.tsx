@@ -1,8 +1,6 @@
-import { useContext } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { AuthContext } from '../auth/AuthProvider';
 import { useCurrentUser } from './useCurrentUser';
-import { useAuth0, User } from '@auth0/auth0-react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { Box, CircularProgress } from '@mui/material';
 
 // Protects routes that require authentication.

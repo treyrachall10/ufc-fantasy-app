@@ -13,9 +13,8 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from "@tanstack/react-query";
 
-import ToggleButton, { toggleButtonClasses } from '@mui/material/ToggleButton';
+import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup, {
-  toggleButtonGroupClasses,
 } from '@mui/material/ToggleButtonGroup';
 import { useAuthFetch } from '../auth/authFetch';
 

@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Event } from '../../types/types';
 
 export default function FightersList() {
-    {/* API fetching*/}
     const { data, isPending, error } = useQuery<Event[]>({
             queryKey: ['eventListData'],
             queryFn: () => fetch('http://localhost:8000/events').then(r => r.json()),

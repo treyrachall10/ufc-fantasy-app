@@ -30,7 +30,6 @@ export default function DraftPlayerCard({
 }: DraftPlayerCardProps) {
 
     // --- Styles based on variant ---
-    const isRoster = variant === 'roster';
     const isHistory = variant === 'history';
 
     // Container Styles

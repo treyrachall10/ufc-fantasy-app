@@ -29,7 +29,6 @@ export default function FightsList() {
         url = ""
     }
 
-    {/* API fetching*/}    
     const { data, isPending, error } = useQuery<Fight[]>({
             queryKey: queryKey,
             queryFn: () => fetch(url).then(r => r.json()),

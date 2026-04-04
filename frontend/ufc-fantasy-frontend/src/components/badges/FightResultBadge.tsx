@@ -1,11 +1,11 @@
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
-interface FightResultBadge {
+interface FightResultBadgeProps {
     result: string;
     method: string;
 }
 
-export default function FightResultBadge({result, method}: FightResultBadge){
+export default function FightResultBadge({result, method}: FightResultBadgeProps){
     let displayResult = result;
     let displayMethod = method;
     let bgColor;
