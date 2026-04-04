@@ -10,7 +10,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthFetch } from '../auth/authFetch';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DataGrid, GridColDef, GridPaginationModel, GridRenderCellParams } from '@mui/x-data-grid';
 import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam, PaginatedResponse } from '../types/types';
 
@@ -64,6 +64,7 @@ interface DraftableFighter {
 
 export default function DraftLobbyPage() {
     const params = useParams<{ leagueId: string; draftId: string }>();
+    const navigate = useNavigate();
     const isMobile = useMediaQuery('(max-width: 600px)');
     const queryClient = useQueryClient();
     const authFetch = useAuthFetch();
@@ -143,6 +144,27 @@ export default function DraftLobbyPage() {
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/state`).then(r => r.json()),
         refetchInterval: 1000, // Refetch every 1000 milliseconds (1 second)
     })
+
+    useEffect(() => {
+        if (!draftStateData) return;
+
+        if (draftStateData.draft_status === 'COMPLETED') {
+            if (draftStateData.user_team_id) {
+                navigate(`/team/${draftStateData.user_team_id}`);
+                return;
+            }
+
+            if (params.leagueId) {
+                navigate(`/league/${params.leagueId}`);
+            }
+
+            return;
+        }
+
+        if (draftStateData.draft_status !== 'IN_PROGRESS' && params.leagueId) {
+            navigate(`/league/${params.leagueId}`);
+        }
+    }, [draftStateData, navigate, params.leagueId]);
 
     // Fetch Draftable Fighters for Draft Board
     const { data: draftableFightersData, isPending: isDraftableFightersPending } = useQuery<PaginatedResponse<DraftableFighter>>({

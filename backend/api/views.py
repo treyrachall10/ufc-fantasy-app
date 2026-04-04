@@ -267,14 +267,15 @@ def AddRosterSlot(request, draft_id):
                        pick_num=current_pick,
                        )
     # Check if draft is completed
-    if draft.current_pick >= DraftOrder.objects.filter(draft=draft).count():
+    if draft.current_pick > DraftOrder.objects.filter(draft=draft).count():
         draft.status = Draft.Status.COMPLETED
         draft.save()
         return Response(
             {
                 "detail": f"Fighter has been drafted to {slot_type}. Draft is now completed.",
                 "code": "draft_completed",
-                "draft_status": draft.status
+                "draft_status": draft.status,
+                "user_team_id": team.id,
             },
             status=200
         )
@@ -340,14 +341,15 @@ def DraftFlexSlot(request, draft_id):
                            pick_num=current_pick
                            )
         # Check if draft is completed
-        if draft.current_pick >= DraftOrder.objects.filter(draft=draft).count():
+        if draft.current_pick > DraftOrder.objects.filter(draft=draft).count():
             draft.status = Draft.Status.COMPLETED
             draft.save()
             return Response(
                 {
                     "detail": "Fighter has been drafted to FLEX. Draft is now completed.",
                     "code": "draft_completed",
-                    "draft_status": draft.status
+                    "draft_status": draft.status,
+                    "user_team_id": team.id,
                 },
                 status=200
             )
@@ -714,13 +716,33 @@ def GetDraftState(request, draft_id):
         return Response(
             {
                 "draft_status": draft.status,
-                "detail": "Draft is completed."
+                "detail": "Draft is completed.",
+                "user_team_id": team_id,
             },
             status=200
         )
     # Draft is live return draft status and current pick info 
     if draft.status == Draft.Status.IN_PROGRESS:
-        draft_order = DraftOrder.objects.get(draft=draft, pick_num=draft.current_pick)
+        draft_orders = list(
+            DraftOrder.objects.filter(draft=draft)
+            .select_related('team')
+            .order_by('pick_num')
+        )
+        total_draft_orders = len(draft_orders)
+
+        if draft.current_pick > total_draft_orders:
+            draft.status = Draft.Status.COMPLETED
+            draft.save(update_fields=['status'])
+            return Response(
+                {
+                    "draft_status": draft.status,
+                    "detail": "Draft is completed.",
+                    "user_team_id": team_id,
+                },
+                status=200
+            )
+
+        draft_order = draft_orders[draft.current_pick - 1]
         team_to_pick = draft_order.team
         # Check time remaining for pick and if time has expired, auto pick for team to pick and advance draft
         time_elapsed = timezone.now() - draft.pick_start_time
@@ -728,8 +750,9 @@ def GetDraftState(request, draft_id):
             fighter, slot_type = autopick_fighter(team=team_to_pick, draft=draft)
             if fighter and slot_type is not None:
                 execute_draft_pick(team=team_to_pick, fighter=fighter, draft=draft, pick_num=draft.current_pick, slot_type=slot_type)
-                if draft.current_pick > draft_order.count():
+                if draft.current_pick > total_draft_orders:
                     draft.status = Draft.Status.COMPLETED
+                    draft.save(update_fields=['status'])
         return Response(
             {
                 "draft_status": draft.status,
