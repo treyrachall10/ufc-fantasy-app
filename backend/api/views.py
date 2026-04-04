@@ -6,6 +6,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics, filters
+from django_filters.rest_framework import DjangoFilterBackend
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Prefetch
@@ -739,6 +740,8 @@ def GetDraftOrder(request, draft_id):
 @method_decorator(require_auth(None), name='dispatch')
 class GetDraftableFighters(generics.ListAPIView):
     pagination_class = FighterListPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['weight']
 
     def get_queryset(self):
         user = get_or_create_user_from_token(request=self.request)
@@ -753,7 +756,7 @@ class GetDraftableFighters(generics.ListAPIView):
         )
 
     def list(self, request, *args, **kwargs):
-        draftable_fighters = self.get_queryset()
+        draftable_fighters = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(draftable_fighters)
         fighters = page if page is not None else draftable_fighters
 
