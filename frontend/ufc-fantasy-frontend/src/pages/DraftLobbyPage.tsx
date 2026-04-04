@@ -1,4 +1,4 @@
-import { Box, Grid, Paper, Stack, Typography, FormControl, Select, MenuItem, Avatar, Button, Dialog, DialogTitle, DialogContent, useMediaQuery, TextField } from '@mui/material';
+import { Box, Grid, Paper, Stack, Typography, FormControl, Select, MenuItem, Avatar, Button, Dialog, DialogTitle, DialogContent, DialogActions, useMediaQuery, TextField } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import SearchIcon from '@mui/icons-material/Search';
@@ -10,7 +10,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthFetch } from '../auth/authFetch';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DataGrid, GridColDef, GridPaginationModel, GridRenderCellParams } from '@mui/x-data-grid';
 import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam, PaginatedResponse } from '../types/types';
 
@@ -18,6 +18,12 @@ import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam, Paginat
 interface DraftFighterPayload {
     team_id: number;
     fighter_id: number;
+}
+
+interface PendingDraftPick {
+    fighter_id: number;
+    fighter_name: string;
+    weight_class: string;
 }
 
 // Weight class text to numeric mapping
@@ -58,6 +64,7 @@ interface DraftableFighter {
 
 export default function DraftLobbyPage() {
     const params = useParams<{ leagueId: string; draftId: string }>();
+    const navigate = useNavigate();
     const isMobile = useMediaQuery('(max-width: 600px)');
     const queryClient = useQueryClient();
     const authFetch = useAuthFetch();
@@ -69,6 +76,8 @@ export default function DraftLobbyPage() {
     const [rosterDialogOpen, setRosterDialogOpen] = useState(false);
     const [flexDialogOpen, setFlexDialogOpen] = useState(false);
     const [pendingFlexFighterId, setPendingFlexFighterId] = useState<number | null>(null);
+    const [confirmDraftDialogOpen, setConfirmDraftDialogOpen] = useState(false);
+    const [pendingDraftPick, setPendingDraftPick] = useState<PendingDraftPick | null>(null);
     
     // State for weight class filter - holds the selected weight class text value
     const [selectedWeightClass, setSelectedWeightClass] = useState('');
@@ -104,14 +113,20 @@ export default function DraftLobbyPage() {
         return (
             <Button
                 variant="contained"
-                color="whiteAlpha20"
+                color="brandAlpha50"
                 disabled={!canDraft}
-                onClick={() => handleDraftPick(Number(params.id))}
+                onClick={() =>
+                    handleDraftPick({
+                        fighterId: Number(params.id),
+                        fighterName: String(params.row.fighter),
+                        weightClass: String(params.row.weightClass),
+                    })
+                }
                 size={isMobile ? 'small' : undefined}
                 sx={{
                     textWrap: 'nowrap',
-                    borderColor: 'gray900.main',
-                    '&:hover': { borderColor: 'gray800.main' },
+                    borderColor: 'brand.light',
+                    '&:hover': { borderColor: 'brand.main' },
                     ...(isMobile && {
                         padding: '4px 10px',
                         fontSize: '0.7rem',
@@ -129,6 +144,27 @@ export default function DraftLobbyPage() {
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/state`).then(r => r.json()),
         refetchInterval: 1000, // Refetch every 1000 milliseconds (1 second)
     })
+
+    useEffect(() => {
+        if (!draftStateData) return;
+
+        if (draftStateData.draft_status === 'COMPLETED') {
+            if (draftStateData.user_team_id) {
+                navigate(`/team/${draftStateData.user_team_id}`);
+                return;
+            }
+
+            if (params.leagueId) {
+                navigate(`/league/${params.leagueId}`);
+            }
+
+            return;
+        }
+
+        if (draftStateData.draft_status !== 'IN_PROGRESS' && params.leagueId) {
+            navigate(`/league/${params.leagueId}`);
+        }
+    }, [draftStateData, navigate, params.leagueId]);
 
     // Fetch Draftable Fighters for Draft Board
     const { data: draftableFightersData, isPending: isDraftableFightersPending } = useQuery<PaginatedResponse<DraftableFighter>>({
@@ -350,13 +386,40 @@ export default function DraftLobbyPage() {
         ? allRows 
         : allRows.filter(row => row.weightClass === selectedWeightClass);
 
-    const handleDraftPick = (fighterId: number) => {
+    const handleDraftPick = ({
+        fighterId,
+        fighterName,
+        weightClass,
+    }: {
+        fighterId: number;
+        fighterName: string;
+        weightClass: string;
+    }) => {
         if (!canDraft) return;
-        
-        draftFighterMutation.mutate({
-            team_id: draftStateData?.user_team_id!,
+
+        setPendingDraftPick({
             fighter_id: fighterId,
-        })
+            fighter_name: fighterName,
+            weight_class: weightClass,
+        });
+        setConfirmDraftDialogOpen(true);
+    };
+
+    const handleConfirmDraftPick = () => {
+        if (!pendingDraftPick || !draftStateData?.user_team_id) return;
+
+        draftFighterMutation.mutate({
+            team_id: draftStateData.user_team_id,
+            fighter_id: pendingDraftPick.fighter_id,
+        });
+
+        setConfirmDraftDialogOpen(false);
+        setPendingDraftPick(null);
+    };
+
+    const handleCancelDraftPick = () => {
+        setConfirmDraftDialogOpen(false);
+        setPendingDraftPick(null);
     };
     const handleRosterDialogOpen = () => setRosterDialogOpen(true);
     const handleRosterDialogClose = () => setRosterDialogOpen(false);
@@ -410,27 +473,6 @@ export default function DraftLobbyPage() {
     const columns: GridColDef[] = isMobile
         ? [...baseColumns, draftColumn]
         : [...baseColumns, ...desktopOnlyColumns, averageColumn, draftColumn];
-
-    // 3. Helper Functions
-    // This function adds a new mock pick to the TOP of the history list.
-    const addPick = () => {
-        const newPick = {
-            id: Date.now(),
-            round: 2,
-            pick: 1,
-            user: 'Team Adan',
-            fighter: 'Illia Topuria',
-            wc: 'FW',
-        };
-        // The new pick goes first '...draftHistory' keeps the old ones after it.
-        setDraftHistory([newPick, ...draftHistory]);
-    };
-
-
-    const clearHistory = () => {
-        setDraftHistory([]);
-    };
-
 
     // Mock Recent Pick - Static
     // Mock Header Data
@@ -903,22 +945,7 @@ export default function DraftLobbyPage() {
                             <Typography variant="h3" sx={{ fontSize: '1rem', color: 'text.secondary' }}>
                                 Past Picks
                             </Typography>
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                                <Button onClick={clearHistory} variant="text" size="small" color="error" sx={{ minWidth: 'auto', px: 1 }}>
-                                    Clear
-                                </Button>
-                                <Button onClick={addPick} variant="text" size="small" sx={{ color: 'white', minWidth: 'auto', px: 1 }}>
-                                    Add
-                                </Button>
-                            </Box>
                         </Box>
-
-                        {/* 
-                            How the List Works:
-                            1. We pass the 'draftHistory' list to it.
-                            2. 'renderItem' tells it how to draw EACH box (using DraftPlayerCard).
-                            3. The component handles all the slide-in/fade-out animations automatically!
-                        */}
                         <Box sx={{ 
                             flex: 1, 
                             minHeight: 0, 
@@ -994,6 +1021,73 @@ export default function DraftLobbyPage() {
                         />
                     ))}
                 </DialogContent>
+            </Dialog>
+
+            {/* Draft Confirmation Dialog */}
+            <Dialog
+                open={confirmDraftDialogOpen}
+                onClose={handleCancelDraftPick}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle sx={{
+                    fontWeight: 700,
+                    fontSize: '1.3rem',
+                    textAlign: 'center',
+                    pb: 1
+                }}>
+                    Confirm Draft Pick
+                </DialogTitle>
+                <DialogContent sx={{ pt: 2 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Typography sx={{ fontSize: '1rem', textAlign: 'center', color: 'text.secondary' }}>
+                            Are you sure you want to draft:
+                        </Typography>
+                        <Box sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1.5 }}>
+                            <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 0.5, letterSpacing: '0.05em', fontWeight: 600 }}>
+                                Fighter
+                            </Typography>
+                            <Typography sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                                {pendingDraftPick?.fighter_name}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.95rem', color: 'text.secondary', mt: 0.5 }}>
+                                Weight Class: {pendingDraftPick?.weight_class}
+                            </Typography>
+                        </Box>
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ gap: 1, p: 2.5, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                    <Button
+                        onClick={handleCancelDraftPick}
+                        variant="contained"
+                        color="whiteAlpha20"
+                        sx={{
+                            flex: 1,
+                            borderColor: 'gray900.main',
+                            '&:hover': {
+                                borderColor: 'gray800.main'
+                            }
+                        }}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleConfirmDraftPick}
+                        variant="contained"
+                        color="brandAlpha50"
+                        sx={{
+                            flex: 1,
+                            borderRadius: '8px',
+                            border: '1px solid',
+                            borderColor: 'brand.light',
+                            '&:hover': {
+                                borderColor: 'brand.main',
+                            }
+                        }}
+                    >
+                        Draft
+                    </Button>
+                </DialogActions>
             </Dialog>
 
             {/* Flex Confirmation Dialog */}

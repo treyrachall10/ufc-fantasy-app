@@ -38,7 +38,7 @@ from fantasy.models import (Fighters, Events, Fights, FighterCareerStats,
                             Team, Roster, Draft, DraftPick, DraftOrder)
 from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftable_fighters, get_or_create_user_from_token, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
-                    is_user_in_league, autopick_fighter, get_drafted_fighter_ids
+                    is_user_in_league, autopick_fighter, get_drafted_fighter_ids, check_draft_completed
                     )
 
 from accounts.models import User
@@ -202,6 +202,7 @@ def AddRosterSlot(request, draft_id):
     user = get_or_create_user_from_token(request=request)
     # Verify draft has been created for league
     draft = get_object_or_404(Draft, id=draft_id)
+    check_draft_completed(draft)
     # Gets League and team
     league = draft.league
     team = get_object_or_404(Team, id = request.data['team_id'], owner__owner__id=user.id)
@@ -266,14 +267,15 @@ def AddRosterSlot(request, draft_id):
                        pick_num=current_pick,
                        )
     # Check if draft is completed
-    if draft.current_pick >= DraftOrder.objects.filter(draft=draft).count():
+    if draft.current_pick > DraftOrder.objects.filter(draft=draft).count():
         draft.status = Draft.Status.COMPLETED
         draft.save()
         return Response(
             {
                 "detail": f"Fighter has been drafted to {slot_type}. Draft is now completed.",
                 "code": "draft_completed",
-                "draft_status": draft.status
+                "draft_status": draft.status,
+                "user_team_id": team.id,
             },
             status=200
         )
@@ -293,6 +295,7 @@ def DraftFlexSlot(request, draft_id):
     user = get_or_create_user_from_token(request=request)
     # Verify draft has been created for league
     draft = get_object_or_404(Draft, id=draft_id)
+    check_draft_completed(draft)
     # Get League and team
     league = draft.league
     team = get_object_or_404(Team, id=request.data['team_id'], owner__owner__id=user.id)
@@ -338,14 +341,15 @@ def DraftFlexSlot(request, draft_id):
                            pick_num=current_pick
                            )
         # Check if draft is completed
-        if draft.current_pick >= DraftOrder.objects.filter(draft=draft).count():
+        if draft.current_pick > DraftOrder.objects.filter(draft=draft).count():
             draft.status = Draft.Status.COMPLETED
             draft.save()
             return Response(
                 {
                     "detail": "Fighter has been drafted to FLEX. Draft is now completed.",
                     "code": "draft_completed",
-                    "draft_status": draft.status
+                    "draft_status": draft.status,
+                    "user_team_id": team.id,
                 },
                 status=200
             )
@@ -712,19 +716,43 @@ def GetDraftState(request, draft_id):
         return Response(
             {
                 "draft_status": draft.status,
-                "detail": "Draft is completed."
+                "detail": "Draft is completed.",
+                "user_team_id": team_id,
             },
             status=200
         )
     # Draft is live return draft status and current pick info 
     if draft.status == Draft.Status.IN_PROGRESS:
-        team_to_pick = DraftOrder.objects.get(draft=draft, pick_num=draft.current_pick).team
+        draft_orders = list(
+            DraftOrder.objects.filter(draft=draft)
+            .select_related('team')
+            .order_by('pick_num')
+        )
+        total_draft_orders = len(draft_orders)
+
+        if draft.current_pick > total_draft_orders:
+            draft.status = Draft.Status.COMPLETED
+            draft.save(update_fields=['status'])
+            return Response(
+                {
+                    "draft_status": draft.status,
+                    "detail": "Draft is completed.",
+                    "user_team_id": team_id,
+                },
+                status=200
+            )
+
+        draft_order = draft_orders[draft.current_pick - 1]
+        team_to_pick = draft_order.team
         # Check time remaining for pick and if time has expired, auto pick for team to pick and advance draft
         time_elapsed = timezone.now() - draft.pick_start_time
         if time_elapsed >= timezone.timedelta(seconds=60): # 60 second pick timer
             fighter, slot_type = autopick_fighter(team=team_to_pick, draft=draft)
             if fighter and slot_type is not None:
                 execute_draft_pick(team=team_to_pick, fighter=fighter, draft=draft, pick_num=draft.current_pick, slot_type=slot_type)
+                if draft.current_pick > total_draft_orders:
+                    draft.status = Draft.Status.COMPLETED
+                    draft.save(update_fields=['status'])
         return Response(
             {
                 "draft_status": draft.status,
@@ -743,6 +771,7 @@ def GetDraftOrder(request, draft_id):
     draft = get_object_or_404(Draft, id=draft_id)
     league = draft.league
     is_user_in_league(user, league.id) # Determine if user in league; raises error if not
+    check_draft_completed(draft)
     # Get draft order for league
     draft_order = DraftOrder.objects.filter(draft=draft).select_related('team').order_by('pick_num')
     serializer = DraftOrderSerializer(draft_order, many=True)
@@ -763,6 +792,7 @@ class GetDraftableFighters(generics.ListAPIView):
         draft = get_object_or_404(Draft, id=self.kwargs['draft_id'])
         league = draft.league
         is_user_in_league(user, league.id)
+        check_draft_completed(draft)
 
         drafted_fighter_ids = get_drafted_fighter_ids(draft=draft)
         return get_draftable_fighters(
@@ -813,6 +843,7 @@ class GetDraftableFighters(generics.ListAPIView):
 def GetDraftPickHistory(request, draft_id):
     user = get_or_create_user_from_token(request=request)
     draft = get_object_or_404(Draft, id=draft_id)
+    check_draft_completed(draft)
     league = draft.league
     is_user_in_league(user, league.id) # Determine if user in league; raises error if not
     draft_picks = DraftPick.objects.filter(draft=draft).select_related('fighter', 'team').order_by('-pick_num')
