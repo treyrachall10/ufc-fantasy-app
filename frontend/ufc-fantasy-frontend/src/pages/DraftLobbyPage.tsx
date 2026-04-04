@@ -1,16 +1,19 @@
-import { Box, Grid, Paper, Stack, Typography, FormControl, Select, MenuItem, Avatar, Button, Menu, Dialog, DialogTitle, DialogContent, useMediaQuery } from '@mui/material';
+import { Box, Grid, Paper, Stack, Typography, FormControl, Select, MenuItem, Avatar, Button, Menu, Dialog, DialogTitle, DialogContent, useMediaQuery, TextField } from '@mui/material';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import SearchIcon from '@mui/icons-material/Search';
 import ListPageLayout from '../components/layout/ListPageLayout';
 import FighterTable from '../components/dataGrid/FighterTable';
 import DraftPlayerCard from '../components/Draftcards/DraftPlayerCard';
-import { useEffect, useState } from 'react';
+import { KeyboardEvent, useEffect, useState } from 'react';
 import AnimatedList from '../components/Animations/AnimatedList';
-import { Query, useQuery } from '@tanstack/react-query';
+import { Query, keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthFetch } from '../auth/authFetch';
 import { useParams } from 'react-router-dom';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam } from '../types/types';
+import { DataGrid, GridColDef, GridPaginationModel, GridRenderCellParams } from '@mui/x-data-grid';
+import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam, PaginatedResponse } from '../types/types';
 import { useRef } from 'react';
 
 // Payload type for drafting a fighter
@@ -18,6 +21,19 @@ interface DraftFighterPayload {
     team_id: number;
     fighter_id: number;
 }
+
+// Weight class text to numeric mapping
+const WEIGHT_CLASS_MAP: Record<string, number> = {
+    'HW': 265,
+    'LHW': 205,
+    'MW': 185,
+    'WW': 170,
+    'LW': 155,
+    'FW': 145,
+    'BW': 135,
+    'FLW': 125,
+    'SW': 115,
+};
 
 // TypeScript interface for draft state
 interface DraftState {
@@ -47,6 +63,39 @@ export default function DraftLobbyPage() {
     const isMobile = useMediaQuery('(max-width: 600px)');
     const queryClient = useQueryClient();
     const authFetch = useAuthFetch();
+    const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({ page: 0, pageSize: 25 });
+    const { page, pageSize } = paginationModel;
+    const [typedSearch, setTypedSearch] = useState('');
+    const [submittedSearch, setSubmittedSearch] = useState('');
+    
+    // State for weight class filter - holds the selected weight class text value
+    const [selectedWeightClass, setSelectedWeightClass] = useState('');
+    // State for numeric weight class translated from the text filter
+    const [selectedNumericWeightClass, setSelectedNumericWeightClass] = useState<number | null>(null);
+    
+    // Effect to translate weight class text to numeric value when filter changes
+    useEffect(() => {
+        if (selectedWeightClass === '') {
+            setSelectedNumericWeightClass(null);
+        } else {
+            const numericValue = WEIGHT_CLASS_MAP[selectedWeightClass];
+            setSelectedNumericWeightClass(numericValue || null);
+        }
+    }, [selectedWeightClass]);
+
+    useEffect(() => {
+        setPaginationModel((prev) => ({ ...prev, page: 0 }));
+    }, [selectedWeightClass, submittedSearch]);
+
+    const handleSearchSubmit = () => {
+        setSubmittedSearch(typedSearch.trim());
+    };
+
+    const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            handleSearchSubmit();
+        }
+    };
     
     // Draft Button Renderer for DataGrid - Calls the handleDraftPick function with the fighter's ID when clicked.
     const DraftButton = (params: GridRenderCellParams) => {
@@ -80,9 +129,26 @@ export default function DraftLobbyPage() {
     })
 
     // Fetch Draftable Fighters for Draft Board
-    const { data: draftableFightersData, isPending: isDraftableFightersPending, error: draftableFightersError} = useQuery<DraftableFighter[]>({
-        queryKey: ['draft', params.draftId, 'draftableFighters'],
-        queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/draftableFighters`).then(r => r.json()),
+    const { data: draftableFightersData, isPending: isDraftableFightersPending, error: draftableFightersError} = useQuery<PaginatedResponse<DraftableFighter>>({
+        queryKey: ['draft', params.draftId, 'draftableFighters', page, pageSize, selectedNumericWeightClass, submittedSearch],
+        queryFn: () => {
+            const queryParams = new URLSearchParams({
+                page: String(page + 1),
+                page_size: String(pageSize),
+            });
+
+            // Add weight class filter to API request if one is selected
+            if (selectedNumericWeightClass) {
+                queryParams.set('weight', selectedNumericWeightClass.toString());
+            }
+
+            if (submittedSearch) {
+                queryParams.set('search', submittedSearch);
+            }
+
+            return authFetch(`http://localhost:8000/draft/${params.draftId}/draftableFighters?${queryParams.toString()}`).then(r => r.json());
+        },
+        placeholderData: keepPreviousData,
     })
 
     // Fetch League Info to get team names, league capacity, etc.
@@ -136,8 +202,6 @@ export default function DraftLobbyPage() {
     const [rosterDialogOpen, setRosterDialogOpen] = useState(false);
     const [flexDialogOpen, setFlexDialogOpen] = useState(false);
     const [pendingFlexFighterId, setPendingFlexFighterId] = useState<number | null>(null);
-    
-    // Set default team to user's own team when draft state loads
     useEffect(() => {
         if (draftStateData?.user_team_id) {
             setSelectedTeamId(draftStateData.user_team_id);
@@ -249,9 +313,6 @@ export default function DraftLobbyPage() {
         }
     })
 
-    // State for weight class filter - holds the selected weight class number or empty string for all
-    const [selectedWeightClass, setSelectedWeightClass] = useState('');
-
     // Time derived from server to show countdowns, current pick, etc.
     //get current time in seconds
     const now = () => Math.floor(Date.now() / 1000);
@@ -279,7 +340,7 @@ export default function DraftLobbyPage() {
 
     // Transform raw API data into row format for the DataGrid
     // Convert weight class names to numeric values using the weightClassMap
-    const allRows = draftableFightersData?.map((item, index) => ({
+    const allRows = draftableFightersData?.results?.map((item, index) => ({
         id: item.fighter.fighter_id,
         weightClass: item.fighter.slot_type,
         fighter: item.fighter.full_name,
@@ -741,6 +802,36 @@ export default function DraftLobbyPage() {
                                     </Select>
                                 </FormControl>
 
+                                <TextField
+                                    id="outlined-basic"
+                                    label="Search by fighter name"
+                                    variant="outlined"
+                                    value={typedSearch}
+                                    onChange={(event) => setTypedSearch(event.target.value)}
+                                    onKeyDown={handleSearchKeyDown}
+                                    sx={{
+                                        "& .MuiInputBase-root": {
+                                            bgcolor: 'hsla(216, 33%, 3%, 1)',
+                                        },
+                                    }}
+                                    slotProps={{
+                                        input: {
+                                            endAdornment: (
+                                                <InputAdornment position="end" >
+                                                    <IconButton
+                                                        aria-label="search fighters"
+                                                        onClick={handleSearchSubmit}
+                                                        edge="end"
+
+                                                    >
+                                                        <SearchIcon sx={{ color: 'common.white' }} />
+                                                    </IconButton>
+                                                </InputAdornment>
+                                            ),
+                                        },
+                                    }}
+                                ></TextField>
+
                                 {/* View Roster Button (xs/sm only) */}
                                 <Button
                                     variant="contained"
@@ -762,10 +853,12 @@ export default function DraftLobbyPage() {
                                         columns={columns} 
                                         
                                         pagination
-                                        pageSizeOptions={[15]}
-                                        initialState={{
-                                            pagination: { paginationModel: { pageSize: 15, page: 0 } },
-                                        }}
+                                        paginationMode="server"
+                                        paginationModel={paginationModel}
+                                        onPaginationModelChange={setPaginationModel}
+                                        rowCount={draftableFightersData?.count ?? 0}
+                                        pageSizeOptions={[25, 50, 100]}
+                                        loading={isDraftableFightersPending}
                                         
                                         disableRowSelectionOnClick // removes checkboxes
                                         disableColumnSorting // removes sorting. (if adding filtering remove this)

@@ -5,11 +5,13 @@ from random import random
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import generics
+from rest_framework import generics, filters
+from django_filters.rest_framework import DjangoFilterBackend
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Prefetch
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from dateutil.parser import parse
 from django.db.models import Max
 from django.shortcuts import get_object_or_404
@@ -477,6 +479,8 @@ class GetFighterProfileViewSet(generics.ListAPIView):
     queryset = FighterCareerStats.objects.all()
     serializer_class = FighterSerializer
     pagination_class = FighterListPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['fighter__nick_name', 'fighter__full_name', 'fighter__normalized_name']
 
 @api_view(['GET'])
 def GetEventViewSet(request):
@@ -733,63 +737,62 @@ def GetDraftOrder(request, draft_id):
             status=200
         )
 
-@api_view(['GET'])
-@require_auth(None)
-def GetDraftableFighters(request, draft_id):    
-    user = get_or_create_user_from_token(request=request)
-    draft = get_object_or_404(Draft, id=draft_id)
-    league = draft.league
-    is_user_in_league(user, league.id) # Determine if user in league; raises error if not
-    # use DraftPick to get drafted fighters in league using draft as lookup
-    drafted_fighter_ids = get_drafted_fighter_ids(draft=draft)
-    # get fighters that haven't been drafted, are active, and prefetch fightscores for fantasy calculations
-    draftable_fighters = get_draftable_fighters(drafted_fighter_ids=drafted_fighter_ids, prefetch_fight_scores=True)
-    # Build list of objects with fighter info and fantasy info
-    draftable_fighters_list = []
-    for fighter in draftable_fighters:
-        fight_scores = fighter.fightscore_set.all()
-        
-        # Calculate average and last fight points
-        if fight_scores.exists():
-            average_points = sum(fs.fight_total_points for fs in fight_scores) / len(fight_scores)
-            last_points = fight_scores.first().fight_total_points  # First because already ordered by date desc
-        else:
-            average_points = 0
-            last_points = 0
-        
-        # Convert fighter weight to roster slot type
-        slot_type = weight_to_slot(fighter.weight) if fighter.weight is not None else None
-        
-        # Create object with fighter, fantasy data, and slot type
-        fighter_obj = fighter
-        draftable_fighters_list.append({
-            'fighter': fighter_obj,
-            'fantasy': {
-                    'last_fight_points': last_points,
-                    'average_points': average_points,
-                },
-            'slot_type': slot_type,
-        })
-    
-    # Serialize each with fighter, fantasy score, and slot type
-    serialized_data = []
-    for item in draftable_fighters_list:
-        fighter_serializer = TeamListFighterSerializer(item['fighter'])
-        fantasy_serializer = TeamListFantasyScoreSerializer(item['fantasy'])
-        
-        # Add slot_type to fighter serialized data since it's part of fighter identity
-        fighter_data = fighter_serializer.data
-        fighter_data['slot_type'] = item['slot_type']
-        
-        serialized_data.append({
-            'fighter': fighter_data,
-            'fantasy': fantasy_serializer.data,
-        })
-    
-    return Response(
-        serialized_data,
-        status=200
-    )
+@method_decorator(require_auth(None), name='dispatch')
+class GetDraftableFighters(generics.ListAPIView):
+    pagination_class = FighterListPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['weight']
+    search_fields = ['full_name', 'normalized_name']
+
+    def get_queryset(self):
+        user = get_or_create_user_from_token(request=self.request)
+        draft = get_object_or_404(Draft, id=self.kwargs['draft_id'])
+        league = draft.league
+        is_user_in_league(user, league.id)
+
+        drafted_fighter_ids = get_drafted_fighter_ids(draft=draft)
+        return get_draftable_fighters(
+            drafted_fighter_ids=drafted_fighter_ids,
+            prefetch_fight_scores=True,
+        )
+
+    def list(self, request, *args, **kwargs):
+        draftable_fighters = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(draftable_fighters)
+        fighters = page if page is not None else draftable_fighters
+
+        serialized_data = []
+        for fighter in fighters:
+            fight_scores = fighter.fightscore_set.all()
+
+            if fight_scores.exists():
+                average_points = sum(fs.fight_total_points for fs in fight_scores) / len(fight_scores)
+                last_points = fight_scores.first().fight_total_points
+            else:
+                average_points = 0
+                last_points = 0
+
+            slot_type = weight_to_slot(fighter.weight) if fighter.weight is not None else None
+
+            fighter_data = TeamListFighterSerializer(fighter).data
+            fighter_data['slot_type'] = slot_type
+
+            serialized_data.append(
+                {
+                    'fighter': fighter_data,
+                    'fantasy': TeamListFantasyScoreSerializer(
+                        {
+                            'last_fight_points': last_points,
+                            'average_points': average_points,
+                        }
+                    ).data,
+                }
+            )
+
+        if page is not None:
+            return self.get_paginated_response(serialized_data)
+
+        return Response(serialized_data, status=200)
 
 @api_view(['GET'])
 @require_auth(None)

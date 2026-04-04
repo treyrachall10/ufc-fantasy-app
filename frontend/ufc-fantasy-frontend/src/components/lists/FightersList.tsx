@@ -1,17 +1,36 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query'
 import { Fighter, PaginatedResponse } from '../../types/types';
 
-export default function FightersList() {
+interface FightersListProps {
+    searchTerm?: string;
+}
+
+export default function FightersList({ searchTerm = '' }: FightersListProps) {
     const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({ page: 0, pageSize: 25 });
     const { page, pageSize } = paginationModel;
 
+    useEffect(() => {
+        setPaginationModel((prev) => ({ ...prev, page: 0 }));
+    }, [searchTerm]);
+
     {/* API fetching*/}    
     const { data, isPending, error } = useQuery<PaginatedResponse<Fighter>>({
-        queryKey: ['fighterListData', page, pageSize],
-        queryFn: () => fetch(`http://localhost:8000/fighters/?page=${page + 1}&page_size=${pageSize}`).then(r => r.json()),
+        queryKey: ['fighterListData', page, pageSize, searchTerm],
+        queryFn: () => {
+            const params = new URLSearchParams({
+                page: String(page + 1),
+                page_size: String(pageSize),
+            });
+
+            if (searchTerm) {
+                params.set('search', searchTerm);
+            }
+
+            return fetch(`http://localhost:8000/fighters/?${params.toString()}`).then(r => r.json());
+        },
     });
     
     if (isPending) return <span>Loading...</span>
