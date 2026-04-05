@@ -875,3 +875,29 @@ def GetCurrentUserViewSet(request):
         },
         "profile_complete": user.profile_complete
     })
+
+@api_view(['POST'])
+@require_auth(None)
+def PreviewLeagueByJoinKey(request):
+    '''
+        Endpoint to preview league details before joining.
+    '''
+    user = get_or_create_user_from_token(request=request)
+    league = get_object_or_404(
+        League.objects.select_related('creator').prefetch_related('leaguemember_set'),
+        join_key=request.data['join_key']
+    )
+
+    if len(league.leaguemember_set.all()) >= league.capacity:
+        return Response(
+            {"detail": "League is full"},
+            status=409
+        )
+
+    return Response(
+        {
+            "league_name": league.name,
+            "creator_username": league.creator.username,
+        },
+        status=200
+    )
