@@ -10,7 +10,8 @@ interface UserLeaguesAndTeams {
     league_id: number,
     league_name: string,
     team_id: number,
-    team_name: string
+    team_name: string,
+    score: number
 }
 
 export default function LeaguesPage() {
@@ -56,7 +57,7 @@ export default function LeaguesPage() {
         league: data.league_name,
         team: data.team_name,
         team_id: data.team_id,
-        points: 200,
+        points: data.score,
         standing: '1'
     }))
 
