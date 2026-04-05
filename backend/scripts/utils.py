@@ -23,7 +23,9 @@ def normalize_name(name):
         "montserrat rendon": "montse rendon",
         "rafael cerqueira": "rafael cerquiera",
         "michael aswell": "michael aswell jr",
-        "jose medina": "jose daniel medina"
+        "jose medina": "jose daniel medina",
+        "kai kamaka": "kai kamaka iii",
+        "bibulatov magomed": "magomed bibulatov",
     }
 
     return ALIASES.get(name, name)
