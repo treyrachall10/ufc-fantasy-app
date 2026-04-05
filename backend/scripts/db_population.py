@@ -3,6 +3,7 @@
 """
 import csv
 from datetime import datetime
+from django.db import transaction
 from django.db.models import Prefetch
 from django.utils import timezone
 from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore, FightScore, FighterCareerStats, League, Team, Roster, Draft, ScoringRun
@@ -916,3 +917,4 @@ def populate_database():
     populate_fighter_career_stats_table()
     populate_round_score()
     populate_fight_score()
+    populate_team_scores()
