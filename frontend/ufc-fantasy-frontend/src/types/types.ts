@@ -264,6 +264,7 @@ export interface Team {
   name: string;
   owner: string;
   created_at: string;
+  score: number;
 }
 
 export interface TeamListFighter {

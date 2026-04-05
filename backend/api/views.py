@@ -627,7 +627,8 @@ def GetTeamListData(request, team_id):
                 "team": {
                     "id": team.id,
                     "name": team.name,
-                    "owner": team.owner.owner.username
+                    "owner": team.owner.owner.username,
+                    "score": team.score
                 },
                 "roster": [
                     { "slot": "SW", "fighter": None, "fantasy": None}, 
@@ -680,7 +681,8 @@ def GetTeamListData(request, team_id):
             "team": {
                 "id": team.id,
                 "name": team.name,
-                "owner": team.owner.owner.username
+                "owner": team.owner.owner.username,
+                "score": team.score
             },
             "roster": response_roster
         },

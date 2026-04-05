@@ -67,7 +67,7 @@ export default function UserTeamPage() {
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: '100%' }}>
                     <Stack direction= "row" spacing= {1} alignItems= "baseline">
                         <Typography variant= "subtitle1" color= "text.secondary">
-                            160 pts
+                            {data.team.score} pts
                         </Typography>
                         <Typography variant= "body" color= "text.secondary">
                             |
