@@ -206,6 +206,17 @@ class FightScore(models.Model):
                 name='unique_fight_fighter_per_fight'
             )
         ]
+
+class ScoringRun(models.Model):
+    class Status(models.TextChoices):
+        RUNNING = "running", "Running"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.RUNNING)
+
 '''
     -   Fantasy Models
 '''
