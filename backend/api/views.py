@@ -687,6 +687,44 @@ def GetTeamListData(request, team_id):
         status=200
     )
 
+@api_view(['POST'])
+@require_auth(None)
+def ChangeTeamName(request, team_id):
+    user = get_or_create_user_from_token(request=request)
+    team = get_object_or_404(
+        Team.objects.select_related('owner__league'),
+        id=team_id,
+        owner__owner=user,
+    )
+
+    new_name = request.data.get('name', '').strip()
+    if not new_name:
+        return Response(
+            {"detail": "Team name is required"},
+            status=400,
+        )
+
+    league = team.owner.league
+    if Team.objects.filter(owner__league=league, name=new_name).exclude(id=team.id).exists():
+        return Response(
+            {"detail": "team already taken"},
+            status=409,
+        )
+
+    team.name = new_name
+    team.save(update_fields=['name'])
+
+    return Response(
+        {
+            "detail": "Team name updated successfully",
+            "team": {
+                "id": team.id,
+                "name": team.name,
+            },
+        },
+        status=200,
+    )
+
 @api_view(['GET'])
 @require_auth(None)
 def GetDraftState(request, draft_id):
