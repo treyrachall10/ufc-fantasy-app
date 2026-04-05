@@ -4,7 +4,8 @@
 import csv
 from datetime import datetime
 from django.db.models import Prefetch
-from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore, FightScore, FighterCareerStats, League, Team, Roster, Draft
+from django.utils import timezone
+from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore, FightScore, FighterCareerStats, League, Team, Roster, Draft, ScoringRun
 from config import DATACLEANPATH, MODEL_MAP
 from scripts.utils import normalize_name
 from scripts.scoring import score_knockdowns, score_td_landed, score_sub_att, score_ctrl_time, score_round_finish, score_time
@@ -804,6 +805,17 @@ def populate_team_scores():
         -   Populates and updates all teams scores in the Team table for completed-draft leagues
         -   RETURNS: Nothing; updates the Team table with new scores
     '''
+    scoring_run = ScoringRun.objects.create(status=ScoringRun.Status.RUNNING)
+    run_window_end = timezone.now()
+    run_window_end_date = run_window_end.date()
+    last_completed_run = (
+        ScoringRun.objects
+        .filter(status=ScoringRun.Status.COMPLETED, completed_at__isnull=False)
+        .exclude(pk=scoring_run.pk)
+        .order_by('-completed_at')
+        .first()
+    )
+
     # Get all leagues whose drafts are completed and prefetch related team and roster data.
     leagues = League.objects.filter(draft__status=Draft.Status.COMPLETED).prefetch_related(
         Prefetch(
@@ -827,52 +839,75 @@ def populate_team_scores():
     )
     team_objs = []
     updated_team_count = 0
+    has_global_checkpoint = last_completed_run is not None
+    global_window_start = last_completed_run.completed_at.date() if has_global_checkpoint else None
 
     print("Starting team score updates...")
 
-    # Iterate through each eligible league.
-    for league in leagues:
-        completed_draft = league.draft_set.first()
-        draft_start_date = completed_draft.draft_date.date() if completed_draft is not None and completed_draft.draft_date is not None else None
-        # Iterate through each team connected to the league.
-        for league_member in league.leaguemember_set.all():
-            for team in league_member.team_set.all():
-                score = 0
-                # Iterate through each roster row connected to the team.
-                for roster in team.roster_set.all():
-                    # Iterate through each fighter in the roster row.
-                    if roster.fighter is None:
-                        continue
-                    for fighter in [roster.fighter]:
-                        fight_scores_since_draft = [
-                            fight_score
-                            for fight_score in fighter.fightscore_set.all()
-                            if (
-                                draft_start_date is not None
-                                and fight_score.fight is not None
-                                and fight_score.fight.event is not None
-                                and fight_score.fight.event.date is not None
-                                and fight_score.fight.event.date > draft_start_date
-                            )
-                        ]
-
-                        for fight_score in fight_scores_since_draft:
-                            if fight_score.fight_total_points is not None:
-                                score += fight_score.fight_total_points
-
-                team.score = score
-                team_objs.append(team)
-                updated_team_count += 1
-
     try:
-        Team.objects.bulk_update(team_objs, fields=['score'])
+        with transaction.atomic():
+            # Iterate through each eligible league.
+            for league in leagues:
+                completed_draft = league.draft_set.first()
+                draft_start_date = (
+                    completed_draft.draft_date.date()
+                    if completed_draft is not None and completed_draft.draft_date is not None
+                    else None
+                )
+                league_start_date = getattr(league, 'start_date', None)
+                if league_start_date is not None and hasattr(league_start_date, 'date'):
+                    league_start_date = league_start_date.date()
+
+                # Iterate through each team connected to the league.
+                for league_member in league.leaguemember_set.all():
+                    for team in league_member.team_set.all():
+                        score_delta = 0
+                        if has_global_checkpoint:
+                            window_start = global_window_start
+                        else:
+                            window_start = league_start_date or draft_start_date
+
+                        # Iterate through each roster row connected to the team.
+                        for roster in team.roster_set.all():
+                            # Iterate through each fighter in the roster row.
+                            if roster.fighter is None:
+                                continue
+                            for fighter in [roster.fighter]:
+                                fight_scores_in_window = [
+                                    fight_score
+                                    for fight_score in fighter.fightscore_set.all()
+                                    if (
+                                        window_start is not None
+                                        and fight_score.fight is not None
+                                        and fight_score.fight.event is not None
+                                        and fight_score.fight.event.date is not None
+                                        and fight_score.fight.event.date > window_start
+                                        and fight_score.fight.event.date <= run_window_end_date
+                                    )
+                                ]
+
+                                for fight_score in fight_scores_in_window:
+                                    if fight_score.fight_total_points is not None:
+                                        score_delta += fight_score.fight_total_points
+
+                        team.score = (team.score or 0) + score_delta
+                        team_objs.append(team)
+                        updated_team_count += 1
+
+            if team_objs:
+                Team.objects.bulk_update(team_objs, fields=['score'])
+
+            scoring_run.status = ScoringRun.Status.COMPLETED
+            scoring_run.completed_at = timezone.now()
+            scoring_run.save(update_fields=['status', 'completed_at'])
+
+        print(f"Finished team score updates. Updated {updated_team_count} teams.")
     except Exception as e:
         print("ERROR bulk updating team scores")
         print(f"   {e}")
+        ScoringRun.objects.filter(pk=scoring_run.pk).update(status=ScoringRun.Status.FAILED)
+        raise
 
-    print(f"Finished team score updates. Updated {updated_team_count} teams.")
-
-'''
 def populate_database():
     populate_simple_tables()
     populate_fights_table()
