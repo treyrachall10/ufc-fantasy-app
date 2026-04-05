@@ -800,6 +800,10 @@ def populate_fight_score():
     print(f"Created {entry_counter} new FightScore rows.")
 
 def populate_team_scores():
+    '''
+        -   Populates and updates all teams scores in the Team table for active leagues
+        -   RETURNS: Nothing; updates the Team table with new scores
+    '''
     active_draft_statuses = [
         status
         for status, _ in Draft.Status.choices
