@@ -828,6 +828,8 @@ def populate_team_scores():
 
     # Iterate through each eligible league.
     for league in leagues:
+        completed_draft = league.draft_set.first()
+        draft_start_date = completed_draft.draft_date if completed_draft is not None else None
         # Iterate through each team connected to the league.
         for league_member in league.leaguemember_set.all():
             for team in league_member.team_set.all():
