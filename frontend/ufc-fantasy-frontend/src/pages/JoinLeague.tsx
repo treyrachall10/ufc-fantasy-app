@@ -6,13 +6,18 @@ import Typography from '@mui/material/Typography';
 import FormLabel from '@mui/material/FormLabel';
 import FormControl from '@mui/material/FormControl';
 import { useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthFetch } from '../auth/authFetch';
 import InfoConfirmDialog from '../components/ui/InfoConfirmDialog';
 
 type JoinPayload = {
     join_key: string,
+}
+
+type LeaguePreview = {
+    league_name: string,
+    creator_username: string,
 }
 
 export default function JoinLeague(){
@@ -24,6 +29,51 @@ export default function JoinLeague(){
     const [joinKeyErrorMessage, setJoinKeyErrorMessage] = React.useState('')
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false)
     const [pendingJoinPayload, setPendingJoinPayload] = React.useState<JoinPayload | null>(null)
+    const [previewJoinKey, setPreviewJoinKey] = React.useState('')
+    const [leaguePreview, setLeaguePreview] = React.useState<LeaguePreview | null>(null)
+    const [shouldFetchPreview, setShouldFetchPreview] = React.useState(false)
+
+    const previewLeagueQuery = useQuery<LeaguePreview>({
+        queryKey: ['previewLeague', previewJoinKey],
+        enabled: shouldFetchPreview && previewJoinKey.length === 8,
+        retry: false,
+        queryFn: async ({ queryKey }) => {
+            const [, joinKey] = queryKey as [string, string]
+            const response = await authFetch('http://localhost:8000/api/previewLeague', {
+                method: 'POST',
+                body: JSON.stringify({ join_key: joinKey }),
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw { ...data, status: response.status }
+            }
+
+            return data as LeaguePreview
+        },
+    })
+
+    React.useEffect(() => {
+        if (previewLeagueQuery.data) {
+            setLeaguePreview(previewLeagueQuery.data)
+            setConfirmDialogOpen(true)
+            setShouldFetchPreview(false)
+        }
+    }, [previewLeagueQuery.data])
+
+    React.useEffect(() => {
+        if (previewLeagueQuery.error) {
+            const error = previewLeagueQuery.error as any
+            setJoinKeyError(true)
+            if (error?.status === 404) {
+                setJoinKeyErrorMessage('There is no league with this key')
+            } else {
+                setJoinKeyErrorMessage(error?.detail ?? 'Unable to find league.')
+            }
+            setShouldFetchPreview(false)
+        }
+    }, [previewLeagueQuery.error])
 
     // POST request to login a user
       const createLeagueMutation = useMutation({
@@ -67,7 +117,7 @@ export default function JoinLeague(){
         }
       })
 
-    // Handles form submission - validates key and opens confirmation dialog
+    // Handles form submission - validates key and fetches league preview
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
 
@@ -82,7 +132,8 @@ export default function JoinLeague(){
         }
 
         setPendingJoinPayload(payload)
-        setConfirmDialogOpen(true)
+        setPreviewJoinKey(payload.join_key)
+        setShouldFetchPreview(true)
     }
 
     const handleConfirmJoin = () => {
@@ -90,12 +141,14 @@ export default function JoinLeague(){
             createLeagueMutation.mutate(pendingJoinPayload)
             setConfirmDialogOpen(false)
             setPendingJoinPayload(null)
+            setLeaguePreview(null)
         }
     }
 
     const handleCancelJoin = () => {
         setConfirmDialogOpen(false)
         setPendingJoinPayload(null)
+        setLeaguePreview(null)
     }
 
     // Validates inputs in form
@@ -193,8 +246,8 @@ export default function JoinLeague(){
                 title="Confirm League Join"
                 items={[
                     { title: 'Join Key', content: pendingJoinPayload?.join_key ?? '' },
-                    { title: 'League Name', content: 'Verified on join' },
-                    { title: 'League Owner', content: 'Verified on join' },
+                    { title: 'League Name', content: leaguePreview?.league_name ?? '' },
+                    { title: 'League Owner', content: leaguePreview?.creator_username ?? '' },
                 ]}
                 onSubmit={handleConfirmJoin}
                 submitLabel="Join League"
