@@ -241,6 +241,7 @@ class Team(models.Model):
     owner=models.ForeignKey(LeagueMember, on_delete=models.CASCADE)
     name=models.CharField(max_length=64)
     created_at=models.DateTimeField(auto_now_add=True)
+    score=models.FloatField(default=0)
 
 class Roster(models.Model):
 
