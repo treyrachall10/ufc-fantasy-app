@@ -826,6 +826,9 @@ def populate_team_scores():
         ),
     )
     team_objs = []
+    updated_team_count = 0
+
+    print("Starting team score updates...")
 
     # Iterate through each eligible league.
     for league in leagues:
@@ -859,6 +862,15 @@ def populate_team_scores():
 
                 team.score = score
                 team_objs.append(team)
+                updated_team_count += 1
+
+    try:
+        Team.objects.bulk_update(team_objs, fields=['score'])
+    except Exception as e:
+        print("ERROR bulk updating team scores")
+        print(f"   {e}")
+
+    print(f"Finished team score updates. Updated {updated_team_count} teams.")
 
 '''
 def populate_database():
