@@ -825,22 +825,42 @@ def populate_team_scores():
             ),
         ),
     )
+    team_objs = []
 
     # Iterate through each eligible league.
     for league in leagues:
         completed_draft = league.draft_set.first()
-        draft_start_date = completed_draft.draft_date if completed_draft is not None else None
+        draft_start_date = completed_draft.draft_date.date() if completed_draft is not None and completed_draft.draft_date is not None else None
         # Iterate through each team connected to the league.
         for league_member in league.leaguemember_set.all():
             for team in league_member.team_set.all():
+                score = 0
                 # Iterate through each roster row connected to the team.
                 for roster in team.roster_set.all():
                     # Iterate through each fighter in the roster row.
                     if roster.fighter is None:
                         continue
                     for fighter in [roster.fighter]:
-                        pass
+                        fight_scores_since_draft = [
+                            fight_score
+                            for fight_score in fighter.fightscore_set.all()
+                            if (
+                                draft_start_date is not None
+                                and fight_score.fight is not None
+                                and fight_score.fight.event is not None
+                                and fight_score.fight.event.date is not None
+                                and fight_score.fight.event.date > draft_start_date
+                            )
+                        ]
 
+                        for fight_score in fight_scores_since_draft:
+                            if fight_score.fight_total_points is not None:
+                                score += fight_score.fight_total_points
+
+                team.score = score
+                team_objs.append(team)
+
+'''
 def populate_database():
     populate_simple_tables()
     populate_fights_table()
