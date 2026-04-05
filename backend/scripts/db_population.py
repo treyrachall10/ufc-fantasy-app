@@ -801,10 +801,11 @@ def populate_fight_score():
 
 def populate_team_scores():
     '''
-        -   Populates and updates all teams scores in the Team table for active leagues
+        -   Populates and updates all teams scores in the Team table for completed-draft leagues
         -   RETURNS: Nothing; updates the Team table with new scores
     '''
-    return League.objects.filter(draft__status=Draft.Status.COMPLETED).prefetch_related(
+    # Get all leagues whose drafts are completed and prefetch related team and roster data.
+    leagues = League.objects.filter(draft__status=Draft.Status.COMPLETED).prefetch_related(
         Prefetch(
             'draft_set',
             queryset=Draft.objects.filter(status=Draft.Status.COMPLETED),
@@ -819,6 +820,19 @@ def populate_team_scores():
             ),
         ),
     )
+
+    # Iterate through each eligible league.
+    for league in leagues:
+        # Iterate through each team connected to the league.
+        for league_member in league.leaguemember_set.all():
+            for team in league_member.team_set.all():
+                # Iterate through each roster row connected to the team.
+                for roster in team.roster_set.all():
+                    # Iterate through each fighter in the roster row.
+                    if roster.fighter is None:
+                        continue
+                    for fighter in [roster.fighter]:
+                        pass
 
 def populate_database():
     populate_simple_tables()
