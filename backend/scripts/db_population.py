@@ -815,7 +815,12 @@ def populate_team_scores():
             queryset=Team.objects.prefetch_related(
                 Prefetch(
                     'roster_set',
-                    queryset=Roster.objects.select_related('fighter'),
+                    queryset=Roster.objects.select_related('fighter').prefetch_related(
+                        Prefetch(
+                            'fighter__fightscore_set',
+                            queryset=FightScore.objects.select_related('fight__event'),
+                        )
+                    ),
                 )
             ),
         ),
