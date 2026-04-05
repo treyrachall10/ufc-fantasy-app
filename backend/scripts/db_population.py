@@ -804,16 +804,10 @@ def populate_team_scores():
         -   Populates and updates all teams scores in the Team table for active leagues
         -   RETURNS: Nothing; updates the Team table with new scores
     '''
-    active_draft_statuses = [
-        status
-        for status, _ in Draft.Status.choices
-        if status != Draft.Status.NOT_SCHEDULED
-    ]
-
-    return League.objects.filter(draft__status__in=active_draft_statuses).prefetch_related(
+    return League.objects.filter(draft__status=Draft.Status.COMPLETED).prefetch_related(
         Prefetch(
             'draft_set',
-            queryset=Draft.objects.exclude(status=Draft.Status.NOT_SCHEDULED),
+            queryset=Draft.objects.filter(status=Draft.Status.COMPLETED),
         ),
         Prefetch(
             'leaguemember_set__team_set',
