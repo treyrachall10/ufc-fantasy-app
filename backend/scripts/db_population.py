@@ -3,7 +3,8 @@
 """
 import csv
 from datetime import datetime
-from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore, FightScore, FighterCareerStats
+from django.db.models import Prefetch
+from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore, FightScore, FighterCareerStats, League, Team, Roster, Draft
 from config import DATACLEANPATH, MODEL_MAP
 from scripts.utils import normalize_name
 from scripts.scoring import score_knockdowns, score_td_landed, score_sub_att, score_ctrl_time, score_round_finish, score_time
@@ -797,6 +798,29 @@ def populate_fight_score():
 
     FightScore.objects.bulk_create(objs=objs)
     print(f"Created {entry_counter} new FightScore rows.")
+
+def populate_team_scores():
+    active_draft_statuses = [
+        status
+        for status, _ in Draft.Status.choices
+        if status != Draft.Status.NOT_SCHEDULED
+    ]
+
+    return League.objects.filter(draft__status__in=active_draft_statuses).prefetch_related(
+        Prefetch(
+            'draft_set',
+            queryset=Draft.objects.exclude(status=Draft.Status.NOT_SCHEDULED),
+        ),
+        Prefetch(
+            'leaguemember_set__team_set',
+            queryset=Team.objects.prefetch_related(
+                Prefetch(
+                    'roster_set',
+                    queryset=Roster.objects.select_related('fighter'),
+                )
+            ),
+        ),
+    )
 
 def populate_database():
     populate_simple_tables()
