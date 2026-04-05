@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthFetch } from '../auth/authFetch';
+import InfoConfirmDialog from '../components/ui/InfoConfirmDialog';
 
 type JoinPayload = {
     join_key: string,
@@ -21,6 +22,8 @@ export default function JoinLeague(){
 
     const [joinKeyError, setJoinKeyError] = React.useState(false)
     const [joinKeyErrorMessage, setJoinKeyErrorMessage] = React.useState('')
+    const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false)
+    const [pendingJoinPayload, setPendingJoinPayload] = React.useState<JoinPayload | null>(null)
 
     // POST request to login a user
       const createLeagueMutation = useMutation({
@@ -64,7 +67,7 @@ export default function JoinLeague(){
         }
       })
 
-    // Handles form submission when submit button is clicked
+    // Handles form submission - validates key and opens confirmation dialog
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
 
@@ -77,7 +80,22 @@ export default function JoinLeague(){
         const payload = {
             join_key: data.get('key') as string ,
         }
-        createLeagueMutation.mutate(payload)
+
+        setPendingJoinPayload(payload)
+        setConfirmDialogOpen(true)
+    }
+
+    const handleConfirmJoin = () => {
+        if (pendingJoinPayload) {
+            createLeagueMutation.mutate(pendingJoinPayload)
+            setConfirmDialogOpen(false)
+            setPendingJoinPayload(null)
+        }
+    }
+
+    const handleCancelJoin = () => {
+        setConfirmDialogOpen(false)
+        setPendingJoinPayload(null)
     }
 
     // Validates inputs in form
@@ -168,6 +186,20 @@ export default function JoinLeague(){
                     </Box>
             </Box>
             </Box>
+
+            <InfoConfirmDialog
+                open={confirmDialogOpen}
+                onClose={handleCancelJoin}
+                title="Confirm League Join"
+                items={[
+                    { title: 'Join Key', content: pendingJoinPayload?.join_key ?? '' },
+                    { title: 'League Name', content: 'Verified on join' },
+                    { title: 'League Owner', content: 'Verified on join' },
+                ]}
+                onSubmit={handleConfirmJoin}
+                submitLabel="Join League"
+                cancelLabel="Cancel"
+            />
         </Box>
     )
 
