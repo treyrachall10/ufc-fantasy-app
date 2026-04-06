@@ -587,10 +587,14 @@ def GetUserLeaguesAndTeams(request):
             ),
         )
     )
-    # Get list of user teams across leagues
-    user_teams = []
+    # Get list-of-lists: one inner list of all team objects in each league
+    league_teams_by_league = []
     for league_member in league_member_instance_set:
-        user_teams.extend(league_member.team_set.all())
+        league_teams = []
+        for member in league_member.league.leaguemember_set.all():
+            league_teams.extend(member.team_set.all())
+        league_teams_by_league.append(league_teams)
+        
     serializer = UserLeaguesAndTeamsListSerializer(league_member_instance_set, many=True)
     return Response(serializer.data)
 
