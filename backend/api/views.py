@@ -587,6 +587,7 @@ def GetUserLeaguesAndTeams(request):
             ),
         )
     )
+    # Get list of user teams across leagues
     user_teams = []
     for league_member in league_member_instance_set:
         user_teams.extend(league_member.team_set.all())
