@@ -575,7 +575,17 @@ def GetHeadToHeadStatsViewSet(request, id):
 @require_auth(None)
 def GetUserLeaguesAndTeams(request):
     user = get_or_create_user_from_token(request=request)
-    league_member_instance_set = LeagueMember.objects.filter(owner=user).select_related('league').prefetch_related('team_set')
+    league_member_instance_set = (
+        LeagueMember.objects.filter(owner=user)
+        .select_related('league')
+        .prefetch_related(
+            'team_set',
+            Prefetch(
+                'league__leaguemember_set',
+                queryset=LeagueMember.objects.select_related('owner').prefetch_related('team_set'),
+            ),
+        )
+    )
     serializer = UserLeaguesAndTeamsListSerializer(league_member_instance_set, many=True)
     return Response(serializer.data)
 
