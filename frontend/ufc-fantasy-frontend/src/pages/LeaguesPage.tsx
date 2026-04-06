@@ -5,19 +5,21 @@ import { Link, Button } from '@mui/material';
 import { Link as RouterLink} from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthFetch } from "../auth/authFetch";
+import { PaginatedResponse } from "../types/types";
 
 interface UserLeaguesAndTeams {
     league_id: number,
     league_name: string,
     team_id: number,
     team_name: string,
-    score: number
+    score: number,
+    standing: number | null,
 }
 
 export default function LeaguesPage() {
     const authFetch = useAuthFetch();
 
-    const { data, isPending, error} = useQuery<UserLeaguesAndTeams[]>({
+    const { data, isPending, error} = useQuery<PaginatedResponse<UserLeaguesAndTeams>>({
         queryKey: ['userLeaguesAndTeams'],
         queryFn: () => authFetch(`http://localhost:8000/leagues`).then(r => r.json()),
     })
@@ -52,27 +54,14 @@ export default function LeaguesPage() {
 
     // Each row object must have an 'id' property and properties that match the 'field' names in columns
     // Will be replaced when API is connected. Tests out fighters with long name
-    const rows = data.map((data) => ({
+    const rows = data.results.map((data: UserLeaguesAndTeams) => ({
         id: data.league_id,
         league: data.league_name,
         team: data.team_name,
         team_id: data.team_id,
         points: data.score,
-        standing: '1'
+        standing: data.standing
     }))
-
-    // Turn league standings numbers to string
-    for (const row of rows) {
-        if (row.standing === '1') {
-            row.standing = '1st Place';
-        } else if (row.standing === '2') {
-            row.standing = '2nd Place';
-        } else if (row.standing === '3') {
-            row.standing = '3rd Place';
-        } else {
-            row.standing = `${row.standing}th Place`;
-        }
-    }
 
     return (
         <ListPageLayout>
