@@ -14,7 +14,7 @@ from django.utils.decorators import method_decorator
 from dateutil.parser import parse
 from django.shortcuts import get_object_or_404
 
-from api.pagination_classes import FighterListPagination
+from api.pagination_classes import FighterListPagination, UserLeaguesPagination
 
 from .serializers import (
     DraftOrderSerializer,
