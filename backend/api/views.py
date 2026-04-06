@@ -575,6 +575,7 @@ def GetHeadToHeadStatsViewSet(request, id):
 @require_auth(None)
 def GetUserLeaguesAndTeams(request):
     user = get_or_create_user_from_token(request=request)
+    # Query league_member_instance_set -> league -> leaguemember_set -> team
     league_member_instance_set = (
         LeagueMember.objects.filter(owner=user)
         .select_related('league')
