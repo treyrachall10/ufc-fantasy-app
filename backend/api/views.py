@@ -587,6 +587,9 @@ def GetUserLeaguesAndTeams(request):
             ),
         )
     )
+    user_teams = []
+    for league_member in league_member_instance_set:
+        user_teams.extend(league_member.team_set.all())
     serializer = UserLeaguesAndTeamsListSerializer(league_member_instance_set, many=True)
     return Response(serializer.data)
 
