@@ -19,11 +19,12 @@ urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('create-league', views.CreateLeague),
-    path('leagues', views.GetUserLeaguesAndTeams),
+    path('leagues', views.GetUserLeaguesAndTeams.as_view()),
     path('league/<int:league_id>', views.GetLeagueData),
     path('league/<league_id>/draft/schedule', views.SetDraftDate),
     path('league/join', views.CreateLeagueMember),
     path('team/<int:team_id>', views.GetTeamListData),
+    path('api/team/<int:team_id>/changeName', views.ChangeTeamName),
     path('draft/<int:draft_id>/state', views.GetDraftState),
     path('draft/<int:draft_id>/draftableFighters', views.GetDraftableFighters.as_view()),
     path('draft/<int:draft_id>/pastPicks', views.GetDraftPickHistory),
@@ -32,4 +33,5 @@ urlpatterns = [
     path('draft/<int:draft_id>/draftOrder', views.GetDraftOrder),
     path('api/me', views.GetCurrentUserViewSet),
     path('api/setUserName', views.SetUsername),
+    path('api/previewLeague', views.PreviewLeagueByJoinKey)
 ]

@@ -1,14 +1,17 @@
 import ListPageLayout from "../components/layout/ListPageLayout";
 import { DataGrid } from '@mui/x-data-grid';
-import { Box, Typography, Stack } from '@mui/material';
-import { useParams } from "react-router-dom";
+import { Box, Typography, Stack, IconButton, Tooltip } from '@mui/material';
+import { Link, useParams } from "react-router-dom";
 import { useAuthFetch } from "../auth/authFetch";
 import { useQuery } from "@tanstack/react-query";
 import { TeamDataResponse } from "../types/types";
+import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
+import { useCurrentUser } from "../auth/useCurrentUser";
 
 export default function UserTeamPage() {
     const authFetch = useAuthFetch();
     const params = useParams();
+    const { data: currentUser } = useCurrentUser();
 
     const { data, isPending, error} = useQuery<TeamDataResponse>({
         queryKey: ['Team', params.teamid],
@@ -17,6 +20,9 @@ export default function UserTeamPage() {
 
     if (isPending) return <span>Loading...</span>
     if (error) return <span>Oops!</span>
+
+    const isOwnerViewingTeam =
+        currentUser?.user.username === data.team.owner;
 
     // Define the columns for the data grid
     // Each column needs: field (matches the data property name), headerName (what users see), and width
@@ -47,6 +53,8 @@ export default function UserTeamPage() {
     return (
         <ListPageLayout>
 
+            <Box sx={{ width: '100%' }}>
+
             {/* Stack formats vertical spacing between title and subtitle */}            
             <Stack spacing= {2} sx={{ mb: 3, width: "100%"}}>
               
@@ -55,17 +63,39 @@ export default function UserTeamPage() {
                     {data.team.name}
                 </Typography>
 
-                {/* Subtitle with points and owner  - horizontal layout */}
-                <Stack direction= "row" spacing= {1} alignItems= "baseline">
-                    <Typography variant= "subtitle1" color= "text.secondary">
-                        160 pts
-                    </Typography>
-                    <Typography variant= "body" color= "text.secondary">
-                        |
-                    </Typography>
-                    <Typography variant= "body" color="text.secondary">
-                        {data.team.owner}
-                    </Typography>
+                {/* Subtitle row with owner details on left and settings on right */}
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: '100%' }}>
+                    <Stack direction= "row" spacing= {1} alignItems= "baseline">
+                        <Typography variant= "subtitle1" color= "text.secondary">
+                            {data.team.score} pts
+                        </Typography>
+                        <Typography variant= "body" color= "text.secondary">
+                            |
+                        </Typography>
+                        <Typography variant= "body" color="text.secondary">
+                            {data.team.owner}
+                        </Typography>
+                    </Stack>
+
+                    {isOwnerViewingTeam && (
+                        <Tooltip title="Edit Team Settings" placement="left">
+                            <IconButton
+                                component={Link}
+                                to={`/team/${params.teamid}/settings`}
+                                aria-label="Edit team settings"
+                                size="large"
+                                sx={{
+                                    color: 'text.secondary',
+                                    '&:hover': {
+                                        color: 'text.primary',
+                                        backgroundColor: 'transparent',
+                                    },
+                                }}
+                            >
+                                <SettingsRoundedIcon />
+                            </IconButton>
+                        </Tooltip>
+                    )}
                 </Stack>
             </Stack>
             <Box sx={{ width: '100%', overflow: "hidden" }}>
@@ -100,6 +130,7 @@ export default function UserTeamPage() {
            
                     })}      
                 />
+            </Box>
             </Box>
         </ListPageLayout>
     )

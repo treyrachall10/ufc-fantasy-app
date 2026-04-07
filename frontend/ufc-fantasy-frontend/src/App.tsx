@@ -1,4 +1,3 @@
-import './App.css';
 import FightersListPage from './pages/FightersListPage'
 import EventsListPage from './pages/EventsListPage'
 import FightsListPage from './pages/FightsListPage';
@@ -22,6 +21,7 @@ import '@mui/x-data-grid/themeAugmentation';
 import ProtectedRoute from './auth/ProtectedRoute';
 import LeaguesPage from './pages/LeaguesPage';
 import LeagueCreation from './pages/LeagueCreation';
+import TeamSettingsPage from './pages/TeamSettingsPage';
 
 // Theme imports
 import theme from './theme/theme';
@@ -51,6 +51,7 @@ function App() {
                 <Route path="/events/:id" element={<FightsListPage />} />
                 <Route path="/fighter/:id" element={<AthleteStatsPage />} />
                 <Route path="/team/:teamid" element={<UserTeamPage />} />
+                <Route path="/team/:teamid/settings" element={<TeamSettingsPage />} />
                 <Route path="/leagues" element={<LeaguesPage />} />
                 <Route path="/join" element={<JoinLeague />} />
                 <Route path="/league/:leagueId/draft/:draftId" element={<DraftLobbyPage />} />

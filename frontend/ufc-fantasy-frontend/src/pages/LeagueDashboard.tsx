@@ -20,9 +20,14 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import type { Dayjs } from 'dayjs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
 import { Link as RouterLink } from 'react-router-dom';
 import { LeagueInfo } from '../types/types';
 import { useCurrentUser } from '../auth/useCurrentUser';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface SetDraftSatePayload {
     draft_date: string,
@@ -36,6 +41,7 @@ export default function LeagueDashboard() {
 
     const [open, setOpen] = React.useState(false);
     const [draftDate, setDraftDate] = React.useState<Dayjs | null>(null);
+    const [draftDateError, setDraftDateError] = React.useState<string>("");
     const [joinCodeAnchorEl, setJoinCodeAnchorEl] = React.useState<HTMLButtonElement | null>(null);
     const [snackbarOpen, setSnackbarOpen] = React.useState(false);
 
@@ -62,6 +68,11 @@ export default function LeagueDashboard() {
 
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['League'] });
+            setDraftDateError("");
+        },
+        onError: (error: any) => {
+            const errorMessage = error?.detail || "An error occurred scheduling the draft";
+            setDraftDateError(errorMessage);
         }
     })
 
@@ -90,10 +101,23 @@ export default function LeagueDashboard() {
 
     const isInvalidDraftDate = !!draftDate && draftDate.isBefore(dayjs());
 
+    const shouldDisableDate = (date: Dayjs | null) => {
+        if (!date) return false;
+        const chicagoTime = date.utc().tz('America/Chicago');
+        return chicagoTime.day() === 6; // Saturday is disabled
+    };
+
+    const shouldDisableTime = (value: Dayjs, view: string) => {
+        const chicagoTime = value.utc().tz('America/Chicago');
+        const isSunday = chicagoTime.day() === 0;
+        const hour = chicagoTime.hour();
+        return isSunday && (hour === 0 || hour === 1); // Disable 12AM-2AM on Sundays
+    };
+
     const handleDraftDateAccept = (date: Dayjs | null) => {
         if (!date || date.isBefore(dayjs())) return;
         scheduleDraftMutation.mutate({
-            draft_date: date.toISOString(),
+            draft_date: date.utc().toISOString(),
         });
     };
 
@@ -169,9 +193,14 @@ const scheduleDraftSection = (
             <DateTimePicker
                 label="Select Draft Date & Time"
                 value={draftDate}
-                onChange={setDraftDate}
+                onChange={(date) => {
+                    setDraftDate(date);
+                    setDraftDateError("");
+                }}
                 onAccept={handleDraftDateAccept}
                 disablePast={true}
+                shouldDisableDate={shouldDisableDate}
+                shouldDisableTime={shouldDisableTime}
                 disabled={missing > 0}
                 desktopModeMediaQuery="@media (min-width:0px)"
                 sx={{
@@ -184,8 +213,8 @@ const scheduleDraftSection = (
                     textField: {
                         className: `league-draft-picker ${missing === 0 ? 'league-draft-picker--full' : ''}`,
                         size: 'small',
-                        error: Boolean(isInvalidDraftDate),
-                        helperText: isInvalidDraftDate ? "Date must be in the future" : "",
+                        error: Boolean(isInvalidDraftDate || draftDateError),
+                        helperText: draftDateError || (isInvalidDraftDate ? "Date must be in the future" : ""),
                         sx: {
                             width: 'fit-content',
                             '& .MuiInputLabel-root': {

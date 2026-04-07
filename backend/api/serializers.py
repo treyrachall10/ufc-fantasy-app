@@ -450,21 +450,35 @@ class UserLeaguesAndTeamsListSerializer(serializers.Serializer):
 
     team_id = serializers.SerializerMethodField()
     team_name = serializers.SerializerMethodField()
+    score = serializers.SerializerMethodField()
+    standing = serializers.SerializerMethodField()
+
+    def get_team(self, obj):
+        return getattr(obj, "user_team", None)
+
+    def get_standing(self, obj):
+        team = self.get_team(obj)
+        return team.standing
     
     def get_team_id(self, obj):
-        print(obj.team_set.all()[0].__dict__)
-        team = obj.team_set.all()[0]
+        team = self.get_team(obj)
         return team.id
     
     def get_team_name(self, obj):
-        team = obj.team_set.all()[0]
+        team = self.get_team(obj)
         return team.name
+    
+    def get_score(self, obj):
+        team = self.get_team(obj)
+        return team.score
+    
     class Meta:
         fields = [
             "league_id",
             "league_name",
             "team_id",
-            "team_name"
+            "team_name",
+            "score"
         ]
 
 class TeamSerializer(serializers.ModelSerializer):

@@ -12,9 +12,12 @@ from django.db.models import Prefetch
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from dateutil.parser import parse
+from dateutil.parser import ParserError
 from django.shortcuts import get_object_or_404
+from zoneinfo import ZoneInfo
+from datetime import timezone as datetime_timezone
 
-from api.pagination_classes import FighterListPagination
+from api.pagination_classes import FighterListPagination, UserLeaguesPagination
 
 from .serializers import (
     DraftOrderSerializer,
@@ -38,7 +41,8 @@ from fantasy.models import (Fighters, Events, Fights, FighterCareerStats,
                             Team, Roster, Draft, DraftPick, DraftOrder)
 from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftable_fighters, get_or_create_user_from_token, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
-                    is_user_in_league, autopick_fighter, get_drafted_fighter_ids, check_draft_completed
+                    is_user_in_league, autopick_fighter, get_drafted_fighter_ids, check_draft_completed,
+                    get_league_standings
                     )
 
 from accounts.models import User
@@ -53,6 +57,9 @@ validator = Auth0JWTBearerTokenValidator(
 )
 
 require_auth.register_token_validator(validator)
+
+# Canonical timezone used for draft-day business rules across all users.
+AMERICA_TIMEZONE = ZoneInfo("America/New_York")
 
 '''
     -   POST METHODS
@@ -443,9 +450,32 @@ def SetDraftDate(request, league_id):
             status=400
         )
     draft_date = request.data["draft_date"]
-    if parse(draft_date) <= timezone.now():
+    # Validate date format and timezone info
+    try:
+        parsed_draft_date = parse(draft_date) # Parse date string to datetime object
+    except (TypeError, ValueError, ParserError):
+        return Response(
+            {"detail": "draft_date must be a valid ISO datetime string"},
+            status=400
+        )
+    # Check if datetime is timezone aware
+    if timezone.is_naive(parsed_draft_date):
+        return Response(
+            {"detail": "draft_date must include timezone information"},
+            status=400
+        )
+
+    # Normalize to UTC for storage and comparisons, then evaluate day-of-week in America.
+    draft_date_utc = parsed_draft_date.astimezone(datetime_timezone.utc)
+    if draft_date_utc <= timezone.now():
         return Response(
             {"detail": "Draft must be in the future"}, 
+            status=400
+        )
+    # Check if draft date falls on Saturday in America, Which is fight day
+    if draft_date_utc.astimezone(AMERICA_TIMEZONE).weekday() == 5:
+        return Response(
+            {"detail": "Drafts cannot be scheduled on fight days"},
             status=400
         )
     # Allow only league creator to set draft status
@@ -471,7 +501,7 @@ def SetDraftDate(request, league_id):
         )
     try:
         draft.status = Draft.Status.PENDING
-        draft.draft_date = request.data['draft_date']
+        draft.draft_date = draft_date_utc # Store draft date in UTC
         generate_draft_order(league=league, draft=draft)
         draft.save()
     except ValueError as e:
@@ -571,13 +601,60 @@ def GetHeadToHeadStatsViewSet(request, id):
     serializer = HeadToHeadStatsSerializer(object, many=False)
     return Response(serializer.data)
 
-@api_view(['GET'])
-@require_auth(None)
-def GetUserLeaguesAndTeams(request):
-    user = get_or_create_user_from_token(request=request)
-    league_member_instance_set = LeagueMember.objects.filter(owner=user).select_related('league').prefetch_related('team_set')
-    serializer = UserLeaguesAndTeamsListSerializer(league_member_instance_set, many=True)
-    return Response(serializer.data)
+@method_decorator(require_auth(None), name='dispatch')
+class GetUserLeaguesAndTeams(generics.ListAPIView):
+    serializer_class = UserLeaguesAndTeamsListSerializer
+    pagination_class = UserLeaguesPagination
+
+    @staticmethod
+    def apply_league_standings(league_member_instance_set):
+        """
+        Adds dynamic standing attributes to teams in memory for each league.
+        """
+        for league_member in league_member_instance_set:
+            league_teams = []
+            # Get all teams in league
+            for member in league_member.league.leaguemember_set.all():
+                league_teams.extend(member.team_set.all())
+            ranked_teams = get_league_standings(league_teams) # Ranks team by points
+            # Creates a mapping for each team object using its id to its standing in the league
+            standing_by_team_id = {team.id: team.standing for team in ranked_teams}
+
+            # Applies standing to a user's team in memory for serializer to access
+            user_team = getattr(league_member, 'user_team', None)
+            if user_team is not None:
+                user_team.standing = standing_by_team_id.get(user_team.id)
+
+    def get_queryset(self):
+        user = get_or_create_user_from_token(request=self.request)
+        # Query league_member_instance_set -> league -> leaguemember_set -> team
+        return (
+            LeagueMember.objects.filter(owner=user)
+            .select_related('league')
+            .prefetch_related(
+                'team_set',
+                Prefetch(
+                    'league__leaguemember_set',
+                    queryset=LeagueMember.objects.select_related('owner').prefetch_related('team_set'),
+                ),
+            )
+        )
+
+    def list(self, request, *args, **kwargs):
+        league_member_instance_set = self.get_queryset()
+        user_league_members = list(league_member_instance_set)
+        for league_member in user_league_members:
+            league_member.user_team = league_member.team_set.all()[0] if league_member.team_set.exists() else None
+
+        self.apply_league_standings(user_league_members)
+
+        page = self.paginate_queryset(user_league_members)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(user_league_members, many=True)
+        return Response(serializer.data)
 
 @api_view(['GET'])
 @require_auth(None)
@@ -627,7 +704,8 @@ def GetTeamListData(request, team_id):
                 "team": {
                     "id": team.id,
                     "name": team.name,
-                    "owner": team.owner.owner.username
+                    "owner": team.owner.owner.username,
+                    "score": team.score
                 },
                 "roster": [
                     { "slot": "SW", "fighter": None, "fantasy": None}, 
@@ -680,11 +758,50 @@ def GetTeamListData(request, team_id):
             "team": {
                 "id": team.id,
                 "name": team.name,
-                "owner": team.owner.owner.username
+                "owner": team.owner.owner.username,
+                "score": team.score
             },
             "roster": response_roster
         },
         status=200
+    )
+
+@api_view(['POST'])
+@require_auth(None)
+def ChangeTeamName(request, team_id):
+    user = get_or_create_user_from_token(request=request)
+    team = get_object_or_404(
+        Team.objects.select_related('owner__league'),
+        id=team_id,
+        owner__owner=user,
+    )
+
+    new_name = request.data.get('name', '').strip()
+    if not new_name:
+        return Response(
+            {"detail": "Team name is required"},
+            status=400,
+        )
+
+    league = team.owner.league
+    if Team.objects.filter(owner__league=league, name=new_name).exclude(id=team.id).exists():
+        return Response(
+            {"detail": "team already taken"},
+            status=409,
+        )
+
+    team.name = new_name
+    team.save(update_fields=['name'])
+
+    return Response(
+        {
+            "detail": "Team name updated successfully",
+            "team": {
+                "id": team.id,
+                "name": team.name,
+            },
+        },
+        status=200,
     )
 
 @api_view(['GET'])
@@ -875,3 +992,29 @@ def GetCurrentUserViewSet(request):
         },
         "profile_complete": user.profile_complete
     })
+
+@api_view(['POST'])
+@require_auth(None)
+def PreviewLeagueByJoinKey(request):
+    '''
+        Endpoint to preview league details before joining.
+    '''
+    user = get_or_create_user_from_token(request=request)
+    league = get_object_or_404(
+        League.objects.select_related('creator').prefetch_related('leaguemember_set'),
+        join_key=request.data['join_key']
+    )
+
+    if len(league.leaguemember_set.all()) >= league.capacity:
+        return Response(
+            {"detail": "League is full"},
+            status=409
+        )
+
+    return Response(
+        {
+            "league_name": league.name,
+            "creator_username": league.creator.username,
+        },
+        status=200
+    )

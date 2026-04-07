@@ -232,6 +232,34 @@ def get_filled_slots(team):
     filled_slots = set(Roster.objects.filter(team=team).values_list('slot_type', flat=True))
     return filled_slots
 
+def get_league_standings(teams):
+    """
+    Attach a standing label to each team object based on score.
+
+    Teams are ranked from highest score to lowest score and each team
+    receives a dynamic ordinal standing.
+
+    :param teams: Iterable of team-like objects with a numeric .score attribute
+    :return: List of the same team objects with a dynamic .standing attribute
+    """
+    def get_ordinal(rank):
+        if 10 <= rank % 100 <= 20:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(rank % 10, "th")
+        return f"{rank}{suffix}"
+
+    ranked_teams = sorted(
+        teams,
+        key=lambda team: float(getattr(team, "score", 0) or 0),
+        reverse=True,
+    )
+
+    for index, team in enumerate(ranked_teams, start=1):
+        team.standing = get_ordinal(index)
+
+    return ranked_teams
+
 def get_or_create_user_from_token(request):
     """
     Adds an authenticated user to the database if they do not already exist.

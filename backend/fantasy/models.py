@@ -206,6 +206,17 @@ class FightScore(models.Model):
                 name='unique_fight_fighter_per_fight'
             )
         ]
+
+class ScoringRun(models.Model):
+    class Status(models.TextChoices):
+        RUNNING = "running", "Running"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.RUNNING)
+
 '''
     -   Fantasy Models
 '''
@@ -241,6 +252,21 @@ class Team(models.Model):
     owner=models.ForeignKey(LeagueMember, on_delete=models.CASCADE)
     name=models.CharField(max_length=64)
     created_at=models.DateTimeField(auto_now_add=True)
+    score=models.FloatField(default=0)
+
+
+class TeamAppliedFightScore(models.Model):
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
+    fight_score = models.ForeignKey(FightScore, on_delete=models.CASCADE)
+    applied_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['team', 'fight_score'],
+                name='unique_team_fight_score_application',
+            )
+        ]
 
 class Roster(models.Model):
 
