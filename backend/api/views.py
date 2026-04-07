@@ -450,13 +450,15 @@ def SetDraftDate(request, league_id):
             status=400
         )
     draft_date = request.data["draft_date"]
+    # Validate date format and timezone info
     try:
-        parsed_draft_date = parse(draft_date)
+        parsed_draft_date = parse(draft_date) # Parse date string to datetime object
     except (TypeError, ValueError, ParserError):
         return Response(
             {"detail": "draft_date must be a valid ISO datetime string"},
             status=400
         )
+    # Check if datetime is timezone aware
     if timezone.is_naive(parsed_draft_date):
         return Response(
             {"detail": "draft_date must include timezone information"},
@@ -470,6 +472,7 @@ def SetDraftDate(request, league_id):
             {"detail": "Draft must be in the future"}, 
             status=400
         )
+    # Check if draft date falls on Saturday in America, Which is fight day
     if draft_date_utc.astimezone(AMERICA_TIMEZONE).weekday() == 5:
         return Response(
             {"detail": "Drafts cannot be scheduled on fight days"},
@@ -498,7 +501,7 @@ def SetDraftDate(request, league_id):
         )
     try:
         draft.status = Draft.Status.PENDING
-        draft.draft_date = draft_date_utc
+        draft.draft_date = draft_date_utc # Store draft date in UTC
         generate_draft_order(league=league, draft=draft)
         draft.save()
     except ValueError as e:
