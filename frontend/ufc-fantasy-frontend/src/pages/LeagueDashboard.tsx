@@ -41,6 +41,7 @@ export default function LeagueDashboard() {
 
     const [open, setOpen] = React.useState(false);
     const [draftDate, setDraftDate] = React.useState<Dayjs | null>(null);
+    const [draftDateError, setDraftDateError] = React.useState<string>("");
     const [joinCodeAnchorEl, setJoinCodeAnchorEl] = React.useState<HTMLButtonElement | null>(null);
     const [snackbarOpen, setSnackbarOpen] = React.useState(false);
 
@@ -67,6 +68,11 @@ export default function LeagueDashboard() {
 
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['League'] });
+            setDraftDateError("");
+        },
+        onError: (error: any) => {
+            const errorMessage = error?.detail || "An error occurred scheduling the draft";
+            setDraftDateError(errorMessage);
         }
     })
 
@@ -187,7 +193,10 @@ const scheduleDraftSection = (
             <DateTimePicker
                 label="Select Draft Date & Time"
                 value={draftDate}
-                onChange={setDraftDate}
+                onChange={(date) => {
+                    setDraftDate(date);
+                    setDraftDateError("");
+                }}
                 onAccept={handleDraftDateAccept}
                 disablePast={true}
                 shouldDisableDate={shouldDisableDate}
@@ -204,8 +213,8 @@ const scheduleDraftSection = (
                     textField: {
                         className: `league-draft-picker ${missing === 0 ? 'league-draft-picker--full' : ''}`,
                         size: 'small',
-                        error: Boolean(isInvalidDraftDate),
-                        helperText: isInvalidDraftDate ? "Date must be in the future" : "",
+                        error: Boolean(isInvalidDraftDate || draftDateError),
+                        helperText: draftDateError || (isInvalidDraftDate ? "Date must be in the future" : ""),
                         sx: {
                             width: 'fit-content',
                             '& .MuiInputLabel-root': {
