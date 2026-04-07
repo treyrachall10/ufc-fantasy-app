@@ -817,7 +817,7 @@ def populate_team_scores():
         .first()
     )
 
-    # Get all leagues whose drafts are completed and prefetch related team and roster data.
+    # Get all leagues whose drafts are completed and prefetch related team, fightscore, and roster data.
     leagues = League.objects.filter(draft__status=Draft.Status.COMPLETED).prefetch_related(
         Prefetch(
             'draft_set',
@@ -840,6 +840,7 @@ def populate_team_scores():
         ),
     )
     team_objs = []
+    updated_fight_ids = []
     updated_team_count = 0
     has_global_checkpoint = last_completed_run is not None
     global_window_start = last_completed_run.completed_at.date() if has_global_checkpoint else None
@@ -861,6 +862,10 @@ def populate_team_scores():
                 for league_member in league.leaguemember_set.all():
                     for team in league_member.team_set.all():
                         score_delta = 0
+                        applied_fight_score_ids = {
+                            applied_fight_score.fight_score_id
+                            for applied_fight_score in team.teamappliedfightscore_set.all()
+                        }
                         if has_global_checkpoint:
                             window_start = global_window_start
                         else:
@@ -871,23 +876,30 @@ def populate_team_scores():
                             # Iterate through each fighter in the roster row.
                             if roster.fighter is None:
                                 continue
+                            # Iterate through each fight score connected to the fighter in roster.
                             for fighter in [roster.fighter]:
-                                fight_scores_in_window = [
-                                    fight_score
-                                    for fight_score in fighter.fightscore_set.all()
+                                for fight_score in fighter.fightscore_set.all():
+                                    if fight_score.id in applied_fight_score_ids:
+                                        continue
+                                    # Skip if fight score is not connected to a fight or event, or if event date is outside of scoring window.
                                     if (
-                                        window_start is not None
-                                        and fight_score.fight is not None
-                                        and fight_score.fight.event is not None
-                                        and fight_score.fight.event.date is not None
-                                        and fight_score.fight.event.date > window_start
-                                        and fight_score.fight.event.date <= run_window_end_date
-                                    )
-                                ]
+                                        window_start is None
+                                        or fight_score.fight is None
+                                        or fight_score.fight.event is None
+                                        or fight_score.fight.event.date is None
+                                        or fight_score.fight.event.date <= window_start
+                                        or fight_score.fight.event.date > run_window_end_date
+                                    ):
+                                        continue
 
-                                for fight_score in fight_scores_in_window:
                                     if fight_score.fight_total_points is not None:
                                         score_delta += fight_score.fight_total_points
+                                        updated_fight_ids.append(
+                                            TeamAppliedFightScore(
+                                                team=team,
+                                                fight_score=fight_score,
+                                            )
+                                        )
 
                         team.score = (team.score or 0) + score_delta
                         team_objs.append(team)
@@ -895,6 +907,9 @@ def populate_team_scores():
 
             if team_objs:
                 Team.objects.bulk_update(team_objs, fields=['score'])
+
+            if updated_fight_ids:
+                TeamAppliedFightScore.objects.bulk_create(updated_fight_ids)
 
             scoring_run.status = ScoringRun.Status.COMPLETED
             scoring_run.completed_at = timezone.now()
