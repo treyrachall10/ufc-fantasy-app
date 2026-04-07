@@ -12,7 +12,10 @@ from django.db.models import Prefetch
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from dateutil.parser import parse
+from dateutil.parser import ParserError
 from django.shortcuts import get_object_or_404
+from zoneinfo import ZoneInfo
+from datetime import timezone as datetime_timezone
 
 from api.pagination_classes import FighterListPagination, UserLeaguesPagination
 
@@ -54,6 +57,9 @@ validator = Auth0JWTBearerTokenValidator(
 )
 
 require_auth.register_token_validator(validator)
+
+# Canonical timezone used for draft-day business rules across all users.
+AMERICA_TIMEZONE = ZoneInfo("America/New_York")
 
 '''
     -   POST METHODS
@@ -444,9 +450,29 @@ def SetDraftDate(request, league_id):
             status=400
         )
     draft_date = request.data["draft_date"]
-    if parse(draft_date) <= timezone.now():
+    try:
+        parsed_draft_date = parse(draft_date)
+    except (TypeError, ValueError, ParserError):
+        return Response(
+            {"detail": "draft_date must be a valid ISO datetime string"},
+            status=400
+        )
+    if timezone.is_naive(parsed_draft_date):
+        return Response(
+            {"detail": "draft_date must include timezone information"},
+            status=400
+        )
+
+    # Normalize to UTC for storage and comparisons, then evaluate day-of-week in America.
+    draft_date_utc = parsed_draft_date.astimezone(datetime_timezone.utc)
+    if draft_date_utc <= timezone.now():
         return Response(
             {"detail": "Draft must be in the future"}, 
+            status=400
+        )
+    if draft_date_utc.astimezone(AMERICA_TIMEZONE).weekday() == 5:
+        return Response(
+            {"detail": "Drafts cannot be scheduled on fight days"},
             status=400
         )
     # Allow only league creator to set draft status
@@ -472,7 +498,7 @@ def SetDraftDate(request, league_id):
         )
     try:
         draft.status = Draft.Status.PENDING
-        draft.draft_date = request.data['draft_date']
+        draft.draft_date = draft_date_utc
         generate_draft_order(league=league, draft=draft)
         draft.save()
     except ValueError as e:
