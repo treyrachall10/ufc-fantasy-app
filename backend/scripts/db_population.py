@@ -887,7 +887,7 @@ def populate_team_scores():
                                         or fight_score.fight is None
                                         or fight_score.fight.event is None
                                         or fight_score.fight.event.date is None
-                                        or fight_score.fight.event.date <= window_start
+                                        or fight_score.fight.event.date < window_start
                                         or fight_score.fight.event.date > run_window_end_date
                                     ):
                                         continue
