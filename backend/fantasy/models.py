@@ -254,6 +254,20 @@ class Team(models.Model):
     created_at=models.DateTimeField(auto_now_add=True)
     score=models.FloatField(default=0)
 
+
+class TeamAppliedFightScore(models.Model):
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
+    fight_score = models.ForeignKey(FightScore, on_delete=models.CASCADE)
+    applied_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['team', 'fight_score'],
+                name='unique_team_fight_score_application',
+            )
+        ]
+
 class Roster(models.Model):
 
     class SlotType(models.TextChoices):
