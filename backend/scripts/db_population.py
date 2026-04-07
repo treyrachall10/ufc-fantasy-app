@@ -855,9 +855,6 @@ def populate_team_scores():
                     if completed_draft is not None and completed_draft.draft_date is not None
                     else None
                 )
-                league_start_date = getattr(league, 'start_date', None)
-                if league_start_date is not None and hasattr(league_start_date, 'date'):
-                    league_start_date = league_start_date.date()
 
                 # Iterate through each team connected to the league.
                 for league_member in league.leaguemember_set.all():
@@ -866,7 +863,7 @@ def populate_team_scores():
                         if has_global_checkpoint:
                             window_start = global_window_start
                         else:
-                            window_start = league_start_date or draft_start_date
+                            window_start = draft_start_date
 
                         # Iterate through each roster row connected to the team.
                         for roster in team.roster_set.all():
