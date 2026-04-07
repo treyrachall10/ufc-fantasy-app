@@ -6,7 +6,7 @@ from datetime import datetime
 from django.db import transaction
 from django.db.models import Prefetch
 from django.utils import timezone
-from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore, FightScore, FighterCareerStats, League, Team, Roster, Draft, ScoringRun
+from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore, FightScore, FighterCareerStats, League, Team, TeamAppliedFightScore, Roster, Draft, ScoringRun
 from config import DATACLEANPATH, MODEL_MAP
 from scripts.utils import normalize_name
 from scripts.scoring import score_knockdowns, score_td_landed, score_sub_att, score_ctrl_time, score_round_finish, score_time
@@ -826,6 +826,7 @@ def populate_team_scores():
         Prefetch(
             'leaguemember_set__team_set',
             queryset=Team.objects.prefetch_related(
+                'teamappliedfightscore_set',
                 Prefetch(
                     'roster_set',
                     queryset=Roster.objects.select_related('fighter').prefetch_related(
