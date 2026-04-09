@@ -46,8 +46,6 @@ from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftabl
                     get_league_standings, validate_image
                     )
 
-from services.supabase import supabase
-
 from accounts.models import User
 
 from authlib.integrations.django_oauth2 import ResourceProtector

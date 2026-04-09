@@ -12,6 +12,7 @@ import secrets
 import string
 import random
 from django.db.models import Prefetch
+from services.supabase import supabase
 
 def create_fantasy_for_fighter(fight, fighter,  round_stats):
     """
@@ -339,3 +340,29 @@ def validate_image(image_file, max_size=2 * 1024 * 1024):
             image_file.seek(0)
         except (AttributeError, UnsupportedOperation):
             pass
+
+
+def upload_file(uploaded_file, bucket_name, path):
+    """
+    Upload an already validated file object to a Supabase storage bucket.
+
+    :param uploaded_file: Uploaded file object (e.g., InMemoryUploadedFile)
+    :param bucket_name: Supabase storage bucket name
+    :param path: Destination object path in the bucket
+    :return: Supabase upload response
+    :raises Exception: Re-raises any storage client error for the caller to handle
+    """
+    try:
+        uploaded_file.seek(0)
+        response = (
+            supabase.storage
+            .from_(bucket_name)
+            .upload(
+                file=uploaded_file,
+                path=path,
+                file_options={"cache-control": "3600", "upsert": "false"}
+            )
+        )
+        return response
+    except Exception:
+        raise
