@@ -34,5 +34,5 @@ urlpatterns = [
     path('api/me', views.GetCurrentUserViewSet),
     path('api/setUserName', views.SetUsername),
     path('api/previewLeague', views.PreviewLeagueByJoinKey),
-    path('api/<int:team_id>/changeTeamPicture', views.ChangeTeamPicture.as_view()),
+    path('api/<int:team_id>/SetTeamImage', views.SetTeamImage.as_view()),
 ]
