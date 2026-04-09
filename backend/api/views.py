@@ -17,6 +17,7 @@ from dateutil.parser import ParserError
 from django.shortcuts import get_object_or_404
 from zoneinfo import ZoneInfo
 from datetime import timezone as datetime_timezone
+from pathlib import Path
 
 from api.pagination_classes import FighterListPagination, UserLeaguesPagination
 
@@ -1068,8 +1069,9 @@ class SetTeamImage(generics.UpdateAPIView):
                 status=400,
             )
 
-        # Build the canonical storage path and persist it on the team record.
-        image_path = f"team-images/{team.id}/image.png"
+        # Build the canonical storage path with the uploaded filename and persist it on the team record.
+        filename = Path(image_file.name).name or "image.png"
+        image_path = f"team-images/{team.id}/{filename}"
         team.img_url = image_path
         team.save(update_fields=["img_url"])
 
