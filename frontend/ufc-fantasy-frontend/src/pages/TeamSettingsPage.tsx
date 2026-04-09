@@ -59,6 +59,25 @@ export default function TeamSettingsPage() {
         },
     });
 
+    const changeTeamPictureMutation = useMutation({
+        mutationFn: async (file: File) => {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await authFetch(`http://localhost:8000/api/${params.teamid}/changeTeamPicture`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            const responseData = await response.json();
+            if (!response.ok) {
+                throw responseData;
+            }
+
+            return responseData;
+        },
+    });
+
     useEffect(() => {
         if (data?.team.name) {
             setCurrentTeamName(data.team.name);
@@ -95,7 +114,9 @@ export default function TeamSettingsPage() {
             return;
         }
 
-        setTeamPhotoFile(event.target.files[0]);
+        const selectedFile = event.target.files[0];
+        setTeamPhotoFile(selectedFile);
+        changeTeamPictureMutation.mutate(selectedFile);
     };
 
     if (isPending || isCurrentUserPending) return <span>Loading...</span>;
