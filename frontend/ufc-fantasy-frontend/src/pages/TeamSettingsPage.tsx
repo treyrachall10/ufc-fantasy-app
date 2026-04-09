@@ -65,7 +65,7 @@ export default function TeamSettingsPage() {
             formData.append('file', file);
 
             const response = await authFetch(`http://localhost:8000/api/${params.teamid}/changeTeamPicture`, {
-                method: 'POST',
+                method: 'PATCH',
                 body: formData,
             });
 
