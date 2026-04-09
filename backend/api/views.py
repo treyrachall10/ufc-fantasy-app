@@ -11,6 +11,7 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.core.exceptions import ValidationError
 from dateutil.parser import parse
 from dateutil.parser import ParserError
 from django.shortcuts import get_object_or_404
@@ -42,7 +43,7 @@ from fantasy.models import (Fighters, Events, Fights, FighterCareerStats,
 from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftable_fighters, get_or_create_user_from_token, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
                     is_user_in_league, autopick_fighter, get_drafted_fighter_ids, check_draft_completed,
-                    get_league_standings
+                    get_league_standings, validate_image
                     )
 
 from accounts.models import User
@@ -1018,3 +1019,65 @@ def PreviewLeagueByJoinKey(request):
         },
         status=200
     )
+
+@method_decorator(require_auth(None), name='dispatch')
+class SetTeamImage(generics.UpdateAPIView):
+    def patch(self, request, league_id=None):
+        # Resolve the authenticated user from the OAuth token; fail fast on bad token payload.
+        try:
+            user = get_or_create_user_from_token(request=request)
+        except AttributeError:
+            return Response({"detail": "Invalid OAuth token"}, status=400)
+
+        # Allow league id from route or request body for flexible callers.
+        league_id = league_id or request.data.get("id")
+        if not league_id:
+            return Response({"detail": "League id is required"}, status=400)
+
+        # Restrict lookup to the caller's own team within the target league.
+        team = get_object_or_404(
+            Team,
+            owner__owner=user,
+            owner__league__id=league_id,
+        )
+
+        # Require an uploaded image file under the expected multipart key.
+        image_file = request.FILES.get("image")
+        if image_file is None:
+            return Response({"detail": "image file is required"}, status=400)
+
+        # Validate extension, max size, and actual image bytes before persisting path metadata.
+        try:
+            validate_image(image_file=image_file)
+        except ValidationError as exc:
+            # Pull structured validation code to map known failures to clear API responses.
+            error_code = exc.code
+            if getattr(exc, "error_list", None):
+                error_code = exc.error_list[0].code
+
+            # Return an explicit payload-too-large status for file size violations.
+            if error_code == "too_large":
+                return Response(
+                    {"detail": "Image file is too large. Max size is 2MB."},
+                    status=413,
+                )
+
+            # Group unsupported extensions and unreadable image content into one invalid-image response.
+            return Response(
+                {"detail": "Image format is invalid or file is not a valid image."},
+                status=400,
+            )
+
+        # Build the canonical storage path and persist it on the team record.
+        image_path = f"team-images/{team.id}/image.png"
+        team.img_url = image_path
+        team.save(update_fields=["img_url"])
+
+        # Return the updated team id and resolved image path for client follow-up actions.
+        return Response(
+            {
+                "team_id": team.id,
+                "image_path": image_path,
+            },
+            status=200,
+        )
