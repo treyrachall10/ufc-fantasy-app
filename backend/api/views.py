@@ -1094,6 +1094,7 @@ class SetTeamImage(generics.UpdateAPIView):
             {
                 "team_id": team.id,
                 "image_path": image_path,
+                "detail": "Team image updated successfully.",
             },
             status=200,
         )
