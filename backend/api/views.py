@@ -12,6 +12,7 @@ from django.db.models import Prefetch
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from dateutil.parser import parse
 from dateutil.parser import ParserError
 from django.shortcuts import get_object_or_404
@@ -708,7 +709,7 @@ def GetTeamListData(request, team_id):
                     "name": team.name,
                     "owner": team.owner.owner.username,
                     "score": team.score,
-                    "img_url": team.img_url
+                    "img_path": f'{settings.SUPABASE_TEAM_IMAGE_BUCKET}/{team.img_url}' if team.img_url else None
                 },
                 "roster": [
                     { "slot": "SW", "fighter": None, "fantasy": None}, 
@@ -763,7 +764,7 @@ def GetTeamListData(request, team_id):
                 "name": team.name,
                 "owner": team.owner.owner.username,
                 "score": team.score,
-                "img_url": team.img_url
+                "img_url": f'{settings.SUPABASE_TEAM_IMAGE_BUCKET}/{team.img_url}' if team.img_url else None
             },
             "roster": response_roster
         },
@@ -1079,7 +1080,7 @@ class SetTeamImage(generics.UpdateAPIView):
         try:
             upload_file(
                 uploaded_file=image_file,
-                bucket_name="team-images",
+                bucket_name=settings.SUPABASE_TEAM_IMAGE_BUCKET,
                 path=image_path,
             )
         except Exception:
