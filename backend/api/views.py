@@ -44,7 +44,7 @@ from fantasy.models import (Fighters, Events, Fights, FighterCareerStats,
 from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftable_fighters, get_or_create_user_from_token, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
                     is_user_in_league, autopick_fighter, get_drafted_fighter_ids, check_draft_completed,
-                    get_league_standings, validate_image
+                    get_league_standings, validate_image, upload_file
                     )
 
 from accounts.models import User
@@ -1071,7 +1071,21 @@ class SetTeamImage(generics.UpdateAPIView):
 
         # Build the canonical storage path with the uploaded filename and persist it on the team record.
         filename = Path(image_file.name).name or "image.png"
-        image_path = f"team-images/{team.id}/{filename}"
+        image_path = f"{team.id}/{filename}"
+
+        # Upload to Supabase Storage first; only persist DB path when upload succeeds.
+        try:
+            upload_file(
+                uploaded_file=image_file,
+                bucket_name="team-images",
+                path=image_path,
+            )
+        except Exception:
+            return Response(
+                {"detail": "Failed to upload team image."},
+                status=502,
+            )
+
         team.img_url = image_path
         team.save(update_fields=["img_url"])
 
