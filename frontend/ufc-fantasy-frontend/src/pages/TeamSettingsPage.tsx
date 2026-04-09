@@ -1,4 +1,4 @@
-import { useEffect, useState, type KeyboardEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import {
     Box,
     Button,
@@ -25,6 +25,7 @@ export default function TeamSettingsPage() {
     const { data: currentUser, isPending: isCurrentUserPending, error: currentUserError } = useCurrentUser();
     const [currentTeamName, setCurrentTeamName] = useState('');
     const [teamName, setTeamName] = useState('');
+    const [teamPhotoFile, setTeamPhotoFile] = useState<File | null>(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [teamNameError, setTeamNameError] = useState(false);
 
@@ -88,6 +89,15 @@ export default function TeamSettingsPage() {
         }
     };
 
+    const handleChangeTeamPhoto = (event: ChangeEvent<HTMLInputElement>) => {
+        if (!event.target.files?.length) {
+            setTeamPhotoFile(null);
+            return;
+        }
+
+        setTeamPhotoFile(event.target.files[0]);
+    };
+
     if (isPending || isCurrentUserPending) return <span>Loading...</span>;
     if (error || currentUserError) return <span>Oops!</span>;
 
@@ -149,6 +159,7 @@ export default function TeamSettingsPage() {
                                 <Button
                                     variant="contained"
                                     color="brandAlpha50"
+                                    component="label"
                                     sx={{
                                         textTransform: 'none',
                                         borderColor: 'brand.light',
@@ -158,6 +169,12 @@ export default function TeamSettingsPage() {
                                     }}
                                 >
                                     Change Photo
+                                    <input
+                                        hidden
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleChangeTeamPhoto}
+                                    />
                                 </Button>
                             </Box>
                         </Stack>
