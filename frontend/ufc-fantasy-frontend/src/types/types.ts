@@ -246,12 +246,7 @@ export interface FightStats {
         created_at: string
         creator: number
         },
-    teams: {
-        id: number
-        owner: number
-        name: string
-        created_at: string 
-    }[],
+    teams: Team[],
     draft: {
         id: number,
         status: "NOT_SCHEDULED" | "PENDING" | "IN_PROGRESS" | "COMPLETED",
@@ -262,10 +257,10 @@ export interface FightStats {
 export interface Team {
   id: number;
   name: string;
-  owner: string;
+  owner: string | number;
   created_at: string;
-  score: number;
-  img_url: string | null;
+  score?: number;
+  img_url?: string | null;
 }
 
 export interface TeamListFighter {
