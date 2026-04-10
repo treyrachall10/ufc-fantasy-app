@@ -280,12 +280,14 @@ const NonCreatorDraftNotScheduled = () => {
         team: team.name,
         pts: 184,
         standing: 0,
-        id: team.id
+        id: team.id,
+        img_url: team.img_url ?? null,
     }))
 
     const labelData = rowData.map((row) => ({
         category: row.team,
         points: row.pts,
+        img_url: row.img_url
     }))
 
     // Compute league standing
@@ -494,7 +496,7 @@ const NonCreatorDraftNotScheduled = () => {
                                 width: {xs: 128, lg: 256}
                             }}
                             >
-                            B
+                                LI
                         </Avatar>
                     </Box>
                 </Grid>
