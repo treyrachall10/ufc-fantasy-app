@@ -354,13 +354,17 @@ def upload_file(uploaded_file, bucket_name, path):
     """
     try:
         uploaded_file.seek(0)
+        file_bytes = uploaded_file.read()
         response = (
             supabase.storage
             .from_(bucket_name)
             .upload(
-                file=uploaded_file,
+                file=file_bytes,
                 path=path,
-                file_options={"cache-control": "3600", "upsert": "false"}
+                file_options={"cache-control": "3600", 
+                              "upsert": "false",
+                              "content-type": uploaded_file.content_type
+                              }
             )
         )
         return response
