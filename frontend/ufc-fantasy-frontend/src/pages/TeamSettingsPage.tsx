@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import {
+    Avatar,
     Box,
     Button,
     Stack,
@@ -62,9 +63,9 @@ export default function TeamSettingsPage() {
     const changeTeamPictureMutation = useMutation({
         mutationFn: async (file: File) => {
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('image', file);
 
-            const response = await authFetch(`http://localhost:8000/api/${params.teamid}/changeTeamPicture`, {
+            const response = await authFetch(`http://localhost:8000/api/${params.teamid}/SetTeamImage`, {
                 method: 'PATCH',
                 body: formData,
             });
@@ -153,23 +154,21 @@ export default function TeamSettingsPage() {
                     >
                         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%' }}>
                             <Stack spacing={1.25} sx={{ display: 'flex', alignItems: 'center' }}>
-                                <Box
+                                <Avatar
+                                    src={data.team.img_url || undefined}
+                                    alt="Team Photo"
                                     sx={{
                                         width: 120,
                                         height: 120,
-                                        borderRadius: '50%',
                                         border: '2px dashed',
                                         borderColor: 'divider',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
                                         color: 'text.secondary',
                                         backgroundColor: 'background.paper',
                                         flexShrink: 0,
                                     }}
                                 >
                                     <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 38 }} />
-                                </Box>
+                                </Avatar>
 
                                 <Typography variant="subtitle1" color="text.primary" sx={{ fontWeight: 600 }}>
                                     {currentTeamName || 'Unnamed Team'}
