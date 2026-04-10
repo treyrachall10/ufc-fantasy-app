@@ -7,12 +7,19 @@ export const useAuthFetch = () => {
   return async (url: string, options?: RequestInit) => {
     
     const token = await getAccessTokenSilently();
+    const headers = new Headers(options?.headers);
+
+    const isFormDataBody = typeof FormData !== 'undefined' && options?.body instanceof FormData;
+
+    if (!isFormDataBody && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+
+    headers.set('Authorization', `Bearer ${token}`);
+
     const res = await fetch(url, {
       ...options,
-      headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Sends auth token for backend authentication
-      },
+      headers,
     });
 
     // If backend rejects authentication (401), clear token and force re-auth
