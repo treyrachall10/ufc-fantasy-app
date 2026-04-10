@@ -1026,23 +1026,23 @@ def PreviewLeagueByJoinKey(request):
 
 @method_decorator(require_auth(None), name='dispatch')
 class SetTeamImage(generics.UpdateAPIView):
-    def patch(self, request, league_id=None):
+    def patch(self, request, team_id):
         # Resolve the authenticated user from the OAuth token; fail fast on bad token payload.
         try:
             user = get_or_create_user_from_token(request=request)
         except AttributeError:
             return Response({"detail": "Invalid OAuth token"}, status=400)
 
-        # Allow league id from route or request body for flexible callers.
-        league_id = league_id or request.data.get("id")
-        if not league_id:
-            return Response({"detail": "League id is required"}, status=400)
+        # Allow team id from route or request body for flexible callers.
+        team_id = team_id or request.data.get("id")
+        if not team_id:
+            return Response({"detail": "Team id is required"}, status=400)
 
         # Restrict lookup to the caller's own team within the target league.
         team = get_object_or_404(
             Team,
             owner__owner=user,
-            owner__league__id=league_id,
+            id=team_id,
         )
 
         # Require an uploaded image file under the expected multipart key.
@@ -1075,7 +1075,6 @@ class SetTeamImage(generics.UpdateAPIView):
         # Build the canonical storage path with the uploaded filename and persist it on the team record.
         filename = Path(image_file.name).name or "image.png"
         image_path = f"{team.id}/{filename}"
-
         # Upload to Supabase Storage first; only persist DB path when upload succeeds.
         try:
             upload_file(
