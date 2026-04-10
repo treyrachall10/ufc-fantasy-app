@@ -488,7 +488,9 @@ class TeamSerializer(serializers.ModelSerializer):
             'id',
             'owner',
             'name',
-            'created_at'
+            'created_at',
+            'img_url',
+            'score'
         ]
 
 class LeagueSerializer(serializers.ModelSerializer):
