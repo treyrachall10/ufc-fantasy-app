@@ -19,6 +19,7 @@ from django.shortcuts import get_object_or_404
 from zoneinfo import ZoneInfo
 from datetime import timezone as datetime_timezone
 from pathlib import Path
+from services.supabase import supabase
 
 from api.pagination_classes import FighterListPagination, UserLeaguesPagination
 
@@ -701,6 +702,10 @@ def GetTeamListData(request, team_id):
             )
         )
     )
+    if team.img_url:
+        img_url = supabase.storage.from_(settings.SUPABASE_TEAM_IMAGE_BUCKET).get_public_url(team.img_url)
+    else:
+        img_url = None
     if not roster_rows.exists():
         return Response(
             {
@@ -709,7 +714,7 @@ def GetTeamListData(request, team_id):
                     "name": team.name,
                     "owner": team.owner.owner.username,
                     "score": team.score,
-                    "img_path": f'{settings.SUPABASE_TEAM_IMAGE_BUCKET}/{team.img_url}' if team.img_url else None
+                    "img_path": img_url
                 },
                 "roster": [
                     { "slot": "SW", "fighter": None, "fantasy": None}, 
@@ -764,7 +769,7 @@ def GetTeamListData(request, team_id):
                 "name": team.name,
                 "owner": team.owner.owner.username,
                 "score": team.score,
-                "img_url": f'{settings.SUPABASE_TEAM_IMAGE_BUCKET}/{team.img_url}' if team.img_url else None
+                "img_url": img_url
             },
             "roster": response_roster
         },
