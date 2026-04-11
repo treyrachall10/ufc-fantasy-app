@@ -478,28 +478,6 @@ const NonCreatorDraftNotScheduled = () => {
                         </ClickAwayListener>
                     </Stack>
                 </Grid>
-                {/* League Image*/}
-                <Grid size={{xs: 6, sm: 4}}>
-                    <Box 
-                        sx={{
-                            display: 'flex',
-                            height: '100%',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                        }}
-                    >
-                        <Avatar 
-                            alt="League Image" 
-                            sx={{ 
-                                bgcolor: 'red',
-                                height: {xs: 128, lg: 256},
-                                width: {xs: 128, lg: 256}
-                            }}
-                            >
-                                LI
-                        </Avatar>
-                    </Box>
-                </Grid>
                 {/* League Standings Chart (only visible on laptop and desktop)*/}
                 <Grid 
                     size={{xs: 12}}
