@@ -27,6 +27,7 @@ export default function TeamSettingsPage() {
     const [currentTeamName, setCurrentTeamName] = useState('');
     const [teamName, setTeamName] = useState('');
     const [teamPhotoFile, setTeamPhotoFile] = useState<File | null>(null);
+    const [teamPhotoError, setTeamPhotoError] = useState('');
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [teamNameError, setTeamNameError] = useState(false);
 
@@ -77,6 +78,12 @@ export default function TeamSettingsPage() {
 
             return responseData;
         },
+        onError: (mutationError: any) => {
+            setTeamPhotoError(mutationError?.detail || 'Unable to change team photo.');
+        },
+        onSuccess: () => {
+            setTeamPhotoError('');
+        },
     });
 
     useEffect(() => {
@@ -117,6 +124,7 @@ export default function TeamSettingsPage() {
 
         const selectedFile = event.target.files[0];
         setTeamPhotoFile(selectedFile);
+        setTeamPhotoError('');
         changeTeamPictureMutation.mutate(selectedFile);
     };
 
@@ -143,62 +151,72 @@ export default function TeamSettingsPage() {
                 </Typography>
 
                 <Stack spacing={2.5} sx={{ width: '100%', alignItems: 'center' }}>
-                    <Box
-                        sx={{
-                            width: '100%',
-                            bgcolor: 'dashboardBlack.main',
-                            borderRadius: 2,
-                            px: 3,
-                            py: 2.5,
-                        }}
-                    >
-                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%' }}>
-                            <Stack spacing={1.25} sx={{ display: 'flex', alignItems: 'center' }}>
-                                <Avatar
-                                    src={data.team.img_url || undefined}
-                                    alt="Team Photo"
-                                    sx={{
-                                        width: 120,
-                                        height: 120,
-                                        border: '2px dashed',
-                                        borderColor: 'divider',
-                                        color: 'text.secondary',
-                                        backgroundColor: 'background.paper',
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 38 }} />
-                                </Avatar>
+                    <Stack spacing={1} sx={{ width: '100%' }}>
+                        <Box
+                            sx={{
+                                width: '100%',
+                                bgcolor: 'dashboardBlack.main',
+                                borderRadius: 2,
+                                px: 3,
+                                py: 2.5,
+                                border: teamPhotoError ? '1px solid' : 'none',
+                                borderColor: teamPhotoError ? 'error.main' : 'transparent',
+                            }}
+                        >
+                            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%' }}>
+                                <Stack spacing={1.25} sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <Avatar
+                                        src={data.team.img_url || undefined}
+                                        alt="Team Photo"
+                                        sx={{
+                                            width: 120,
+                                            height: 120,
+                                            border: '2px dashed',
+                                            borderColor: 'divider',
+                                            color: 'text.secondary',
+                                            backgroundColor: 'background.paper',
+                                            flexShrink: 0,
+                                        }}
+                                    >
+                                        <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 38 }} />
+                                    </Avatar>
 
-                                <Typography variant="subtitle1" color="text.primary" sx={{ fontWeight: 600 }}>
-                                    {currentTeamName || 'Unnamed Team'}
-                                </Typography>
+                                    <Typography variant="subtitle1" color="text.primary" sx={{ fontWeight: 600 }}>
+                                        {currentTeamName || 'Unnamed Team'}
+                                    </Typography>
+                                </Stack>
+
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <Button
+                                        variant="contained"
+                                        color="brandAlpha50"
+                                        component="label"
+                                        sx={{
+                                            textTransform: 'none',
+                                            borderColor: 'brand.light',
+                                            '&:hover': {
+                                                borderColor: 'brand.main',
+                                            },
+                                        }}
+                                    >
+                                        Change Photo
+                                        <input
+                                            hidden
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleChangeTeamPhoto}
+                                        />
+                                    </Button>
+                                </Box>
                             </Stack>
+                        </Box>
 
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <Button
-                                    variant="contained"
-                                    color="brandAlpha50"
-                                    component="label"
-                                    sx={{
-                                        textTransform: 'none',
-                                        borderColor: 'brand.light',
-                                        '&:hover': {
-                                            borderColor: 'brand.main',
-                                        },
-                                    }}
-                                >
-                                    Change Photo
-                                    <input
-                                        hidden
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleChangeTeamPhoto}
-                                    />
-                                </Button>
-                            </Box>
-                        </Stack>
-                    </Box>
+                        {teamPhotoError && (
+                            <Typography variant="body2" color="error.main">
+                                {teamPhotoError}
+                            </Typography>
+                        )}
+                    </Stack>
 
                     <TextField
                         sx={{ width: '100%' }}
