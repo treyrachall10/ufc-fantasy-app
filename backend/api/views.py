@@ -796,7 +796,7 @@ def ChangeTeamName(request, team_id):
     league = team.owner.league
     if Team.objects.filter(owner__league=league, name=new_name).exclude(id=team.id).exists():
         return Response(
-            {"detail": "team already taken"},
+            {"detail": "Team name already taken"},
             status=409,
         )
 
