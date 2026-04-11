@@ -5,15 +5,16 @@ import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
 import { Link } from "react-router-dom";
 
-interface TeamStanding {
+interface Team {
   team: string;
   pts: number;
   standing: number;
   id: number;
+  img_url: string | null;
 }
 
 interface LeagueStandingBarChartLabelProps {
-  teams: TeamStanding[];
+  teams: Team[];
 }
 
 const ROW_HEIGHT = 48;
@@ -48,14 +49,14 @@ export default function LeagueStandingBarChartLabel({ teams }: LeagueStandingBar
             {/* Avatar */}
             <Box sx={{ display: 'flex'}}>
               <Avatar
-                alt="League Image"
+                alt="Team Avatar"
+                src={team.img_url || undefined}
                 sx={{
                   height: '64px',
                   width: '64px',
                   bgcolor: 'lightBlue',
                 }}
               >
-                B
               </Avatar>
             </Box>
 

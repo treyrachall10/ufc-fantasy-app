@@ -253,7 +253,7 @@ class Team(models.Model):
     name=models.CharField(max_length=64)
     created_at=models.DateTimeField(auto_now_add=True)
     score=models.FloatField(default=0)
-
+    img_url=models.CharField(max_length=256, null=True, blank=True)
 
 class TeamAppliedFightScore(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE)

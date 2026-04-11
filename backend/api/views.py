@@ -11,11 +11,15 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.core.exceptions import ValidationError
+from django.conf import settings
 from dateutil.parser import parse
 from dateutil.parser import ParserError
 from django.shortcuts import get_object_or_404
 from zoneinfo import ZoneInfo
 from datetime import timezone as datetime_timezone
+from pathlib import Path
+from services.supabase import supabase
 
 from api.pagination_classes import FighterListPagination, UserLeaguesPagination
 
@@ -42,7 +46,7 @@ from fantasy.models import (Fighters, Events, Fights, FighterCareerStats,
 from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftable_fighters, get_or_create_user_from_token, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
                     is_user_in_league, autopick_fighter, get_drafted_fighter_ids, check_draft_completed,
-                    get_league_standings
+                    get_league_standings, validate_image, upload_file
                     )
 
 from accounts.models import User
@@ -698,6 +702,10 @@ def GetTeamListData(request, team_id):
             )
         )
     )
+    if team.img_url:
+        img_url = supabase.storage.from_(settings.SUPABASE_TEAM_IMAGE_BUCKET).get_public_url(team.img_url)
+    else:
+        img_url = None
     if not roster_rows.exists():
         return Response(
             {
@@ -705,7 +713,8 @@ def GetTeamListData(request, team_id):
                     "id": team.id,
                     "name": team.name,
                     "owner": team.owner.owner.username,
-                    "score": team.score
+                    "score": team.score,
+                    "img_path": img_url
                 },
                 "roster": [
                     { "slot": "SW", "fighter": None, "fantasy": None}, 
@@ -759,7 +768,8 @@ def GetTeamListData(request, team_id):
                 "id": team.id,
                 "name": team.name,
                 "owner": team.owner.owner.username,
-                "score": team.score
+                "score": team.score,
+                "img_url": img_url
             },
             "roster": response_roster
         },
@@ -786,7 +796,7 @@ def ChangeTeamName(request, team_id):
     league = team.owner.league
     if Team.objects.filter(owner__league=league, name=new_name).exclude(id=team.id).exists():
         return Response(
-            {"detail": "team already taken"},
+            {"detail": "Team name already taken"},
             status=409,
         )
 
@@ -1018,3 +1028,80 @@ def PreviewLeagueByJoinKey(request):
         },
         status=200
     )
+
+@method_decorator(require_auth(None), name='dispatch')
+class SetTeamImage(generics.UpdateAPIView):
+    def patch(self, request, team_id):
+        # Resolve the authenticated user from the OAuth token; fail fast on bad token payload.
+        try:
+            user = get_or_create_user_from_token(request=request)
+        except AttributeError:
+            return Response({"detail": "Invalid OAuth token"}, status=400)
+
+        # Allow team id from route or request body for flexible callers.
+        team_id = team_id or request.data.get("id")
+        if not team_id:
+            return Response({"detail": "Team id is required"}, status=400)
+
+        # Restrict lookup to the caller's own team within the target league.
+        team = get_object_or_404(
+            Team,
+            owner__owner=user,
+            id=team_id,
+        )
+
+        # Require an uploaded image file under the expected multipart key.
+        image_file = request.FILES.get("image")
+        if image_file is None:
+            return Response({"detail": "image file is required"}, status=400)
+
+        # Validate extension, max size, and actual image bytes before persisting path metadata.
+        try:
+            validate_image(image_file=image_file)
+        except ValidationError as exc:
+            # Pull structured validation code to map known failures to clear API responses.
+            error_code = exc.code
+            if getattr(exc, "error_list", None):
+                error_code = exc.error_list[0].code
+
+            # Return an explicit payload-too-large status for file size violations.
+            if error_code == "too_large":
+                return Response(
+                    {"detail": "Image file is too large. Max size is 2MB."},
+                    status=413,
+                )
+
+            # Group unsupported extensions and unreadable image content into one invalid-image response.
+            return Response(
+                {"detail": "Image format is invalid or file is not a valid image."},
+                status=400,
+            )
+
+        # Build the canonical storage path with the uploaded filename and persist it on the team record.
+        filename = Path(image_file.name).name or "image.png"
+        image_path = f"{team.id}/{filename}"
+        # Upload to Supabase Storage first; only persist DB path when upload succeeds.
+        try:
+            upload_file(
+                uploaded_file=image_file,
+                bucket_name=settings.SUPABASE_TEAM_IMAGE_BUCKET,
+                path=image_path,
+            )
+        except Exception:
+            return Response(
+                {"detail": "Failed to upload team image."},
+                status=502,
+            )
+
+        team.img_url = image_path
+        team.save(update_fields=["img_url"])
+
+        # Return the updated team id and resolved image path for client follow-up actions.
+        return Response(
+            {
+                "team_id": team.id,
+                "image_path": image_path,
+                "detail": "Team image updated successfully.",
+            },
+            status=200,
+        )

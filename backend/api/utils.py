@@ -1,6 +1,10 @@
 """
     - Utility functions for api file
 """
+from io import UnsupportedOperation
+from PIL import Image, UnidentifiedImageError
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_image_file_extension
 from django.utils import timezone
 from fantasy.models import Draft, Fighters, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick, LeagueMember
 from accounts.models import User
@@ -8,6 +12,7 @@ import secrets
 import string
 import random
 from django.db.models import Prefetch
+from services.supabase import supabase
 
 def create_fantasy_for_fighter(fight, fighter,  round_stats):
     """
@@ -293,3 +298,75 @@ def check_draft_completed(draft):
     """
     if draft.status == Draft.Status.COMPLETED:
         raise PermissionError("Draft functions are not available when draft is completed")
+
+
+def validate_image(image_file, max_size=2 * 1024 * 1024):
+    """
+    Validate image upload by extension, size, and file integrity.
+
+    :param image_file: Uploaded image file object
+    :param max_size: Max file size in bytes (default 2MB)
+    :raises ValidationError: If extension, size, or image bytes are invalid
+    """
+    # Enforce Django's built-in filename extension validation.
+    try:
+        validate_image_file_extension(image_file)
+    except ValidationError as exc:
+        raise ValidationError(
+            "Invalid image format. Supported formats are JPG, JPEG, PNG, GIF, BMP, WEBP.",
+            code="invalid_extension",
+        ) from exc
+
+    # Reject files larger than the API's upload size limit.
+    if image_file.size > max_size:
+        raise ValidationError(
+            "Image file is too large. Max size is 2MB.",
+            code="too_large",
+        )
+
+    # Verify the binary content is a real image by opening and validating with Pillow.
+    try:
+        image_file.seek(0)
+        with Image.open(image_file) as image:
+            image.verify()
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise ValidationError(
+            "Uploaded file is not a valid image.",
+            code="invalid_image",
+        ) from exc
+    finally:
+        # Reset stream position so downstream callers can still read the upload if needed.
+        try:
+            image_file.seek(0)
+        except (AttributeError, UnsupportedOperation):
+            pass
+
+
+def upload_file(uploaded_file, bucket_name, path):
+    """
+    Upload an already validated file object to a Supabase storage bucket.
+
+    :param uploaded_file: Uploaded file object (e.g., InMemoryUploadedFile)
+    :param bucket_name: Supabase storage bucket name
+    :param path: Destination object path in the bucket
+    :return: Supabase upload response
+    :raises Exception: Re-raises any storage client error for the caller to handle
+    """
+    try:
+        uploaded_file.seek(0)
+        file_bytes = uploaded_file.read()
+        response = (
+            supabase.storage
+            .from_(bucket_name)
+            .upload(
+                file=file_bytes,
+                path=path,
+                file_options={"cache-control": "3600", 
+                              "upsert": "true",
+                              "content-type": uploaded_file.content_type
+                              }
+            )
+        )
+        return response
+    except Exception:
+        raise

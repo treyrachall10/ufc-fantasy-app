@@ -1,5 +1,6 @@
-import { useEffect, useState, type KeyboardEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import {
+    Avatar,
     Box,
     Button,
     Stack,
@@ -13,6 +14,7 @@ import ListPageLayout from '../components/layout/ListPageLayout';
 import { useAuthFetch } from '../auth/authFetch';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import InfoConfirmDialog from '../components/ui/InfoConfirmDialog';
+import SuccessSnackbar from '../components/ui/SuccessSnackbar';
 import { TeamDataResponse } from '../types/types';
 
 type ChangeTeamNamePayload = {
@@ -25,8 +27,13 @@ export default function TeamSettingsPage() {
     const { data: currentUser, isPending: isCurrentUserPending, error: currentUserError } = useCurrentUser();
     const [currentTeamName, setCurrentTeamName] = useState('');
     const [teamName, setTeamName] = useState('');
+    const [teamPhotoFile, setTeamPhotoFile] = useState<File | null>(null);
+    const [teamPhotoError, setTeamPhotoError] = useState('');
     const [confirmOpen, setConfirmOpen] = useState(false);
-    const [teamNameError, setTeamNameError] = useState(false);
+    const [teamNameError, setTeamNameError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    const [successSnackbarOpen, setSuccessSnackbarOpen] = useState(false);
+    const [successSnackbarKey, setSuccessSnackbarKey] = useState(0);
 
     const { data, isPending, error } = useQuery<TeamDataResponse>({
         queryKey: ['TeamSettings', params.teamid],
@@ -48,13 +55,44 @@ export default function TeamSettingsPage() {
             return responseData;
         },
         onError: (mutationError: any) => {
-            setTeamNameError(true);
+            setTeamNameError(mutationError?.detail || 'Unable to change team name.');
         },
         onSuccess: (responseData) => {
             const updatedName = responseData?.team?.name || teamName.trim();
             setCurrentTeamName(updatedName);
             setTeamName(updatedName);
-            setTeamNameError(false);
+            setTeamNameError('');
+            setSuccessMessage(responseData?.detail || '');
+            setSuccessSnackbarKey((currentKey) => currentKey + 1);
+            setSuccessSnackbarOpen(true);
+        },
+    });
+
+    const changeTeamPictureMutation = useMutation({
+        mutationFn: async (file: File) => {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const response = await authFetch(`http://localhost:8000/api/${params.teamid}/SetTeamImage`, {
+                method: 'PATCH',
+                body: formData,
+            });
+
+            const responseData = await response.json();
+            if (!response.ok) {
+                throw responseData;
+            }
+
+            return responseData;
+        },
+        onError: (mutationError: any) => {
+            setTeamPhotoError(mutationError?.detail || 'Unable to change team photo.');
+        },
+        onSuccess: (responseData) => {
+            setTeamPhotoError('');
+            setSuccessMessage(responseData?.detail || '');
+            setSuccessSnackbarKey((currentKey) => currentKey + 1);
+            setSuccessSnackbarOpen(true);
         },
     });
 
@@ -68,11 +106,11 @@ export default function TeamSettingsPage() {
     const handleOpenConfirm = () => {
         const trimmedTeamName = teamName.trim();
         if (!trimmedTeamName) {
-            setTeamNameError(true);
+            setTeamNameError('Team name is required.');
             return;
         }
 
-        setTeamNameError(false);
+        setTeamNameError('');
         setConfirmOpen(true);
     };
 
@@ -86,6 +124,18 @@ export default function TeamSettingsPage() {
             event.preventDefault();
             handleOpenConfirm();
         }
+    };
+
+    const handleChangeTeamPhoto = (event: ChangeEvent<HTMLInputElement>) => {
+        if (!event.target.files?.length) {
+            setTeamPhotoFile(null);
+            return;
+        }
+
+        const selectedFile = event.target.files[0];
+        setTeamPhotoFile(selectedFile);
+        setTeamPhotoError('');
+        changeTeamPictureMutation.mutate(selectedFile);
     };
 
     if (isPending || isCurrentUserPending) return <span>Loading...</span>;
@@ -111,74 +161,114 @@ export default function TeamSettingsPage() {
                 </Typography>
 
                 <Stack spacing={2.5} sx={{ width: '100%', alignItems: 'center' }}>
-                    <Box
-                        sx={{
-                            width: '100%',
-                            bgcolor: 'dashboardBlack.main',
-                            borderRadius: 2,
-                            px: 3,
-                            py: 2.5,
-                        }}
-                    >
-                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%' }}>
-                            <Stack spacing={1.25} sx={{ display: 'flex', alignItems: 'center' }}>
-                                <Box
-                                    sx={{
-                                        width: 120,
-                                        height: 120,
-                                        borderRadius: '50%',
-                                        border: '2px dashed',
-                                        borderColor: 'divider',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: 'text.secondary',
-                                        backgroundColor: 'background.paper',
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 38 }} />
+                    <Stack spacing={1} sx={{ width: '100%' }}>
+                        <Box
+                            sx={{
+                                width: '100%',
+                                bgcolor: 'dashboardBlack.main',
+                                borderRadius: 2,
+                                px: 3,
+                                py: 2.5,
+                                border: teamPhotoError ? '1px solid' : 'none',
+                                borderColor: teamPhotoError ? 'error.main' : 'transparent',
+                            }}
+                        >
+                            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%' }}>
+                                <Stack spacing={1.25} sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <Avatar
+                                        src={data.team.img_url || undefined}
+                                        alt="Team Photo"
+                                        sx={{
+                                            width: 120,
+                                            height: 120,
+                                            border: '2px dashed',
+                                            borderColor: 'divider',
+                                            color: 'text.secondary',
+                                            backgroundColor: 'background.paper',
+                                            flexShrink: 0,
+                                        }}
+                                    >
+                                        <AddPhotoAlternateOutlinedIcon sx={{ fontSize: 38 }} />
+                                    </Avatar>
+
+                                    <Typography variant="subtitle1" color="text.primary" sx={{ fontWeight: 600 }}>
+                                        {currentTeamName || 'Unnamed Team'}
+                                    </Typography>
+                                </Stack>
+
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <Button
+                                        variant="contained"
+                                        color="brandAlpha50"
+                                        component="label"
+                                        sx={{
+                                            textTransform: 'none',
+                                            borderColor: 'brand.light',
+                                            '&:hover': {
+                                                borderColor: 'brand.main',
+                                            },
+                                        }}
+                                    >
+                                        Change Photo
+                                        <input
+                                            hidden
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleChangeTeamPhoto}
+                                        />
+                                    </Button>
                                 </Box>
-
-                                <Typography variant="subtitle1" color="text.primary" sx={{ fontWeight: 600 }}>
-                                    {currentTeamName || 'Unnamed Team'}
-                                </Typography>
                             </Stack>
+                        </Box>
 
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <Button
-                                    variant="contained"
-                                    color="brandAlpha50"
-                                    sx={{
-                                        textTransform: 'none',
-                                        borderColor: 'brand.light',
-                                        '&:hover': {
-                                            borderColor: 'brand.main',
-                                        },
-                                    }}
-                                >
-                                    Change Photo
-                                </Button>
-                            </Box>
-                        </Stack>
-                    </Box>
+                        {teamPhotoError && (
+                            <Typography variant="body2" color="error.main">
+                                {teamPhotoError}
+                            </Typography>
+                        )}
+                    </Stack>
 
-                    <TextField
-                        sx={{ width: '100%' }}
-                        label="Change Team Name"
-                        value={teamName}
-                        onChange={(event) => {
-                            setTeamName(event.target.value);
-                            if (teamNameError) {
-                                setTeamNameError(false);
-                            }
-                        }}
-                        onKeyDown={handleTeamNameKeyDown}
-                        placeholder="Enter your team name"
-                        error={teamNameError}
-                    />
+                    <Stack spacing={1} sx={{ width: '100%' }}>
+                        <Box
+                            sx={{
+                                width: '100%',
+                                border: teamNameError ? '1px solid' : 'none',
+                                borderColor: teamNameError ? 'error.main' : 'transparent',
+                                borderRadius: 1,
+                                p: teamNameError ? 1 : 0,
+                            }}
+                        >
+                            <TextField
+                                sx={{ width: '100%' }}
+                                label="Change Team Name"
+                                value={teamName}
+                                onChange={(event) => {
+                                    setTeamName(event.target.value);
+                                    if (teamNameError) {
+                                        setTeamNameError('');
+                                    }
+                                }}
+                                onKeyDown={handleTeamNameKeyDown}
+                                placeholder="Enter your team name"
+                                error={Boolean(teamNameError)}
+                            />
+                        </Box>
+
+                        {teamNameError && (
+                            <Typography variant="body2" color="error.main">
+                                {teamNameError}
+                            </Typography>
+                        )}
+                    </Stack>
                 </Stack>
             </Stack>
+
+            <SuccessSnackbar
+                open={successSnackbarOpen}
+                message={successMessage}
+                snackbarKey={successSnackbarKey}
+                onClose={() => setSuccessSnackbarOpen(false)}
+            />
 
             <InfoConfirmDialog
                 open={confirmOpen}
