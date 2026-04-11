@@ -464,7 +464,7 @@ class UserLeaguesAndTeamsListSerializer(serializers.Serializer):
     team_name = serializers.SerializerMethodField()
     score = serializers.SerializerMethodField()
     standing = serializers.SerializerMethodField()
-    img_url = serializers.SerializerMethodField()
+    team_img_url = serializers.SerializerMethodField()
 
     def get_team(self, obj):
         return getattr(obj, "user_team", None)
@@ -485,7 +485,7 @@ class UserLeaguesAndTeamsListSerializer(serializers.Serializer):
         team = self.get_team(obj)
         return team.score
     
-    def get_img_url(self, obj):
+    def get_team_img_url(self, obj):
         team = self.get_team(obj)
         if team and team.img_url:
             return supabase.storage.from_(settings.SUPABASE_TEAM_IMAGE_BUCKET).get_public_url(team.img_url)
@@ -498,7 +498,7 @@ class UserLeaguesAndTeamsListSerializer(serializers.Serializer):
             "team_id",
             "team_name",
             "score",
-            "img_url"
+            "team_img_url"
         ]
 
 class TeamSerializer(serializers.ModelSerializer):

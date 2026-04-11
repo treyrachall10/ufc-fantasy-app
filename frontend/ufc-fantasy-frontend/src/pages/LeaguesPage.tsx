@@ -1,6 +1,6 @@
 import ListPageLayout from "../components/layout/ListPageLayout";
 import { DataGrid } from '@mui/x-data-grid';
-import { Box, Typography, Stack } from '@mui/material';
+import { Box, Typography, Stack, Avatar } from '@mui/material';
 import { Link, Button } from '@mui/material';
 import { Link as RouterLink} from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -41,13 +41,22 @@ export default function LeaguesPage() {
                 >{params.value}</Link>
         ), flex: 1 },
         { field: 'team', headerName: 'Team', renderCell: (params: any) => (
-            <Link 
-                href={`/team/${params.row.team_id}`} 
-                sx={{
-                    textDecoration: 'underline',
-                    color: 'text.primary'
-                }}
+            <Stack direction="row" spacing={1} alignItems="center">
+                <Avatar
+                    src={params.row.team_img_url ?? undefined}
+                    alt={params.value}
+                    sx={{ width: 28, height: 28 }}
+                >
+                    {typeof params.value === 'string' ? params.value.charAt(0) : ''}
+                </Avatar>
+                <Link
+                    href={`/team/${params.row.team_id}`}
+                    sx={{
+                        textDecoration: 'underline',
+                        color: 'text.primary'
+                    }}
                 >{params.value}</Link>
+            </Stack>
         ),flex: 1 },
         { field: 'points', headerName: 'Points', flex: 1 },
         { field: 'standing', headerName: 'Standing', flex: 1 },
@@ -60,6 +69,7 @@ export default function LeaguesPage() {
         league: data.league_name,
         team: data.team_name,
         team_id: data.team_id,
+        team_img_url: data.team_img_url,
         points: data.score,
         standing: data.standing
     }))
