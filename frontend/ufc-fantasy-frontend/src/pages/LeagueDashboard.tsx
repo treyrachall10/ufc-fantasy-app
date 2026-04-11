@@ -452,8 +452,8 @@ const NonCreatorDraftNotScheduled = () => {
                         <Box
                             sx={{
                                 display: 'flex',
-                                alignItems: { xs: 'flex-start', md: 'flex-end' },
-                                justifyContent: { xs: 'flex-start', md: 'flex-end' },
+                                alignItems: { xs: 'flex-end', md: 'flex-end' },
+                                justifyContent: { xs: 'flex-end', md: 'flex-end' },
                             }}
                         >
                         <ClickAwayListener onClickAway={handleTooltipClose}>
