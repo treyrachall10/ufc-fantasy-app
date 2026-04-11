@@ -29,7 +29,7 @@ export default function TeamSettingsPage() {
     const [teamPhotoFile, setTeamPhotoFile] = useState<File | null>(null);
     const [teamPhotoError, setTeamPhotoError] = useState('');
     const [confirmOpen, setConfirmOpen] = useState(false);
-    const [teamNameError, setTeamNameError] = useState(false);
+    const [teamNameError, setTeamNameError] = useState('');
 
     const { data, isPending, error } = useQuery<TeamDataResponse>({
         queryKey: ['TeamSettings', params.teamid],
@@ -51,13 +51,13 @@ export default function TeamSettingsPage() {
             return responseData;
         },
         onError: (mutationError: any) => {
-            setTeamNameError(true);
+            setTeamNameError(mutationError?.detail || 'Unable to change team name.');
         },
         onSuccess: (responseData) => {
             const updatedName = responseData?.team?.name || teamName.trim();
             setCurrentTeamName(updatedName);
             setTeamName(updatedName);
-            setTeamNameError(false);
+            setTeamNameError('');
         },
     });
 
@@ -96,11 +96,11 @@ export default function TeamSettingsPage() {
     const handleOpenConfirm = () => {
         const trimmedTeamName = teamName.trim();
         if (!trimmedTeamName) {
-            setTeamNameError(true);
+            setTeamNameError('Team name is required.');
             return;
         }
 
-        setTeamNameError(false);
+        setTeamNameError('');
         setConfirmOpen(true);
     };
 
@@ -218,20 +218,38 @@ export default function TeamSettingsPage() {
                         )}
                     </Stack>
 
-                    <TextField
-                        sx={{ width: '100%' }}
-                        label="Change Team Name"
-                        value={teamName}
-                        onChange={(event) => {
-                            setTeamName(event.target.value);
-                            if (teamNameError) {
-                                setTeamNameError(false);
-                            }
-                        }}
-                        onKeyDown={handleTeamNameKeyDown}
-                        placeholder="Enter your team name"
-                        error={teamNameError}
-                    />
+                    <Stack spacing={1} sx={{ width: '100%' }}>
+                        <Box
+                            sx={{
+                                width: '100%',
+                                border: teamNameError ? '1px solid' : 'none',
+                                borderColor: teamNameError ? 'error.main' : 'transparent',
+                                borderRadius: 1,
+                                p: teamNameError ? 1 : 0,
+                            }}
+                        >
+                            <TextField
+                                sx={{ width: '100%' }}
+                                label="Change Team Name"
+                                value={teamName}
+                                onChange={(event) => {
+                                    setTeamName(event.target.value);
+                                    if (teamNameError) {
+                                        setTeamNameError('');
+                                    }
+                                }}
+                                onKeyDown={handleTeamNameKeyDown}
+                                placeholder="Enter your team name"
+                                error={Boolean(teamNameError)}
+                            />
+                        </Box>
+
+                        {teamNameError && (
+                            <Typography variant="body2" color="error.main">
+                                {teamNameError}
+                            </Typography>
+                        )}
+                    </Stack>
                 </Stack>
             </Stack>
 
