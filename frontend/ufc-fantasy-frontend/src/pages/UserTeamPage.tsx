@@ -1,6 +1,6 @@
 import ListPageLayout from "../components/layout/ListPageLayout";
 import { DataGrid } from '@mui/x-data-grid';
-import { Box, Typography, Stack, IconButton, Tooltip } from '@mui/material';
+import { Avatar, Box, Typography, Stack, IconButton, Tooltip } from '@mui/material';
 import { Link, useParams } from "react-router-dom";
 import { useAuthFetch } from "../auth/authFetch";
 import { useQuery } from "@tanstack/react-query";
@@ -56,46 +56,52 @@ export default function UserTeamPage() {
             <Box sx={{ width: '100%' }}>
 
             {/* Stack formats vertical spacing between title and subtitle */}            
-            <Stack spacing= {2} sx={{ mb: 3, width: "100%"}}>
-              
-                {/* Page title using h2 variant from theme */}
-                <Typography variant = "h2" color= "text.primary"> 
-                    {data.team.name}
-                </Typography>
-
-                {/* Subtitle row with owner details on left and settings on right */}
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: '100%' }}>
-                    <Stack direction= "row" spacing= {1} alignItems= "baseline">
-                        <Typography variant= "subtitle1" color= "text.secondary">
-                            {data.team.score} pts
+            <Stack spacing={2} sx={{ mb: 3, width: '100%' }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ width: '100%' }}>
+                    <Stack spacing={1} alignItems="flex-start" sx={{ textAlign: 'left' }}>
+                        <Typography variant="h2" color="text.primary">
+                            {data.team.name}
                         </Typography>
-                        <Typography variant= "body" color= "text.secondary">
-                            |
-                        </Typography>
-                        <Typography variant= "body" color="text.secondary">
-                            {data.team.owner}
-                        </Typography>
+                        <Stack direction="row" spacing={1} alignItems="baseline">
+                            <Typography variant="subtitle1" color="text.secondary">
+                                {data.team.score} pts
+                            </Typography>
+                            <Typography variant="body" color="text.secondary">
+                                {data.team.owner}
+                            </Typography>
+                        </Stack>
                     </Stack>
 
-                    {isOwnerViewingTeam && (
-                        <Tooltip title="Edit Team Settings" placement="left">
-                            <IconButton
-                                component={Link}
-                                to={`/team/${params.teamid}/settings`}
-                                aria-label="Edit team settings"
-                                size="large"
-                                sx={{
-                                    color: 'text.secondary',
-                                    '&:hover': {
-                                        color: 'text.primary',
-                                        backgroundColor: 'transparent',
-                                    },
-                                }}
-                            >
-                                <SettingsRoundedIcon />
-                            </IconButton>
-                        </Tooltip>
-                    )}
+                    <Stack direction="row" spacing={1} alignItems="flex-end">
+                        <Avatar
+                            src={data.team.img_url || undefined}
+                            alt={`${data.team.name} avatar`}
+                            sx={{
+                                height: { xs: 128, lg: 256 },
+                                width: { xs: 128, lg: 256 },
+                            }}
+                        />
+                        {isOwnerViewingTeam && (
+                            <Tooltip title="Edit Team Settings" placement="left">
+                                <IconButton
+                                    component={Link}
+                                    to={`/team/${params.teamid}/settings`}
+                                    aria-label="Edit team settings"
+                                    size="large"
+                                    sx={{
+                                        color: 'text.secondary',
+                                        alignSelf: 'flex-end',
+                                        '&:hover': {
+                                            color: 'text.primary',
+                                            backgroundColor: 'transparent',
+                                        },
+                                    }}
+                                >
+                                    <SettingsRoundedIcon />
+                                </IconButton>
+                            </Tooltip>
+                        )}
+                    </Stack>
                 </Stack>
             </Stack>
             <Box sx={{ width: '100%', overflow: "hidden" }}>
