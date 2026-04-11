@@ -14,6 +14,7 @@ import ListPageLayout from '../components/layout/ListPageLayout';
 import { useAuthFetch } from '../auth/authFetch';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import InfoConfirmDialog from '../components/ui/InfoConfirmDialog';
+import SuccessSnackbar from '../components/ui/SuccessSnackbar';
 import { TeamDataResponse } from '../types/types';
 
 type ChangeTeamNamePayload = {
@@ -30,6 +31,9 @@ export default function TeamSettingsPage() {
     const [teamPhotoError, setTeamPhotoError] = useState('');
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [teamNameError, setTeamNameError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    const [successSnackbarOpen, setSuccessSnackbarOpen] = useState(false);
+    const [successSnackbarKey, setSuccessSnackbarKey] = useState(0);
 
     const { data, isPending, error } = useQuery<TeamDataResponse>({
         queryKey: ['TeamSettings', params.teamid],
@@ -58,6 +62,9 @@ export default function TeamSettingsPage() {
             setCurrentTeamName(updatedName);
             setTeamName(updatedName);
             setTeamNameError('');
+            setSuccessMessage(responseData?.detail || '');
+            setSuccessSnackbarKey((currentKey) => currentKey + 1);
+            setSuccessSnackbarOpen(true);
         },
     });
 
@@ -81,8 +88,11 @@ export default function TeamSettingsPage() {
         onError: (mutationError: any) => {
             setTeamPhotoError(mutationError?.detail || 'Unable to change team photo.');
         },
-        onSuccess: () => {
+        onSuccess: (responseData) => {
             setTeamPhotoError('');
+            setSuccessMessage(responseData?.detail || '');
+            setSuccessSnackbarKey((currentKey) => currentKey + 1);
+            setSuccessSnackbarOpen(true);
         },
     });
 
@@ -252,6 +262,13 @@ export default function TeamSettingsPage() {
                     </Stack>
                 </Stack>
             </Stack>
+
+            <SuccessSnackbar
+                open={successSnackbarOpen}
+                message={successMessage}
+                snackbarKey={successSnackbarKey}
+                onClose={() => setSuccessSnackbarOpen(false)}
+            />
 
             <InfoConfirmDialog
                 open={confirmOpen}
