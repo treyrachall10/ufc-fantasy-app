@@ -14,6 +14,7 @@ interface UserLeaguesAndTeams {
     team_name: string,
     score: number,
     standing: number | null,
+    team_img_url: string | null,
 }
 
 export default function LeaguesPage() {
