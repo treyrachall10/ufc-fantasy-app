@@ -362,7 +362,7 @@ def upload_file(uploaded_file, bucket_name, path):
                 file=file_bytes,
                 path=path,
                 file_options={"cache-control": "3600", 
-                              "upsert": "false",
+                              "upsert": "true",
                               "content-type": uploaded_file.content_type
                               }
             )
