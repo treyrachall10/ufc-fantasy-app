@@ -336,13 +336,21 @@ const NonCreatorDraftNotScheduled = () => {
                     justifyContent: {xs: 'center', md: 'space-between'},
                 }}>
                 <Grid 
-                    size={{xs: 6, md: 8}}
+                    size={{xs: 12, md: 12}}
                     sx={{
-                        display: 'flex'
+                        display: 'flex',
+                        width: '100%'
                     }}
                     >
-                    {/* Stack formats vertical spacing between title and subtitle */}            
-                    <Stack justifyContent={'space-between'}>
+                    <Stack
+                        direction={{ xs: 'column', md: 'row' }}
+                        justifyContent={'space-between'}
+                        sx={{
+                            width: '100%',
+                            gap: 2,
+                        }}
+                    >
+                        {/* Stack formats vertical spacing between title and subtitle */}
                         <Stack spacing={1}>
                             {/* Page title using h2 variant from theme */}
                             <Typography 
@@ -441,6 +449,13 @@ const NonCreatorDraftNotScheduled = () => {
                                 />
                             </Stack>
                         </Stack>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: { xs: 'flex-end', md: 'flex-end' },
+                                justifyContent: { xs: 'flex-end', md: 'flex-end' },
+                            }}
+                        >
                         <ClickAwayListener onClickAway={handleTooltipClose}>
                             <Tooltip
                                 title={fantasyScoringTooltip}
@@ -476,29 +491,8 @@ const NonCreatorDraftNotScheduled = () => {
                                 </Box>
                             </Tooltip>
                         </ClickAwayListener>
+                        </Box>
                     </Stack>
-                </Grid>
-                {/* League Image*/}
-                <Grid size={{xs: 6, sm: 4}}>
-                    <Box 
-                        sx={{
-                            display: 'flex',
-                            height: '100%',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                        }}
-                    >
-                        <Avatar 
-                            alt="League Image" 
-                            sx={{ 
-                                bgcolor: 'red',
-                                height: {xs: 128, lg: 256},
-                                width: {xs: 128, lg: 256}
-                            }}
-                            >
-                                LI
-                        </Avatar>
-                    </Box>
                 </Grid>
                 {/* League Standings Chart (only visible on laptop and desktop)*/}
                 <Grid 
