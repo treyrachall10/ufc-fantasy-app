@@ -16,6 +16,10 @@ the script, 'scrape_ufc_stats_unparsed_data.py' is the same code that can be set
 # imports
 import pandas as pd
 from tqdm import tqdm
+import os
+import re
+from datetime import datetime
+from pathlib import Path
 
 # import library
 from scripts.scrape import scrape_ufc_stats_library as LIB
@@ -23,6 +27,23 @@ from scripts.scrape import scrape_ufc_stats_library as LIB
 # import config
 import yaml
 config = yaml.safe_load(open('scripts/scrape/scrape_ufc_stats_config.yaml'))
+
+
+def save_html_snapshot(url, html, snapshot_dir='scripts/scrape/snapshots'):
+    '''
+    save raw html for later offline debugging
+    '''
+    snapshot_path = Path(snapshot_dir)
+    snapshot_path.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    safe_name = re.sub(r'[^A-Za-z0-9._-]+', '_', url)
+    file_path = snapshot_path / f'{timestamp}_{safe_name}.html'
+
+    with open(file_path, 'w', encoding='utf-8') as snapshot_file:
+        snapshot_file.write(html)
+
+    return file_path
 
 
 def scrape_stats():
@@ -82,6 +103,9 @@ def scrape_stats():
 
             # get soup
             soup = LIB.get_soup(url)
+
+            # save event page snapshot for offline debugging
+            save_html_snapshot(url, str(soup))
 
             # parse fight links
             fight_details_df = LIB.parse_fight_details(soup)
