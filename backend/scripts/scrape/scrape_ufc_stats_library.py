@@ -111,19 +111,38 @@ def parse_fight_details(soup):
     soup (html): output of get_soup()
     
     returns:
+    a boolean flag to check if event is complete
     a df of fight details
     '''
-    
+    # flag to check if event is complete
+    event_complete = True
     # create empty list to store fight urls
     fight_urls = []
+    # Incomplete fights (View Matchup component is present with class 'b-link b-link_style_black')
+    incomplete_fights = []
+    # fights are stored in a table with each row representing a fight
+    fights = {}
     # extract all fight detail urls for further parsing
-    for tag in soup.find_all('tr', class_='b-fight-details__table-row b-fight-details__table-row__hover js-fight-details-click'):
+    rows = soup.find_all('tr', class_='b-fight-details__table-row b-fight-details__table-row__hover js-fight-details-click')
+    for tag in rows:
         fight_urls.append(tag['data-link'])
+        fighter_tags = tag.find_all('a', class_='b-link b-link_style_black')
+        fights[tag['data-link']] = {
+            'fighter_a': fighter_tags[0].text.strip(),
+            'fighter_b': fighter_tags[1].text.strip(),
+            'bout': fighter_tags[0].text.strip() + ' vs. ' + fighter_tags[1].text.strip(),
+            'can_parse': True if 'view matchup' not in tag.get_text(' ', strip=True).lower() else False # if 'view matchup' is in tag text, then event is incomplete and fight cannot be parsed
+        }
 
     # create an empty list to store fighters in an event
     fighters_in_event = []
     # extract all fighters in an event
-    for tag in soup.find_all('a', class_='b-link b-link_style_black'):
+    for i, tag in enumerate(soup.find_all('a', class_='b-link b-link_style_black')):
+        # check if 'view matchup' is in tag text, if true then event is incomplete and skip to next tag
+        if 'view matchup' in tag.get_text(' ', strip=True).lower():
+            event_complete = False
+            incomplete_fights.append([i-1, i-2]) # get index of fighters in incomplete fights to add CAN_PARSE column in fight details df
+            continue
         fighters_in_event.append(tag.text.strip())
 
     # combine fighters in event in pairs to create fights
@@ -137,7 +156,7 @@ def parse_fight_details(soup):
     fight_details_df = move_columns(fight_details_df, ['EVENT'], 'BOUT', 'before')
 
     # return
-    return fight_details_df
+    return event_complete, fight_details_df
 
 
 
