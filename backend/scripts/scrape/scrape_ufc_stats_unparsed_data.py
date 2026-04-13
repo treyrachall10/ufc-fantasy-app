@@ -30,18 +30,34 @@ def scrape_stats():
 
     # read existing event details
     parsed_event_details_df = pd.read_csv(config['event_details_file_name'])
+    if 'EVENT_STATUS' not in parsed_event_details_df.columns:
+        parsed_event_details_df['EVENT_STATUS'] = 'incomplete'
+
     # get list of parsed event names
     list_of_parsed_events = list(parsed_event_details_df['EVENT'])
 
     # get soup
     soup = LIB.get_soup(config['completed_events_all_url'])
+
     # parse event details
     updated_event_details_df = LIB.parse_event_details(soup)
+
+    # Preserve prior event status from csv while keeping fresh scraped event metadata.
+    updated_event_details_df = pd.merge(
+        left=updated_event_details_df,
+        right=parsed_event_details_df[['URL', 'EVENT_STATUS']],
+        on='URL',
+        how='left'
+    )
+    updated_event_details_df['EVENT_STATUS'] = updated_event_details_df[
+        'EVENT_STATUS'
+    ].fillna('incomplete')
+
     # get list of all event names
     list_of_all_events = list(updated_event_details_df['EVENT'])
 
     # find list event names that have not been parsed
-    list_of_unparsed_events = [event for event in list_of_all_events if event not in list_of_parsed_events]
+    list_of_unparsed_events = [event for event in list_of_all_events if event not in list_of_parsed_events or parsed_event_details_df.loc[parsed_event_details_df['EVENT'] == event, 'EVENT_STATUS'].values[0] == 'incomplete']
 
     # check if there are any unparsed events
     unparsed_events = False
