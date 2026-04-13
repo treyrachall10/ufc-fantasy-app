@@ -120,7 +120,7 @@ def scrape_stats():
         # write updated event details to file
         updated_event_details_df.to_csv(config['event_details_file_name'], index=False)
 
-        # filter fight df's on fight url
+        # filter fight df's on fight url to not have duplicate fight details for the same fight and parse only unparsed fights
         unparsed_fight_details_df = unparsed_fight_details_df[~unparsed_fight_details_df['URL'].isin(parsed_fight_details_df['URL'])]
 
         # concat unparsed and parsed fight details
@@ -160,6 +160,10 @@ def scrape_stats():
             unparsed_fight_results_df = pd.concat([unparsed_fight_results_df, fight_results_df])
             # concat fight stats
             unparsed_fight_stats_df = pd.concat([unparsed_fight_stats_df, fight_stats_df])
+
+        # update parsed_fight_details_df with HAS_BEEN_PARSED, CAN_PARSE = True for fights that have been parsed
+        parsed_fight_details_df.loc[parsed_fight_details_df['URL'].isin(list_of_unparsed_fight_details_urls), ['CAN_PARSE', 'HAS_BEEN_PARSED']] = [False, True]
+        parsed_fight_details_df.to_csv(config['fight_details_file_name'], index=False)
 
         # concat unparsed fight results and fight stats to parsed fight results and fight stats
         parsed_fight_results_df = pd.concat([unparsed_fight_results_df, parsed_fight_results_df])
