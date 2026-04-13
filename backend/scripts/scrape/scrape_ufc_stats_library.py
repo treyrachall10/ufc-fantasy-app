@@ -134,20 +134,6 @@ def parse_fight_details(soup):
             'can_parse': True if 'view matchup' not in tag.get_text(' ', strip=True).lower() else False # if 'view matchup' is in tag text, then event is incomplete and fight cannot be parsed
         }
 
-    # create an empty list to store fighters in an event
-    fighters_in_event = []
-    # extract all fighters in an event
-    for i, tag in enumerate(soup.find_all('a', class_='b-link b-link_style_black')):
-        # check if 'view matchup' is in tag text, if true then event is incomplete and skip to next tag
-        if 'view matchup' in tag.get_text(' ', strip=True).lower():
-            event_complete = False
-            incomplete_fights.append([i-1, i-2]) # get index of fighters in incomplete fights to add CAN_PARSE column in fight details df
-            continue
-        fighters_in_event.append(tag.text.strip())
-
-    # combine fighters in event in pairs to create fights
-    fights_in_event = [fighter_a+' vs. '+fighter_b for fighter_a, fighter_b in zip(fighters_in_event[::2], fighters_in_event[1::2])]    
-    
     # create df to store fights
     fight_details_df = pd.DataFrame({'BOUT':fights_in_event, 'URL':fight_urls})
     # create event column as key
