@@ -107,12 +107,21 @@ def scrape_stats():
             # get soup
             soup = LIB.get_soup(url)
 
-            # parse fight links
-            fight_details_df = LIB.parse_fight_details(soup)
+            # parse fight links and event completion status
+            event_complete, fight_details_df = LIB.parse_fight_details(soup)
             
+            # update event details df with event completion status
+            updated_event_details_df.loc[updated_event_details_df['URL'] == url, 'EVENT_STATUS'] = 'complete' if event_complete else 'incomplete'
+
             # concat fight details to parsed fight details
             # concat update fight details to the top of existing df
             unparsed_fight_details_df = pd.concat([unparsed_fight_details_df, fight_details_df])
+
+        # write updated event details to file
+        updated_event_details_df.to_csv(config['event_details_file_name'], index=False)
+
+        # filter fight df's on fight url
+        unparsed_fight_details_df = unparsed_fight_details_df[~unparsed_fight_details_df['URL'].isin(parsed_fight_details_df['URL'])]
 
         # concat unparsed and parsed fight details
         parsed_fight_details_df = pd.concat([unparsed_fight_details_df, parsed_fight_details_df])
