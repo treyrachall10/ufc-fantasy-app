@@ -130,8 +130,14 @@ def parse_fight_details(soup):
         fights[tag['data-link']] = {
             'URL': tag['data-link'],
             'BOUT': fighter_tags[0].text.strip() + ' vs. ' + fighter_tags[1].text.strip(),
-            'CAN_PARSE': True if 'view matchup' not in tag.get_text(' ', strip=True).lower() else False # if 'view matchup' is in tag text, then event is incomplete and fight cannot be parsed
         }
+        # check if 'view matchup' is present in the row, if true then event is incomplete and fight cannot be parsed
+        if 'view matchup' in tag.get_text(' ', strip=True).lower():
+            event_complete = False
+            fights[tag['data-link']]['CAN_PARSE'] = False
+            fights[tag['data-link']]['HAS_BEEN_PARSED'] = False
+        else:
+            fights[tag['data-link']]['CAN_PARSE'] = True
 
     # create df to store fights
     fight_details_df = pd.DataFrame.from_dict(fights, orient='index')
