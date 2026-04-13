@@ -132,7 +132,10 @@ def scrape_stats():
         ### parse fight results and fight stats
 
         # define list of urls of fights to parse
-        list_of_unparsed_fight_details_urls = list(unparsed_fight_details_df['URL'])
+        list_of_unparsed_fight_details_urls = []
+        for row in unparsed_fight_details_df.itertuples():
+            if row.CAN_PARSE:
+                list_of_unparsed_fight_details_urls.append(row.URL)
 
         # create empty df to store fight results
         unparsed_fight_results_df = pd.DataFrame(columns=config['fight_results_column_names'])
@@ -141,7 +144,6 @@ def scrape_stats():
 
         # loop through each fight and parse fight results and stats
         for url in tqdm(list_of_unparsed_fight_details_urls):
-
             # get soup
             soup = LIB.get_soup(url)
 
