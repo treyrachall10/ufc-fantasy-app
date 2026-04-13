@@ -128,14 +128,13 @@ def parse_fight_details(soup):
         fight_urls.append(tag['data-link'])
         fighter_tags = tag.find_all('a', class_='b-link b-link_style_black')
         fights[tag['data-link']] = {
-            'fighter_a': fighter_tags[0].text.strip(),
-            'fighter_b': fighter_tags[1].text.strip(),
-            'bout': fighter_tags[0].text.strip() + ' vs. ' + fighter_tags[1].text.strip(),
-            'can_parse': True if 'view matchup' not in tag.get_text(' ', strip=True).lower() else False # if 'view matchup' is in tag text, then event is incomplete and fight cannot be parsed
+            'URL': tag['data-link'],
+            'BOUT': fighter_tags[0].text.strip() + ' vs. ' + fighter_tags[1].text.strip(),
+            'CAN_PARSE': True if 'view matchup' not in tag.get_text(' ', strip=True).lower() else False # if 'view matchup' is in tag text, then event is incomplete and fight cannot be parsed
         }
 
     # create df to store fights
-    fight_details_df = pd.DataFrame({'BOUT':fights_in_event, 'URL':fight_urls})
+    fight_details_df = pd.DataFrame.from_dict(fights, orient='index')
     # create event column as key
     fight_details_df['EVENT'] = soup.find('h2', class_='b-content__title').text.strip()
     # reorder columns
