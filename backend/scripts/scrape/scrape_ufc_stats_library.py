@@ -61,7 +61,10 @@ def parse_event_details(soup):
     event_locations = []
 
     # extract event name and urls
-    for tag in soup.find_all('a', class_='b-link b-link_style_black'):
+    for tag in soup.find_all("a",
+    class_=lambda c: c and "b-link" in c and (
+        "b-link_style_black" in c or "b-link_style_white" in c
+    )):
         event_names.append(tag.text.strip())
         event_urls.append(tag['href'])
 
@@ -72,12 +75,17 @@ def parse_event_details(soup):
     # extract event locations
     for tag in soup.find_all('td', class_='b-statistics__table-col b-statistics__table-col_style_big-top-padding'):
         event_locations.append(tag.text.strip())
-
+    '''
     # remove first element of event dates and locations
     # as first element here represent an upcoming event with no stats yet
     event_dates = event_dates[1:]
     event_locations = event_locations[1:]
+    '''
 
+    print('Number of events parsed:', len(event_names))
+    print('Number of event urls parsed:', len(event_urls))
+    print('Number of event dates parsed:', len(event_dates))
+    print('Number of event locations parsed:', len(event_locations))
     # create df to store event details
     event_details_df = pd.DataFrame({
         'EVENT':event_names,
