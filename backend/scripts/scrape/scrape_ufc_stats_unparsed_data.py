@@ -85,6 +85,14 @@ def scrape_stats():
         parsed_fight_results_df = pd.read_csv(config['fight_results_file_name'])
         parsed_fight_stats_df = pd.read_csv(config['fight_stats_file_name'])
 
+        # Add missing columns to parsed_fight_details_df if they don't exist
+        for column in ['CAN_PARSE', 'HAS_BEEN_PARSED']:
+            if column not in parsed_fight_details_df.columns:
+                if column == 'CAN_PARSE':
+                    parsed_fight_details_df[column] = False # All previous fights have already been parsed, so set to False
+                elif column == 'HAS_BEEN_PARSED':
+                    parsed_fight_details_df[column] = True # All previous fights have already been parsed, so set to True
+                    
         ### parse fight details ###
 
         # define list of urls of missing fights to parse
