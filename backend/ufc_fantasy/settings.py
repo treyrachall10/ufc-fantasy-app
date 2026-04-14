@@ -55,6 +55,8 @@ INSTALLED_APPS = [
 
     # Filters
     'django_filters',
+    # API key auth
+    "rest_framework_api_key"
 ]
 SITE_ID = 1
 CORS_ALLOW_ALL_ORIGINS = True
