@@ -1,0 +1,88 @@
+from bs4 import BeautifulSoup
+import requests
+import json
+import pandas as pd
+from backend.shared.utils import normalize_name
+
+ALL_FIGHTERS_URL = "https://www.ufc.com/athletes/all"
+
+url_params = {
+    "view_name": "all_athletes",
+    "view_display_id": "page",
+    "view_args": "",
+    "view_path": "/athletes/all",
+    "view_base_path": "",
+    "page": 0,
+    "pager_element": "0",
+    "ajax_page_state[theme]": "ufc",
+    "ajax_page_state[theme_token]": ""
+}
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+}
+
+def scrape_fighter_images_df():
+    """
+    Scrapes the UFC website for all fighters and returns a set of their normalized names and image URLs.
+    """
+    print("Scraping fighter images...")
+
+    # Initialize session and make initial request to get necessary parameters for AJAX requests
+    session = requests.Session()
+    response = session.get(ALL_FIGHTERS_URL, headers=HEADERS)
+    response.raise_for_status()
+    
+    # Parse response to extract required parameters
+    soup = BeautifulSoup(response.text, "html.parser")
+    
+    # Find drupal settings script tag and parse JSON
+    drupal_settings_tag = soup.find("script", {"data-drupal-selector": "drupal-settings-json"})
+    drupal_settings = json.loads(drupal_settings_tag.string)
+    
+    # Extract and add to url_params
+    url_params["ajax_page_state[libraries]"] = drupal_settings["ajaxPageState"]["libraries"]
+    
+    ajax_views = drupal_settings["views"]["ajaxViews"]
+    first_view = next(iter(ajax_views.values()))
+    url_params["view_dom_id"] = first_view["view_dom_id"]
+
+    response_list = []
+    page = 0
+    
+    # Loop through pages until no more fighters are found
+    while True:
+        url_params["page"] = page
+        response = session.get(ALL_FIGHTERS_URL, params=url_params, headers=HEADERS)
+        soup = BeautifulSoup(response.text, "html.parser")
+        
+        fighter_card = soup.select(".c-listing-athlete-flipcard__front")
+        if not fighter_card:
+            break
+            
+        response_list.append(soup)
+        page += 1
+
+    fighter_images = [] # List to store dictionaries of fighter names and their corresponding image URLs
+    # Extract all fighter names and image URLs from all pages
+    for response in response_list:
+        cards = response.find_all('div', class_='c-listing-athlete-flipcard__front') # Get all divs with fighter info
+        if cards:
+            # Loop through each div and extract fighter name and image URL
+            for card in cards:
+                name = card.find('span', class_='c-listing-athlete__name').text.strip() # Get fighter name
+                img_url = card.find('img')['src'] if card.find('img') else None # Get image URL if it exists
+                # Only add to list if image URL exists
+                if img_url:
+                    fighter_images.append({'Fighter Name': name, 'Image URL': img_url})
+                    print(f"Name: {name}, Image URL: {img_url}")
+                    print("--------------------------------------------------")
+                else:
+                    continue
+    df = pd.DataFrame(fighter_images)
+    
+    # Normalize fighter names
+    df['normalized_name'] = df['Fighter Name'].apply(normalize_name)
+    df = df.drop(columns=['Fighter Name']) # Drop original name column since we have normalized names now
+
+scrape_fighter_images_df()
