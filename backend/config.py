@@ -34,6 +34,7 @@ MODEL_MAP = {
             "event",
             "date",
             "location",
+            "status"
         ],
     },
     "fights": {
