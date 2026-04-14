@@ -220,6 +220,7 @@ def parse_events():
     main_df['event'] = df['EVENT']
     main_df['date'] = df['DATE'].apply(format_date)  # Converts date string to datetime so Django can handle db population later
     main_df['location'] = df['LOCATION']
+    main_df['status'] = df['EVENT_STATUS']
 
     if main_df is not None and not main_df.empty:
         try:
