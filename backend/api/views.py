@@ -1112,3 +1112,13 @@ class SetTeamImage(generics.UpdateAPIView):
             },
             status=200,
         )
+
+class GetFighterImageCandidates(generics.ListAPIView):
+    '''
+        API view to get fighters without images for athlete image service to consume and update with images.
+    '''
+    permission_classes = [HasAPIKey, IsAthleteImageService]
+    serializer_class = FighterImageCandidateSerializer
+
+    def get_queryset(self):
+        return Fighters.objects.filter(Q(img_url__isnull=True) | Q(img_url=""))
