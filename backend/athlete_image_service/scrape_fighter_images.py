@@ -2,9 +2,16 @@ from bs4 import BeautifulSoup
 import requests
 import json
 import pandas as pd
+import yaml
 from backend.shared.utils import normalize_name
+import os
 
-ALL_FIGHTERS_URL = "https://www.ufc.com/athletes/all"
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.yaml')
+with open(CONFIG_PATH, 'r') as f:
+    config = yaml.safe_load(f)
+
+ALL_FIGHTERS_URL = config['all_fighters_url']
+HEADERS = config['headers']
 
 url_params = {
     "view_name": "all_athletes",
@@ -18,9 +25,7 @@ url_params = {
     "ajax_page_state[theme_token]": ""
 }
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-}
+
 
 def scrape_fighter_images_df():
     """
