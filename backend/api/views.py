@@ -3,7 +3,7 @@
 '''
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, BasePermission
 from rest_framework import generics, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import IntegrityError
@@ -13,12 +13,16 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from django.db.models import Q
+from rest_framework_api_key.permissions import HasAPIKey
+
 from dateutil.parser import parse
 from dateutil.parser import ParserError
 from django.shortcuts import get_object_or_404
 from zoneinfo import ZoneInfo
 from datetime import timezone as datetime_timezone
 from pathlib import Path
+
 from services.supabase import supabase
 
 from api.pagination_classes import FighterListPagination, UserLeaguesPagination
@@ -39,6 +43,7 @@ from .serializers import (
     TeamListFighterSerializer,
     TeamSerializer,
     UserLeaguesAndTeamsListSerializer,
+    FighterImageCandidateSerializer
 )
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
                             FightStats, RoundStats, FightScore, League, LeagueMember, 
@@ -50,6 +55,8 @@ from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftabl
                     )
 
 from accounts.models import User
+
+from .permissions import IsAthleteImageService
 
 from authlib.integrations.django_oauth2 import ResourceProtector
 from .auth0_validator import Auth0JWTBearerTokenValidator
