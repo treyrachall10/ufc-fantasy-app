@@ -79,37 +79,21 @@ def scrape_fighter_images_df():
             fighter_card = soup.select(".c-listing-athlete-flipcard__front")
             if not fighter_card:
                 break
-                
-            response_list.append(soup)
-            page += 1
+            
+            # Submit html soup to parser to extract fighter names and image urls
+            parsed_response = parse_html(soup)
 
-        fighter_images = [] # List to store dictionaries of fighter names and their corresponding image URLs
+            # Iterate through parsed response and add fighter ids to each object if normalized name is in list of fighters
+            for res in parsed_response:
+                normalized_name = res['normalized_name']# gets normalized name from parsed response
+                id = get_fighter_id(fighter_with_missing_images, normalized_name)# gets fighter id from lookup function
 
-        # Extract all fighter names and image URLs from all pages
-        for response in response_list:
-            cards = response.find_all('div', class_='c-listing-athlete-flipcard__front') # Get all divs with fighter info
-
-            if cards:
-
-                # Loop through each div and extract fighter name and image URL
-                for card in cards:
-                    name = card.find('span', class_='c-listing-athlete__name').text.strip() # Get fighter name
-                    img_url = card.find('img')['src'] if card.find('img') else None # Get image URL if it exists
-
-                    # Only add to list if image URL exists
-                    if img_url:
-                        fighter_images.append({'Fighter Name': name, 'Image URL': img_url})
-                        normalized_name = normalize_name(name)
-
-                        # if normalized name is in list of fighters with missing images, add image url to that fighter's entry
-                        if normalized_name in fighter_with_missing_images:
-                            print(f"Adding image url for {normalized_name}")
-                            fighter_with_missing_images[normalized_name]["img_url"] = img_url # Update img_url for fighter in dictionary
-                    else:
-                        continue
-                    
-        df = pd.DataFrame.from_dict(fighter_with_missing_images, orient='index') # Convert dictionary to dataframe
-        print(df)
+                # If id exists, add to response object, otherwise remove
+                if id:
+                    res['fighter_id'] = id
+                else:
+                    parsed_response.remove(res) # remove from parsed response
+            page += 1 # Increment page number for next request
 
 def get_fighters_with_missing_images():
     '''
