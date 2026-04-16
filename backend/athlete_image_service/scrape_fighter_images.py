@@ -4,8 +4,10 @@ import json
 import pandas as pd
 import yaml
 import os
+import threading
 from .parser import parse_html
 from backend.shared.job_queue import publish_job
+from backend.image_worker_service.downloader import consume_jobs
 
 key = os.getenv("KEY")
 
@@ -87,14 +89,14 @@ def scrape_fighter_images_df():
             # Iterate through parsed response and add fighter ids to each object if normalized name is in list of fighters
             for res in parsed_response:
                 normalized_name = res['normalized_name']# gets normalized name from parsed response
-                id = get_fighter_id(fighter_with_missing_images, normalized_name)# gets fighter id from lookup function
+                fighter_id = get_fighter_id(fighter_with_missing_images, normalized_name)# gets fighter id from lookup function
 
-                # If id exists, add to response object, otherwise remove
-                if id:
-                    res['fighter_id'] = id
-                    publish_job(res) # publish job to queue for worker to consume
-                else:
-                    parsed_response.remove(res) # remove from parsed response
+                # If id exists, add to response object, otherwise continue
+                if fighter_id is None:
+                    continue
+                res['fighter_id'] = fighter_id
+                publish_job(res) # publish job to queue for worker to consume
+
             page += 1 # Increment page number for next request
 
 def get_fighters_with_missing_images():
@@ -122,4 +124,8 @@ def get_fighter_id(lookup, normalized_name):
         return lookup.get(normalized_name).get("fighter_id")
     return None
 
-scrape_fighter_images_df()
+if __name__ == "__main__":
+    thread = threading.Thread(target=consume_jobs, daemon=True)
+    thread.start()
+
+    scrape_fighter_images_df()
