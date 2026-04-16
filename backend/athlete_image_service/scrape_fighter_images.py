@@ -3,8 +3,8 @@ import requests
 import json
 import pandas as pd
 import yaml
-from backend.shared.utils import normalize_name
 import os
+from .parser import parse_html
 
 key = os.getenv("KEY")
 
@@ -130,7 +130,10 @@ def get_fighter_id(lookup, normalized_name):
     '''
         Helper function that takes in a normalized name and returns the corresponding fighter id from the lookup dictionary
     '''
-    return lookup.get(normalized_name).get("fighter_id")
-    
+    # Checks if normalized name exists in lookup dictionary and returns fighter id if it does 
+    key = lookup.get(normalized_name) 
+    if key: 
+        return lookup.get(normalized_name).get("fighter_id")
+    return None
 
 scrape_fighter_images_df()
