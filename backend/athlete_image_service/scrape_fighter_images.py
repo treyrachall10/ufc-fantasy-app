@@ -5,6 +5,7 @@ import pandas as pd
 import yaml
 import os
 from .parser import parse_html
+from backend.shared.job_queue import publish_job
 
 key = os.getenv("KEY")
 
@@ -91,6 +92,7 @@ def scrape_fighter_images_df():
                 # If id exists, add to response object, otherwise remove
                 if id:
                     res['fighter_id'] = id
+                    publish_job(res) # publish job to queue for worker to consume
                 else:
                     parsed_response.remove(res) # remove from parsed response
             page += 1 # Increment page number for next request
