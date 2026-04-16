@@ -126,6 +126,11 @@ def get_fighters_with_missing_images():
 
     return response.json()
 
-
+def get_fighter_id(lookup, normalized_name):
+    '''
+        Helper function that takes in a normalized name and returns the corresponding fighter id from the lookup dictionary
+    '''
+    return lookup.get(normalized_name).get("fighter_id")
+    
 
 scrape_fighter_images_df()
