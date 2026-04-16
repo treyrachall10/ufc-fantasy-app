@@ -19,13 +19,15 @@ def parse_html(soup):
 
         # Add to list if both name and image tag exist
         if name_tag and img_tag:
+
             name = name_tag.text.strip() # Extract name from name tag
             img_url = img_tag['src'] # Extract image URL from img tag
-            normalized = normalize_name(name)# Normalize name
+            normalized_name = normalize_name(name)# Normalize name
+            
             # Add to fighter list
             fighter_objs.append({
-                'normalized_name': normalized,
+                'normalized_name': normalized_name,
                 'img_url': img_url
             })
-            
+
     return fighter_objs
