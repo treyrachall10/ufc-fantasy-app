@@ -574,3 +574,9 @@ class DraftPickHistorySerializer(serializers.ModelSerializer):
             'team',
             'fighter',
         ]
+
+# Serializer for Fighter image candidate selection
+class FighterImageCandidateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Fighters
+        fields = ["fighter_id", "normalized_name"]
