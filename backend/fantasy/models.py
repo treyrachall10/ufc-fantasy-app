@@ -23,6 +23,7 @@ class Fighters(models.Model):
     reach = models.IntegerField(null=True, blank=True)
     dob = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=False)
+    img_url=models.CharField(max_length=256, null=True, blank=True)
     class Meta:
         constraints = [
             models.UniqueConstraint(
