@@ -56,7 +56,7 @@ from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftabl
 
 from accounts.models import User
 
-from .permissions import IsAthleteImageService
+from .permissions import IsAthleteImageService, IsUploaderService
 
 from authlib.integrations.django_oauth2 import ResourceProtector
 from .auth0_validator import Auth0JWTBearerTokenValidator
@@ -1127,7 +1127,7 @@ class AddFighterImageURL(generics.UpdateAPIView):
     '''
         API view to allow athlete image service to update fighter record with image url after processing.
     '''
-    #permission_classes = [HasAPIKey, IsUploaderService]
+    permission_classes = [HasAPIKey, IsUploaderService]
 
     def patch(self, request, fighter_id):
         '''
