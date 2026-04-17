@@ -1122,3 +1122,29 @@ class GetFighterImageCandidates(generics.ListAPIView):
 
     def get_queryset(self):
         return Fighters.objects.filter(Q(img_url__isnull=True) | Q(img_url=""))
+    
+class AddFighterImageURL(generics.UpdateAPIView):
+    '''
+        API view to allow athlete image service to update fighter record with image url after processing.
+    '''
+    #permission_classes = [HasAPIKey, IsUploaderService]
+
+    def patch(self, request, fighter_id):
+        '''
+            Expects image_url in request data, updates fighter record with image url for frontend to consume.
+        '''
+        fighter = get_object_or_404(Fighters, fighter_id=fighter_id)
+        image_url = request.data.get("image_url") # Expecting full URL from athlete image service
+
+        if not image_url:
+            return Response({"error": "image_url is required"}, status=400)
+        
+        fighter.img_url = image_url
+        fighter.save(update_fields=["img_url"])
+
+        return Response(
+            {
+                "detail": "Fighter image URL updated successfully.",
+            },
+            status=200,
+        )

@@ -35,5 +35,6 @@ urlpatterns = [
     path('api/setUserName', views.SetUsername),
     path('api/previewLeague', views.PreviewLeagueByJoinKey),
     path('api/<int:team_id>/SetTeamImage', views.SetTeamImage.as_view()),
-    path('api/fighters/ImageCandidates', views.GetFighterImageCandidates.as_view())
+    path('api/fighters/ImageCandidates', views.GetFighterImageCandidates.as_view()),
+    path('api/fighters/<int:fighter_id>/SetFighterImage', views.SetFighterImage.as_view())
 ]
