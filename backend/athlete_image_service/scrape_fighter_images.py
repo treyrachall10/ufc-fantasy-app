@@ -91,8 +91,8 @@ def scrape_fighter_images_df():
                 normalized_name = res['normalized_name']# gets normalized name from parsed response
                 fighter_id = get_fighter_id(fighter_with_missing_images, normalized_name)# gets fighter id from lookup function
 
-                # If id exists, add to response object, otherwise continue
-                if fighter_id is None:
+                # If id does not exist or image url is null, skip fighter
+                if fighter_id is None or res['img_url'] is None:
                     continue
                 res['fighter_id'] = fighter_id
                 publish_job(res) # publish job to queue for worker to consume
