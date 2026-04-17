@@ -9,7 +9,8 @@ from .parser import parse_html
 from backend.shared.job_queue import publish_job
 from backend.image_worker_service.downloader import consume_jobs
 
-key = os.getenv("KEY")
+image_service_key = os.getenv("IMAGE_SERVICE_KEY")
+uploader_service_key = os.getenv("UPLOADER_SERVICE_KEY")
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.yaml')
 
@@ -107,7 +108,7 @@ def get_fighters_with_missing_images():
     try:
         response = requests.get(
             API_URL,
-            headers={'Authorization': f'Api-Key {key}'})
+            headers={'Authorization': f'Api-Key {image_service_key}'})
     except requests.RequestException as e:
         print(f"Error fetching fighter image candidates: {e}")
     
