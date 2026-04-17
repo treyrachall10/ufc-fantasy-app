@@ -27,7 +27,7 @@ def parse_html(soup):
             # Add to fighter list
             fighter_objs.append({
                 'normalized_name': normalized_name,
-                'img_url': img_url if img_url.startswith('http') else 'https://www.ufc.com' + img_url # Add https if url is missing it
+                'img_url': img_url if img_url.startswith('http') else None
             })
 
     return fighter_objs
