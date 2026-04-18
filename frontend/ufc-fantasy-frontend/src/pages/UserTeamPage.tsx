@@ -1,5 +1,5 @@
 import ListPageLayout from "../components/layout/ListPageLayout";
-import { DataGrid } from '@mui/x-data-grid';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Avatar, Box, Typography, Stack, IconButton, Tooltip } from '@mui/material';
 import { Link, useParams } from "react-router-dom";
 import { useAuthFetch } from "../auth/authFetch";
@@ -26,9 +26,21 @@ export default function UserTeamPage() {
 
     // Define the columns for the data grid
     // Each column needs: field (matches the data property name), headerName (what users see), and width
-    const columns = [
+    const columns: GridColDef[] = [
         {field: 'weightClass', headerName: 'Weight Class', flex: 1, minWidth: 120},
-        {field: 'fighter', headerName: 'Fighter', flex: 1.6, minWidth: 210}, //Flex keeps consistent sizing when chaning window size
+            {
+        field: 'fighter',
+        headerName: 'Fighter',
+        flex: 2,
+        renderCell: (params) => (
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Avatar src={params.row.img_url || undefined} alt={params.value} sx={{ marginRight: 1 }} />
+                <Link to={`/fighter/${params.id}`} style={{ color: 'white' }}>
+                    {params.value}
+                </Link>
+            </Box>
+        ),
+    }, //Flex keeps consistent sizing when chaning window size
         {field: 'status', headerName: 'Status', flex: 1.0, minWidth: 120},
         {field: 'projected', headerName: 'Projected', flex: 0.7, minWidth: 110},
         {field: 'year', headerName: 'Year', flex: 0.7, minWidth: 90},
@@ -48,6 +60,7 @@ export default function UserTeamPage() {
         year: slot.fantasy?.total_points_since_draft,
         average: slot.fantasy ? slot.fantasy.average_points.toFixed(1) : '0.0',
         last: slot.fantasy ? slot.fantasy.last_fight_points.toFixed(1) : '0.0',
+        img_url: slot.fighter?.img_url || null,
     }))
     
     return (

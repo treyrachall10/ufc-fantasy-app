@@ -268,6 +268,7 @@ export interface TeamListFighter {
     fighter_id: number;
     full_name: string;
     weight: number;
+    img_url: string | null;
 }
 
 export interface TeamFighterFantasyStats {

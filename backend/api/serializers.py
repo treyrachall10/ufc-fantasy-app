@@ -537,12 +537,23 @@ class DraftSerializer(serializers.ModelSerializer):
         ]
 
 class TeamListFighterSerializer(serializers.ModelSerializer):
+    img_url = serializers.SerializerMethodField()
+
+    def get_img_url(self, obj):
+        '''
+            -   Returns public url for fighter image if it exists in Supabase storage, otherwise returns None
+        '''
+        if obj.img_url:
+            return supabase.storage.from_(settings.SUPABASE_FIGHTER_IMAGE_BUCKET).get_public_url(obj.img_url)
+        return None
+    
     class Meta:
         model = Fighters
         fields = [
             'fighter_id',
             'full_name',
             'weight',
+            'img_url'
         ]
 
 class TeamListFantasyScoreSerializer(serializers.Serializer):
