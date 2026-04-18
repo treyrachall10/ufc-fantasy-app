@@ -1,8 +1,8 @@
 import os
 
-from requests import request
+import requests
 import yaml
-from backend.services.supabase import supabase
+from services.supabase import supabase
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.yaml')
 with open(CONFIG_PATH, 'r') as f:

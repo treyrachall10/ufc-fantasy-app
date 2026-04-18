@@ -1,7 +1,7 @@
 import requests
 from PIL import Image
 
-from backend.shared.job_queue import get_job
+from shared.job_queue import get_job, worker_queue
 from .uploader import upload_img
 
 def consume_jobs():

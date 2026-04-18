@@ -6,8 +6,7 @@ import yaml
 import os
 import threading
 from .parser import parse_html
-from backend.shared.job_queue import publish_job
-from backend.image_worker_service.downloader import consume_jobs
+from shared.job_queue import publish_job, worker_queue
 
 image_service_key = os.getenv("IMAGE_SERVICE_KEY")
 

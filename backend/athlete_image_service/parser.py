@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-from backend.shared.utils import normalize_name
+from shared.utils import normalize_name
 
 def parse_html(soup):
     """
