@@ -3,6 +3,7 @@ import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query'
 import { Fighter, PaginatedResponse } from '../../types/types';
+import { Avatar, Box } from '@mui/material';
 
 interface FightersListProps {
     searchTerm?: string;
@@ -41,9 +42,12 @@ export default function FightersList({ searchTerm = '' }: FightersListProps) {
         headerName: 'Name',
         flex: 2,
         renderCell: (params) => (
-        <Link to={`/fighter/${params.id}`} style={{ color: 'white' }}>
-            {params.value}
-        </Link>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Avatar src={params.row.img_url || undefined} alt={params.value} sx={{ marginRight: 1 }} />
+                <Link to={`/fighter/${params.id}`} style={{ color: 'white' }}>
+                    {params.value}
+                </Link>
+            </Box>
         ),
     },
     { field: 'nickName', headerName: 'Nick Name', flex: 1 },
@@ -69,6 +73,7 @@ export default function FightersList({ searchTerm = '' }: FightersListProps) {
         w: fighter.record?.wins.total,
         l: fighter.record?.losses.total,
         d: fighter.record?.draws,
+        img_url: fighter.img_url,
     }));
 
     return(

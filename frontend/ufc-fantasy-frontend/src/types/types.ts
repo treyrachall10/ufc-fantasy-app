@@ -9,6 +9,7 @@ export interface Fighter {
     height: number | null,
     reach: number | null,
     dob: string | null,
+    img_url: string | null,
     record: {
         wins: {
             total: number,
