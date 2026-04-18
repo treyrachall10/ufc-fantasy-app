@@ -1131,13 +1131,13 @@ class AddFighterImageURL(generics.UpdateAPIView):
 
     def patch(self, request, fighter_id):
         '''
-            Expects image_url in request data, updates fighter record with image url for frontend to consume.
+            Expects img_url in request data, updates fighter record with image url for frontend to consume.
         '''
         fighter = get_object_or_404(Fighters, fighter_id=fighter_id)
-        image_url = request.data.get("image_url") # Expecting full URL from athlete image service
+        image_url = request.data.get("img_url") # Expecting full URL from athlete image service
 
         if not image_url:
-            return Response({"error": "image_url is required"}, status=400)
+            return Response({"detail": "img_url is required"}, status=400)
         
         fighter.img_url = image_url
         fighter.save(update_fields=["img_url"])
