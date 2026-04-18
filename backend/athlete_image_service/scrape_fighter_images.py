@@ -97,6 +97,9 @@ def scrape_fighter_images_df():
                 publish_job(res) # publish job to queue for worker to consume
 
             page += 1 # Increment page number for next request
+            
+        publish_job(None) # Publish None to signal worker to stop consuming after all jobs are processed
+        worker_queue.join() # Wait for all jobs to be processed before exiting function
 
 def get_fighters_with_missing_images():
     '''
@@ -123,9 +126,3 @@ def get_fighter_id(lookup, normalized_name):
     if key: 
         return lookup.get(normalized_name).get("fighter_id")
     return None
-
-if __name__ == "__main__":
-    thread = threading.Thread(target=consume_jobs, daemon=True)
-    thread.start()
-
-    scrape_fighter_images_df()
