@@ -8,11 +8,21 @@ def consume_jobs():
     '''
         Continuously consumes jobs from the worker queue and processes them. 
     '''
+    jobs = 0
     while True:
         print("Waiting for job...")
         job = get_job()
-        # Process the job
-        download_image(job)
+        try:
+            # If job is None, signal to stop consuming and exit loop
+            if job is None: 
+                print("No more jobs to process. Exiting worker.")
+                break
+            # Process the job
+            download_image(job)
+            jobs += 1
+        finally:
+            worker_queue.task_done() # Mark job as done after processing
+    print(f"Total images processed: {jobs}")
 
 def download_image(job):
     '''
@@ -33,4 +43,4 @@ def download_image(job):
         print(f"Error downloading image for {fighter_name} from {url}: {e}")
 
     # Send image to uploader
-    upload_img(file_path=file_path, file=response.content, content_type=response.headers.get("Content-Type", "image/jpeg"))
+    upload_img(file_path=file_path, file=response.content, content_type=response.headers.get("Content-Type", "image/jpeg"), fighter_id=fighter_id)
