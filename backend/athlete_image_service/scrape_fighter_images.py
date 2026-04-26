@@ -6,9 +6,13 @@ import yaml
 import os
 import threading
 from .parser import parse_html
-from shared.job_queue import publish_job, worker_queue
+from google.cloud import pubsub_v1
 
 image_service_key = os.getenv("IMAGE_SERVICE_KEY")
+PUBSUB_IMAGE_JOB_TOPIC = os.getenv("PUBSUB_IMAGE_JOB_TOPIC")
+GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT")
+publisher = pubsub_v1.PublisherClient()
+IMAGE_JOBS_TOPIC_PATH = f"projects/{GOOGLE_CLOUD_PROJECT}/topics/{PUBSUB_IMAGE_JOB_TOPIC}"
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.yaml')
 
@@ -94,7 +98,8 @@ def scrape_fighter_images_df():
                 if fighter_id is None or res['img_url'] is None:
                     continue
                 res['fighter_id'] = fighter_id
-                publish_job(res) # publish job to queue for worker to consume
+                future = publisher.publish(IMAGE_JOBS_TOPIC_PATH, json.dumps(res).encode("utf-8")) # publish job to queue for worker to consume
+                future.result() # Wait for job to be published
 
             page += 1 # Increment page number for next request
             
@@ -126,3 +131,7 @@ def get_fighter_id(lookup, normalized_name):
     if key: 
         return lookup.get(normalized_name).get("fighter_id")
     return None
+
+if __name__ == "__main__":
+    print("Scraping fighter images...")
+    scrape_fighter_images_df()
