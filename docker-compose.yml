@@ -11,26 +11,20 @@ services:
 
   scraper-job:
     build:
-      context: .
-      dockerfile: scraper_service/Dockerfile
+      context: ./backend
+      dockerfile: athlete_image_service/Dockerfile
     env_file:
       - .env
-    volumes:
-      - ./scraper_service:/app/scraper_service
-      - ./shared:/app/shared
     depends_on:
       - web
       - pubsub
 
   image-worker-job:
     build:
-      context: .
+      context: ./backend
       dockerfile: image_worker_service/Dockerfile
     env_file:
       - .env
-    volumes:
-      - ./image_worker_service:/app/image_worker_service
-      - ./shared:/app/shared
     depends_on:
       - web
       - pubsub
@@ -42,3 +36,17 @@ services:
       - "8085:8085"
     environment:
       - PUBSUB_PROJECT_ID=UFC_FANTASY_APP
+
+  pubsub-init:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    depends_on:
+      - pubsub
+    environment:
+      - PUBSUB_EMULATOR_HOST=pubsub:8085
+      - GOOGLE_CLOUD_PROJECT=local-project
+    command: >
+      sh -c "
+      sleep 5 &&
+      gcloud pubsub topics create image-jobs --project=local-project || true &&
+      gcloud pubsub subscriptions create image-worker-sub --topic=image-jobs --project=local-project || true
+      "
