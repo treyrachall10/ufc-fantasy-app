@@ -8,3 +8,37 @@ services:
       - ./backend:/app
     env_file:
       - .env
+
+  scraper-job:
+    build:
+      context: .
+      dockerfile: scraper_service/Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./scraper_service:/app/scraper_service
+      - ./shared:/app/shared
+    depends_on:
+      - web
+      - pubsub
+
+  image-worker-job:
+    build:
+      context: .
+      dockerfile: image_worker_service/Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./image_worker_service:/app/image_worker_service
+      - ./shared:/app/shared
+    depends_on:
+      - web
+      - pubsub
+  
+  pubsub:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8085
+    ports:
+      - "8085:8085"
+    environment:
+      - PUBSUB_PROJECT_ID=UFC_FANTASY_APP
