@@ -4,7 +4,6 @@ import json
 import pandas as pd
 import yaml
 import os
-import threading
 from .parser import parse_html
 from google.cloud import pubsub_v1
 
@@ -98,14 +97,10 @@ def scrape_fighter_images_df():
                 if fighter_id is None or res['img_url'] is None:
                     continue
                 res['fighter_id'] = fighter_id
-                future = publisher.publish(IMAGE_JOBS_TOPIC_PATH, json.dumps(res).encode("utf-8")) # publish job to queue for worker to consume
-                future.result() # Wait for job to be published
+                publisher.publish(IMAGE_JOBS_TOPIC_PATH, json.dumps(res).encode("utf-8")) # publish job to queue for worker to consume
 
             page += 1 # Increment page number for next request
             
-        publish_job(None) # Publish None to signal worker to stop consuming after all jobs are processed
-        worker_queue.join() # Wait for all jobs to be processed before exiting function
-
 def get_fighters_with_missing_images():
     '''
         Makes a request to the API to get all fighters in the db that are missing image url's
