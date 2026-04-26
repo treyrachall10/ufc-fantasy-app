@@ -35,7 +35,7 @@ services:
     ports:
       - "8085:8085"
     environment:
-      - PUBSUB_PROJECT_ID=UFC_FANTASY_APP
+      - PUBSUB_PROJECT_ID=local-project
 
   pubsub-init:
     image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
@@ -44,9 +44,12 @@ services:
     environment:
       - PUBSUB_EMULATOR_HOST=pubsub:8085
       - GOOGLE_CLOUD_PROJECT=local-project
+      - CLOUDSDK_API_ENDPOINT_OVERRIDES_PUBSUB=http://pubsub:8085/
     command: >
       sh -c "
       sleep 5 &&
-      gcloud pubsub topics create image-jobs --project=local-project || true &&
-      gcloud pubsub subscriptions create image-worker-sub --topic=image-jobs --project=local-project || true
+      gcloud config set auth/disable_credentials true &&
+      gcloud config set project local-project &&
+      gcloud pubsub topics create image-jobs --project=local-project &&
+      gcloud pubsub subscriptions create image-worker-sub --topic=image-jobs --project=local-project
       "
