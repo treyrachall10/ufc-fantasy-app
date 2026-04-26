@@ -128,5 +128,4 @@ def get_fighter_id(lookup, normalized_name):
     return None
 
 if __name__ == "__main__":
-    print("Scraping fighter images...")
     scrape_fighter_images_df()
