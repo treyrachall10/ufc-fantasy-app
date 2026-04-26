@@ -11,4 +11,4 @@ COPY athlete_image_service/ ./athlete_image_service/
 COPY shared/ ./shared/
 
 # Run scraper job
-CMD ["python", "athlete_image_service/scrape_fighter_images.py"]
+CMD ["python", "-m", "athlete_image_service.scrape_fighter_images"]
