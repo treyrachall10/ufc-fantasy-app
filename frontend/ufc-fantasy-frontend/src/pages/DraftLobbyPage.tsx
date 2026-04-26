@@ -10,6 +10,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthFetch } from '../auth/authFetch';
+import { supabase } from '../supabase';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DataGrid, GridColDef, GridPaginationModel, GridRenderCellParams } from '@mui/x-data-grid';
 import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam, PaginatedResponse } from '../types/types';
@@ -142,8 +143,29 @@ export default function DraftLobbyPage() {
     const { data: draftStateData } = useQuery<DraftState>({
         queryKey: ['draft', params.draftId, 'state'],
         queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/state`).then(r => r.json()),
-        refetchInterval: 1000, // Refetch every 1000 milliseconds (1 second)
     })
+
+    // WEBSOCKET
+    useEffect(() => {
+        const channel = supabase
+            .channel('draft-lobby-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',   // Listen to all events (INSERT, UPDATE, DELETE)
+                    schema: 'public'
+                },
+                (payload) => {
+                    //  fires the exact millisecond the database changes
+                    console.log('Database event detected! Fetching fresh data...', payload);
+                    queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'state'] });
+                }
+            )
+            .subscribe();
+        return () => { //close the WebSocket
+            supabase.removeChannel(channel);
+        };
+    }, [params.draftId, queryClient]);   // Tell React to rerun hook only if the draftId changes
 
     useEffect(() => {
         if (!draftStateData) return;
