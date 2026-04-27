@@ -235,7 +235,7 @@ export default function DraftLobbyPage() {
 
     // Effect to invalidate past picks query and update when user next pick is when current_pick changes
     useEffect(() => {
-        if(!draftStateData?.current_pick) return;
+        if (!draftStateData?.current_pick) return;
 
         queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
         queryClient.invalidateQueries({ queryKey: ['team', selectedTeamId] });
