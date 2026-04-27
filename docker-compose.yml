@@ -53,3 +53,19 @@ services:
       gcloud pubsub topics create image-jobs --project=local-project &&
       gcloud pubsub subscriptions create image-worker-sub --topic=image-jobs --project=local-project
       "
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: ./backend
+    command: celery -A ufc_fantasy worker --loglevel=info
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      
