@@ -100,6 +100,8 @@ def scrape_fighter_images_df():
                 publisher.publish(IMAGE_JOBS_TOPIC_PATH, json.dumps(res).encode("utf-8")) # publish job to queue for worker to consume
 
             page += 1 # Increment page number for next request
+        
+        print("Scraping fighter images complete.")
             
 def get_fighters_with_missing_images():
     '''
