@@ -77,6 +77,8 @@ def scrape_fighter_images_df():
         
         # Loop through pages until no more fighters are found
         while True:
+            db_entries = [] # List to hold db entries for each fighter
+
             url_params["page"] = page
             response = session.get(ALL_FIGHTERS_URL, params=url_params, headers=HEADERS)
             soup = BeautifulSoup(response.text, "html.parser")
@@ -96,11 +98,19 @@ def scrape_fighter_images_df():
                 # If id does not exist or image url is null, skip fighter
                 if fighter_id is None or res['img_url'] is None:
                     continue
-                res['fighter_id'] = fighter_id
-                publisher.publish(IMAGE_JOBS_TOPIC_PATH, json.dumps(res).encode("utf-8")) # publish job to queue for worker to consume
 
+                db_entry = {
+                    'fighter_id': fighter_id,
+                    'img_url': res['img_url']
+                }
+                db_entries.append(db_entry)
+
+            # Publish jobs to queue for worker to consume
+            for db_entry in db_entries:
+                publisher.publish(IMAGE_JOBS_TOPIC_PATH, json.dumps(db_entry).encode("utf-8"))
+                
             page += 1 # Increment page number for next request
-        
+
         print("Scraping fighter images complete.")
             
 def get_fighters_with_missing_images():
