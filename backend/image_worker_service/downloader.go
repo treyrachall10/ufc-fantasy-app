@@ -25,6 +25,7 @@ type Job struct {
 	ImgURL         string          `json:"img_url"`
 	FighterID      int64           `json:"fighter_id"`
 	NormalizedName string          `json:"normalized_name"`
+	RetryCount     int             `json:"retry_count"`
 }
 
 // main starts the worker service immediately on boot.
@@ -47,7 +48,8 @@ func main() {
 
 	defer client.Close() // Close Pubsub client at end of function
 
-	dataChannel := make(chan Job) // Create channel to send jobs to workers
+	dataChannel := make(chan Job)    // Create channel to send jobs to workers
+	successChannel := make(chan Job) // Create channel to send successful jobs to
 
 	var wg sync.WaitGroup  // Create wait group to wait for all workers to finish
 	var jobsEnqueued int64 // Create counter to track number of jobs enqueued
@@ -57,11 +59,11 @@ func main() {
 		// Add worker to wait group
 		wg.Add(1)
 		// Start worker
-		go downloadImageWorker(i+1, dataChannel, &wg, supabaseClient) // Start worker
+		go downloadImageWorker(i+1, dataChannel, successChannel, &wg, supabaseClient) // Start worker
 	}
 
 	// Consume queue messages and feed the worker channel.
-	ConsumeJobs(client, ctx, cancel, dataChannel, &jobsEnqueued, subscriptionID)
+	ConsumeJobs(client, ctx, cancel, dataChannel, successChannel, &jobsEnqueued, subscriptionID)
 
 	// Wait for workers to finish after the channel is closed.
 	wg.Wait()
@@ -69,7 +71,7 @@ func main() {
 }
 
 // ConsumeJobs handles pubsub communication and sends jobs to dataChannel.
-func ConsumeJobs(client *pubsub.Client, ctx context.Context, cancel context.CancelFunc, dataChannel chan Job, jobsEnqueued *int64, subscriptionID string) {
+func ConsumeJobs(client *pubsub.Client, ctx context.Context, cancel context.CancelFunc, dataChannel chan Job, successChannel chan Job, jobsEnqueued *int64, subscriptionID string) {
 	/*
 		Consumes messages from the pubsub subscription and sends them to the dataChannel.
 		Shuts down the consumer if no messages are received in the last 30 seconds.
@@ -125,7 +127,7 @@ func ConsumeJobs(client *pubsub.Client, ctx context.Context, cancel context.Canc
 }
 
 // downloadImageWorker consumes jobs and downloads each fighter image.
-func downloadImageWorker(workerID int, dataChannel <-chan Job, wg *sync.WaitGroup, supabaseClient *storage_go.Client) {
+func downloadImageWorker(workerID int, dataChannel <-chan Job, successChannel chan Job, wg *sync.WaitGroup, supabaseClient *storage_go.Client) {
 	/*
 		Consumes jobs from the dataChannel and downloads each fighter image.
 		Shuts down the worker if a stop job is received.
@@ -141,7 +143,7 @@ func downloadImageWorker(workerID int, dataChannel <-chan Job, wg *sync.WaitGrou
 
 	// Loop through the dataChannel and download each image
 	for job := range dataChannel {
-		err := downloadImage(job, supabaseClient) // Download the image
+		err := downloadImage(job, supabaseClient, successChannel) // Download the image
 		if err != nil {
 			fmt.Printf("Error downloading image for %s: %v\n", job.NormalizedName, err)
 			job.Msg.Nack() // Nack the message to put it back in the subscription
@@ -154,7 +156,7 @@ func downloadImageWorker(workerID int, dataChannel <-chan Job, wg *sync.WaitGrou
 }
 
 // downloadImage fetches image bytes from URL and forwards to uploader.
-func downloadImage(job Job, supabaseClient *storage_go.Client) error {
+func downloadImage(job Job, supabaseClient *storage_go.Client, successChannel chan Job) error {
 	fighterName := strings.ReplaceAll(job.NormalizedName, " ", "_")
 	filePath := fmt.Sprintf("%d/%s.jpg", job.FighterID, fighterName)
 
@@ -200,5 +202,6 @@ func downloadImage(job Job, supabaseClient *storage_go.Client) error {
 	}
 	log.Println("Image uploaded for:", job.NormalizedName)
 
+	successChannel <- job
 	return nil
 }
