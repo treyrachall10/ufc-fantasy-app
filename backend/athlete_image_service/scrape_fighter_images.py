@@ -116,7 +116,13 @@ def scrape_fighter_images_df():
 
             # Publish jobs to queue for worker to consume
             for db_entry in db_entries:
-                publisher.publish(IMAGE_JOBS_TOPIC_PATH, json.dumps(db_entry).encode("utf-8"))
+                job = {
+                    'fighter_id': db_entry[0],
+                    'img_url': db_entry[1],
+                    'normalized_name': db_entry[2]
+                    'retry_count': 0
+                }
+                publisher.publish(IMAGE_JOBS_TOPIC_PATH, json.dumps(job).encode("utf-8"))
 
             page += 1 # Increment page number for next request
 
