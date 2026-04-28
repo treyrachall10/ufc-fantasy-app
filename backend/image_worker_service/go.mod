@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	cloud.google.com/go/pubsub/v2 v2.6.0
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/supabase-community/storage-go v0.8.1
 )
 
@@ -21,6 +22,8 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.14 // indirect
 	github.com/googleapis/gax-go/v2 v2.21.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0 // indirect
