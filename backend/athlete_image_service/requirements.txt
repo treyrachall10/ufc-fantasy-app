@@ -3,3 +3,4 @@ requests
 pandas
 PyYAML
 google-cloud-pubsub
+psycopg2-binary
