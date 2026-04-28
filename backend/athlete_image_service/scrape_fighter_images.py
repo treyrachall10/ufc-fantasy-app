@@ -6,6 +6,7 @@ import yaml
 import os
 from .parser import parse_html
 from google.cloud import pubsub_v1
+from athlete_image_service.db.postgres_client import get_db
 
 image_service_key = os.getenv("IMAGE_SERVICE_KEY")
 PUBSUB_IMAGE_JOB_TOPIC = os.getenv("PUBSUB_IMAGE_JOB_TOPIC")
@@ -46,6 +47,13 @@ def scrape_fighter_images_df():
         print("No fighters with missing images found in database.")
         return
     else:
+        connection, cursor = get_db() # Get connection and cursor to database
+        # Define insert query for image job table
+        insert_query = """
+        INSERT INTO image_job (fighter_id, src_img_url, normalized_name, status, retry_count) 
+        VALUES (%s, %s, %s, 'SCRAPED', 0);
+        """
+
         print("Scraping fighter images...")
 
         # Convert JSON string to python object
@@ -99,18 +107,22 @@ def scrape_fighter_images_df():
                 if fighter_id is None or res['img_url'] is None:
                     continue
 
-                db_entry = {
-                    'fighter_id': fighter_id,
-                    'img_url': res['img_url']
-                }
-                db_entries.append(db_entry)
+                db_entries.append((fighter_id, res['img_url'], normalized_name)) # Append db entry to list
+
+            # Insert db entries into database
+            cursor.executemany(insert_query, db_entries)
+            connection.commit()
+            print(f"Inserted {len(db_entries)} db entries into database")
 
             # Publish jobs to queue for worker to consume
             for db_entry in db_entries:
                 publisher.publish(IMAGE_JOBS_TOPIC_PATH, json.dumps(db_entry).encode("utf-8"))
-                
+
             page += 1 # Increment page number for next request
 
+        # Close connection and cursor to database
+        cursor.close()
+        connection.close()
         print("Scraping fighter images complete.")
             
 def get_fighters_with_missing_images():
