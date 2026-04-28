@@ -1,14 +1,10 @@
-FROM python:3.11-slim
+FROM golang:1.25
 
 WORKDIR /app
 
-# Install only image worker deps
-COPY image_worker_service/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY image_worker_service/go.mod ./
+RUN go mod download
 
-# Copy ONLY image worker + shared
-COPY image_worker_service/ ./image_worker_service/
-COPY shared/ ./shared/
+COPY image_worker_service/ ./
 
-# Run image worker job
-CMD ["python", "image_worker_service/downloader.py"]
+CMD ["go", "run", "."]
