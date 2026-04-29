@@ -53,7 +53,7 @@ def scrape_fighter_images_df():
         insert_query = """
         INSERT INTO image_job (fighter_id, src_img_url, normalized_name, status, retry_count) 
         VALUES %s
-        RETURNING id, fighter_id, normalized_name, retry_count;
+        RETURNING id, fighter_id, normalized_name, retry_count, src_img_url;
         """
 
         print("Scraping fighter images...")
@@ -122,8 +122,10 @@ def scrape_fighter_images_df():
                     'id': db_entry[0],
                     'fighter_id': db_entry[1],
                     'normalized_name': db_entry[2],
-                    'retry_count': db_entry[3]
+                    'retry_count': db_entry[3],
+                    'img_url': db_entry[4]
                 }
+
                 publisher.publish(IMAGE_JOBS_TOPIC_PATH, json.dumps(job).encode("utf-8"))
 
             page += 1 # Increment page number for next request
