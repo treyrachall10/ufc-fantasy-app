@@ -32,6 +32,10 @@ func main() {
 
 	supabaseClient := supabase.NewStorageClient() // Create Supabase client
 
+	// Create postgres client
+	conn := supabase.NewPostgresClient()   // Create postgres client
+	defer conn.Close(context.Background()) // Close postgres client
+
 	// Create pubsub client and subscription
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -45,22 +49,29 @@ func main() {
 	dataChannel := make(chan Job)    // Create channel to send jobs to workers
 	successChannel := make(chan Job) // Create channel to send successful jobs to
 
-	var wg sync.WaitGroup  // Create wait group to wait for all workers to finish
-	var jobsEnqueued int64 // Create counter to track number of jobs enqueued
+	var DownloadUploadwg sync.WaitGroup // Create wait group to wait for all downloder/uploaderworkers to finish
+	var SuccessWorkerwg sync.WaitGroup  // Create wait group to wait for all success workers to finish
+	var jobsEnqueued int64              // Create counter to track number of jobs enqueued
 
 	// Start three workers immediately.
 	for i := 0; i < workerCount; i++ {
 		// Add worker to wait group
-		wg.Add(1)
+		DownloadUploadwg.Add(1)
 		// Start worker
-		go downloadImageWorker(i+1, dataChannel, successChannel, &wg, supabaseClient) // Start worker
+		go downloadImageWorker(i+1, dataChannel, successChannel, &DownloadUploadwg, supabaseClient) // Start worker
 	}
+
+	// Start the success worker
+	SuccessWorkerwg.Add(1)
+	go successWorker(successChannel, &SuccessWorkerwg, conn) // Start success worker
 
 	// Consume queue messages and feed the worker channel.
 	ConsumeJobs(client, ctx, cancel, dataChannel, successChannel, &jobsEnqueued, subscriptionID)
 
 	// Wait for workers to finish after the channel is closed.
-	wg.Wait()
+	DownloadUploadwg.Wait()
+	close(successChannel) // Close the success channel to signal the success worker to finish
+	SuccessWorkerwg.Wait()
 	fmt.Printf("Total jobs put into worker channel: %d\n", atomic.LoadInt64(&jobsEnqueued))
 }
 
@@ -109,7 +120,6 @@ func ConsumeJobs(client *pubsub.Client, ctx context.Context, cancel context.Canc
 		}
 
 		job.Msg = msg
-		job.Type = "image_download"
 
 		log.Println("Received message for:", job.NormalizedName)
 		dataChannel <- job // Send the job to the dataChannel
@@ -154,6 +164,9 @@ func downloadImage(job Job, supabaseClient *storage_go.Client, successChannel ch
 	fighterName := strings.ReplaceAll(job.NormalizedName, " ", "_")
 	filePath := fmt.Sprintf("%d/%s.jpg", job.FighterID, fighterName)
 
+	if job.ImgURL == "" {
+		return fmt.Errorf("image URL is empty for %s", job.NormalizedName)
+	}
 	// Use net/http to download the image.
 	resp, err := http.Get(job.ImgURL)
 	if err != nil {
@@ -196,6 +209,7 @@ func downloadImage(job Job, supabaseClient *storage_go.Client, successChannel ch
 	}
 	log.Println("Image uploaded for:", job.NormalizedName)
 
-	successChannel <- job
+	successChannel <- job // Send the job to the successChannel
+
 	return nil
 }
