@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image-worker/supabase"
+	"image-worker/types"
 	"io"
 	"log"
 	"net/http"
@@ -19,14 +20,7 @@ import (
 )
 
 // Job is the payload consumed from the queue.
-type Job struct {
-	Type           string          `json:"type"`
-	Msg            *pubsub.Message `json:"-"`
-	ImgURL         string          `json:"img_url"`
-	FighterID      int64           `json:"fighter_id"`
-	NormalizedName string          `json:"normalized_name"`
-	RetryCount     int             `json:"retry_count"`
-}
+type Job = types.ImageJob
 
 // main starts the worker service immediately on boot.
 func main() {

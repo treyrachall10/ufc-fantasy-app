@@ -2,8 +2,11 @@ package supabase
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
+
+	"image-worker/types"
 
 	"github.com/jackc/pgx/v5"
 )
