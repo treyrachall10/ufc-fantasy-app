@@ -20,7 +20,7 @@ func NewPostgresClient() *pgx.Conn {
 	return conn
 }
 
-func bulkUpdateImageJobs(conn *pgx.Conn, jobs []types.ImageJob) error {
+func BulkUpdateImageJobs(conn *pgx.Conn, jobs []types.ImageJob) error {
 
 	args := generateArgsList(jobs)                // Generate the arguments list for the query
 	sqlStrings := generateBulkSQLSring(len(jobs)) // Generate the SQL strings for the query
@@ -35,8 +35,8 @@ func bulkUpdateImageJobs(conn *pgx.Conn, jobs []types.ImageJob) error {
 			completed_at = NOW()
 		FROM (
 			VALUES %s
-		) as data(id, fighter_id,supabase_path)
-		WHERE ij.id = data.id)
+		) as data(id, fighter_id, supabase_path)
+		WHERE ij.id = data.id::bigint
 	`, sqlStrings)
 
 	_, err := conn.Exec(context.Background(), query, args...)
@@ -51,8 +51,8 @@ func generateBulkSQLSring(length int) string {
 	s := ""
 	// Loop through the length and generate the SQL strings
 	for i := 0; i < length; i++ {
-		s += fmt.Sprintf("($%d, $%d, $%d, $%d)", paramIndex, paramIndex+1, paramIndex+2, paramIndex+3) // Format the values for the query
-		paramIndex += 4
+		s += fmt.Sprintf("($%d::bigint, $%d::bigint, $%d::text)", paramIndex, paramIndex+1, paramIndex+2) // Format the values for the query
+		paramIndex += 3
 		// Add comma between values
 		if i < length-1 {
 			s += ", "
