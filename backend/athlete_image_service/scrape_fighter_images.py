@@ -7,6 +7,7 @@ import os
 from .parser import parse_html
 from google.cloud import pubsub_v1
 from athlete_image_service.db.postgres_client import get_db
+from psycopg2.extras import execute_values
 
 image_service_key = os.getenv("IMAGE_SERVICE_KEY")
 PUBSUB_IMAGE_JOB_TOPIC = os.getenv("PUBSUB_IMAGE_JOB_TOPIC")
@@ -51,7 +52,8 @@ def scrape_fighter_images_df():
         # Define insert query for image job table
         insert_query = """
         INSERT INTO image_job (fighter_id, src_img_url, normalized_name, status, retry_count) 
-        VALUES (%s, %s, %s, 'SCRAPED', 0);
+        VALUES %s
+        RETURNING id, fighter_id, normalized_name, retry_count;
         """
 
         print("Scraping fighter images...")
@@ -107,20 +109,20 @@ def scrape_fighter_images_df():
                 if fighter_id is None or res['img_url'] is None:
                     continue
 
-                db_entries.append((fighter_id, res['img_url'], normalized_name)) # Append db entry to list
+                db_entries.append((fighter_id, res['img_url'], normalized_name, 'SCRAPED', 0)) # Append db entry to list
 
             # Insert db entries into database
-            cursor.executemany(insert_query, db_entries)
+            returned_db_entries =execute_values(cur=cursor,sql=insert_query, argslist=db_entries, fetch=True) # Bulk insert db entries into database
             connection.commit()
             print(f"Inserted {len(db_entries)} db entries into database")
 
             # Publish jobs to queue for worker to consume
-            for db_entry in db_entries:
+            for db_entry in returned_db_entries:
                 job = {
-                    'fighter_id': db_entry[0],
-                    'img_url': db_entry[1],
-                    'normalized_name': db_entry[2]
-                    'retry_count': 0
+                    'id': db_entry[0],
+                    'fighter_id': db_entry[1],
+                    'normalized_name': db_entry[2],
+                    'retry_count': db_entry[3]
                 }
                 publisher.publish(IMAGE_JOBS_TOPIC_PATH, json.dumps(job).encode("utf-8"))
 
