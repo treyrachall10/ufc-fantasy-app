@@ -51,7 +51,7 @@ def scrape_fighter_images_df():
         connection, cursor = get_db() # Get connection and cursor to database
         # Define insert query for image job table
         insert_query = """
-        INSERT INTO image_job (fighter_id, src_img_url, normalized_name, status, retry_count) 
+        INSERT INTO worker.image_job (fighter_id, src_img_url, normalized_name, status, retry_count) 
         VALUES %s
         RETURNING id, fighter_id, normalized_name, retry_count, src_img_url;
         """
@@ -148,6 +148,9 @@ def get_fighters_with_missing_images():
         print(f"Error fetching fighter image candidates: {e}")
         return None
     
+    if response.status_code != 200:
+        print(f"Error fetching fighter image candidates: {response.status_code}")
+        return None
 
     return response.json()
 

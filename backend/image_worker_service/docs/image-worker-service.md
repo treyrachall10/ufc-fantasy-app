@@ -30,7 +30,7 @@ The `image_worker_service` processes fighter image jobs created by the scraper s
 
 1. The scraper service creates image jobs and publishes them to Pub/Sub topic: `image-jobs`.
 2. `image_worker_service` listens to `image-jobs` and consumes job messages.
-3. Worker goroutines process jobs concurrently (3 Go workers).
+3. Worker goroutines process jobs concurrently (**10** Go workers).
 4. On success:
    - The job result is sent to a success channel.
    - A dedicated success worker performs batch updates for successful jobs, reducing network/database calls.
@@ -40,6 +40,15 @@ The `image_worker_service` processes fighter image jobs created by the scraper s
    - The service immediately calls `HandleFailedJob`.
    - It republishes the same message payload with an incremented retry count.
    - It updates failure metadata in the shared jobs table.
+
+### Per-job `Done` channel (receive callback synchronization)
+
+For each incoming Pub/Sub message, the subscriber creates a `Done` channel on the job (`make(chan error)`). The receive callback:
+
+1. Unmarshals the payload into `ImageJob`, attaches the Pub/Sub `Message`, and sends the job on the unbuffered `Data` channel (this blocks until one of the download/upload workers is ready to take the job).
+2. **Blocks on `<-job.Done`** until that worker finishes processing (success or handled failure) and signals completion by sending on `Done`.
+
+Because the callback does not return until the job is fully processed, the client does not treat that message as finished while work is still in flight. Together with the subscription’s outstanding-message limits, this keeps the service from effectively pulling and acknowledging work faster than the worker pool can accept it: the callback stays alive until a worker is done, so new messages are not advanced past “received” in a way that outruns worker readiness.
 
 ### Boundaries
 
@@ -53,7 +62,7 @@ The `image_worker_service` processes fighter image jobs created by the scraper s
 
 - Service runs as a Go worker process.
 - Consumes Google Pub/Sub messages from `image-jobs`.
-- Uses 3 concurrent workers to improve throughput.
+- Uses **10** concurrent workers to improve throughput.
 - Uses in-process channels to coordinate:
   - Job processing workers
   - Success batching worker
@@ -62,7 +71,7 @@ The `image_worker_service` processes fighter image jobs created by the scraper s
 ### Deployment and scaling notes
 
 - Horizontal scaling is supported by adding additional worker service instances.
-- In-instance concurrency is controlled via worker count (currently 3).
+- In-instance concurrency is controlled via worker count (currently **10**).
 - Batch success updates reduce high-frequency network chatter under load.
 
 ## 4) Diagrams
@@ -96,7 +105,7 @@ flowchart TD
 
     subgraph Service[image_worker_service]
         listener[Subscriber Listener]
-        workers[3 Go Workers]
+        workers[10 Go Workers]
         successCh[[success channel]]
         successWorker[Success Worker\nBatch Success Updater]
         failPath[HandleFailedJob]
@@ -125,11 +134,12 @@ Endpoint reference used by `image_worker_service` for fighter image updates:
 
 | Requirement | Technical Choice | User Outcome |
 |---|---|---|
-| Throughput | 3 concurrent Go workers | Faster image processing and fresher fighter profiles. |
+| Throughput | **10** concurrent Go workers | Faster image processing and fresher fighter profiles. |
 | Reduced network load | Success channel + batch success worker | Fewer update calls and better efficiency under load. |
 | Reliability | Immediate failure handling + retry republish with incremented count | Temporary failures recover automatically with less manual intervention. |
 | Data ownership boundaries | Update main fighter image data via web API endpoint, not direct DB writes | Safer integration and clearer ownership of main application data. |
 | Ecosystem alignment | Google Pub/Sub (`image-jobs`) | Consistent platform usage with existing Google ecosystem and room to experiment. |
+| Backpressure | Per-job `Done` channel; receive callback waits for worker completion | Work is not driven ahead of worker capacity. |
 
 ## 6) Communication Flows
 

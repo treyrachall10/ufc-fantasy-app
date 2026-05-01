@@ -25,7 +25,7 @@ type Job = types.ImageJob
 
 // main starts the worker service immediately on boot.
 func main() {
-	workerCount := 3                                         // Number of workers to start
+	workerCount := 10                                        // Number of workers to start
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")           // Project ID from environment variables
 	subscriptionID := os.Getenv("PUBSUB_IMAGE_SUBSCRIPTION") // Subscription ID from environment variables
 	topicID := os.Getenv("PUBSUB_IMAGE_JOB_TOPIC")           // Topic ID from environment variables
@@ -67,7 +67,7 @@ func main() {
 	var SuccessWorkerwg sync.WaitGroup  // Create wait group to wait for all success workers to finish
 	var jobsEnqueued int64              // Create counter to track number of jobs enqueued
 
-	// Start three workers immediately.
+	// Start download/upload workers (workerCount).
 	for i := 0; i < workerCount; i++ {
 		// Add worker to wait group
 		DownloadUploadwg.Add(1)
@@ -126,11 +126,13 @@ func ConsumeJobs(
 	}()
 
 	sub := connection.Client.Subscriber(subscriptionID) // Get subscription from client
+	sub.ReceiveSettings.MaxExtension = 2 * time.Minute  // Set the maximum extension to 2 minutes
+	sub.ReceiveSettings.MaxOutstandingMessages = 10     // Set the maximum number of outstanding messages to 10
 
 	err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		timeSinceLastMessage = time.Now() // Update time since last message was received
-		//defer msg.Ack()                       // Ack the message to remove it from the subscription
-		var job Job                           // Create a new job
+		var job Job                       // Create a new job
+		job.Done = make(chan error)
 		err := json.Unmarshal(msg.Data, &job) // Unmarshal the message data into the job
 		if err != nil {
 			log.Printf("Failed to unmarshal message: %v", err)
@@ -142,6 +144,7 @@ func ConsumeJobs(
 
 		log.Println("Received message for:", job.NormalizedName)
 		channels.Data <- job // Send the job to the dataChannel
+		err = <-job.Done     // Wait for the job to be done
 		atomic.AddInt64(jobsEnqueued, 1)
 	})
 	if err != nil {
@@ -185,7 +188,9 @@ func downloadImageWorker(
 			continue
 		}
 
-		job.Msg.Ack()
+		job.Done <- nil // Send nil to the done channel to indicate that the job is done
+		job.Msg.Ack()   // Ack the message to remove it from the subscription
+		fmt.Println("Image downloaded for:", job.NormalizedName, "Ack'd message")
 	}
 }
 
