@@ -178,31 +178,36 @@ func downloadImageWorker(workerID int,
 
 // downloadImage fetches image bytes from URL and forwards to uploader.
 func downloadImage(job Job, supabaseClient *storage_go.Client, successChannel chan Job) error {
-	fighterName := strings.ReplaceAll(job.NormalizedName, " ", "_")
-	filePath := fmt.Sprintf("%d/%s.jpg", job.FighterID, fighterName)
+	/*
+		Downloads an image from the URL and forwards it to the uploader.
+		PARAMS:
+		- job: Job to download
+		- supabaseClient: Supabase client
+		- successChannel: Channel to send successful jobs to
+	*/
+
+	fighterName := strings.ReplaceAll(job.NormalizedName, " ", "_")  // Replace all spaces in the normalized name with underscores
+	filePath := fmt.Sprintf("%d/%s.jpg", job.FighterID, fighterName) // Format the file path for the image
 
 	if job.ImgURL == "" {
-		return fmt.Errorf("image URL is empty for %s", job.NormalizedName)
+		return fmt.Errorf("missing image URL")
 	}
 	// Use net/http to download the image.
 	resp, err := http.Get(job.ImgURL)
 	if err != nil {
-		fmt.Printf("Error downloading image for %s from %s: %v\n", fighterName, job.ImgURL, err)
-		return err
+		return fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	// Check if the image was downloaded successfully
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		fmt.Printf("Error downloading image for %s from %s: status %d\n", fighterName, job.ImgURL, resp.StatusCode)
-		return fmt.Errorf("error downloading image for %s from %s: status %d", fighterName, job.ImgURL, resp.StatusCode)
+		return fmt.Errorf("bad response status: %d", resp.StatusCode)
 	}
 
 	// Read the image body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Error reading image for %s from %s: %v\n", fighterName, job.ImgURL, err)
-		return fmt.Errorf("error reading image for %s from %s: %v", fighterName, job.ImgURL, err)
+		return fmt.Errorf("reading response body failed: %w", err)
 	}
 
 	// Get the content type of the image
@@ -225,6 +230,11 @@ func downloadImage(job Job, supabaseClient *storage_go.Client, successChannel ch
 		return fmt.Errorf("error uploading image for %s: %v", fighterName, err)
 	}
 	log.Println("Image uploaded for:", job.NormalizedName)
+
+	err = UpdateFighterImageURL(job.FighterID, filePath) // Update the fighter image URL in the API
+	if err != nil {
+		return fmt.Errorf("error updating fighter image URL: %v", err)
+	}
 
 	successChannel <- job // Send the job to the successChannel
 
