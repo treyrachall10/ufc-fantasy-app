@@ -10,6 +10,7 @@ type ImageJob struct {
 	ImgURL         string          `json:"img_url"`
 	FighterID      int64           `json:"fighter_id"`
 	NormalizedName string          `json:"normalized_name"`
-	RetryCount     int             `json:"retry_count"`
+	RetryCount     int64           `json:"retry_count"`
 	SupabasePath   string          `json:"-"`
+	ErrorMsg       string          `json:"-"`
 }
