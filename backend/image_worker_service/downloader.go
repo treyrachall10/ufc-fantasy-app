@@ -35,13 +35,28 @@ func main() {
 	supabaseClient := supabase.NewStorageClient() // Create Supabase client
 
 	// Create postgres client
-	pool := supabase.NewPostgresClient() // Create postgres client
-	defer pool.Close()                   // Close postgres client
+	pool, err := supabase.NewPostgresClient() // Create postgres client
+	if err != nil {
+		log.Fatalf("Failed to create postgres client: %v", err)
+	}
+	defer pool.Close() // Close postgres client
 
 	// Create pubsub client and subscription
 	ctx, cancel := context.WithCancel(context.Background())
 	client, err := pubsub.NewClient(ctx, projectID) // Create Pubsub client
-	publisher := client.Publisher(topicID)          // Create publisher for topic
+	if err != nil {
+		log.Fatalf("Failed to create pubsub client: %v", err)
+	}
+	publisher := client.Publisher(topicID) // Create publisher for topic
+	if err != nil {
+		log.Fatalf("Failed to create publisher: %v", err)
+	}
+
+	connection := types.Connection{
+		Client:    client,
+		Publisher: publisher,
+		Pool:      pool,
+	}
 
 	if err != nil {
 		log.Fatalf("Failed to create pubsub client: %v", err)
@@ -72,7 +87,7 @@ func main() {
 	go successWorker(channels.Success, &SuccessWorkerwg, pool) // Start success worker
 
 	// Consume queue messages and feed the worker channel.
-	ConsumeJobs(client, ctx, cancel, channels, &jobsEnqueued, subscriptionID, pool, publisher)
+	ConsumeJobs(connection, ctx, cancel, channels, &jobsEnqueued, subscriptionID)
 
 	// Wait for workers to finish after the channel is closed.
 	DownloadUploadwg.Wait()
@@ -83,27 +98,23 @@ func main() {
 
 // ConsumeJobs handles pubsub communication and sends jobs to dataChannel.
 func ConsumeJobs(
-	client *pubsub.Client,
+	connection types.Connection,
 	ctx context.Context,
 	cancel context.CancelFunc,
 	channels types.Channels,
 	jobsEnqueued *int64,
-	subscriptionID string,
-	pool *pgxpool.Pool,
-	publisher *pubsub.Publisher) {
+	subscriptionID string) {
 	/*
 		Consumes messages from the pubsub subscription and sends them to the dataChannel.
 		Shuts down the consumer if no messages are received in the last 60 seconds.
 
 		PARAMS:
-		- client: Pubsub client
+		- connection: Connection to the pubsub and postgres database
 		- ctx: Context
 		- cancel: Cancel function
 		- channels: Channels to receive and send jobs from
 		- jobsEnqueued: Counter to track number of jobs enqueued
 		- subscriptionID: Subscription ID
-		- pool: Postgres connection
-		- publisher: Publisher for topic
 	*/
 
 	timeSinceLastMessage := time.Now()                // Track time since last message was received
@@ -122,13 +133,7 @@ func ConsumeJobs(
 		}
 	}()
 
-	sub := client.Subscriber(subscriptionID) // Get subscription from client
-	/*
-		Receive messages from the subscription and send them to the dataChannel.
-		PARAMS:
-			- ctx: Context
-			- msg: Message
-	*/
+	sub := connection.Client.Subscriber(subscriptionID) // Get subscription from client
 
 	err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		timeSinceLastMessage = time.Now() // Update time since last message was received

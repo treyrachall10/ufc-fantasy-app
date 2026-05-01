@@ -2,6 +2,7 @@ package types
 
 import (
 	"cloud.google.com/go/pubsub/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type ImageJob struct {
@@ -18,4 +19,10 @@ type ImageJob struct {
 type Channels struct {
 	Data    chan ImageJob
 	Success chan ImageJob
+}
+
+type Connection struct {
+	Client    *pubsub.Client
+	Publisher *pubsub.Publisher
+	Pool      *pgxpool.Pool
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewPostgresClient() *pgxpool.Pool {
+func NewPostgresClient() (*pgxpool.Pool, error) {
 	/*
 		Creates a new postgres client.
 		PARAMS:
@@ -23,17 +23,17 @@ func NewPostgresClient() *pgxpool.Pool {
 
 	config, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatalf("Failed to parse database URL: %v", err)
+		return nil, fmt.Errorf("failed to parse database URL: %v", err)
 	}
 
 	config.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		return nil, fmt.Errorf("failed to connect to database: %v", err)
 	}
 
 	log.Println("Connected to database")
-	return pool
+	return pool, nil
 }
 
 func BulkUpdateImageJobs(pool *pgxpool.Pool, jobs []types.ImageJob) error {
