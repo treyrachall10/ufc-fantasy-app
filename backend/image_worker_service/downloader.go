@@ -49,8 +49,11 @@ func main() {
 
 	defer client.Close() // Close Pubsub client at end of function
 
-	dataChannel := make(chan Job)    // Create channel to send jobs to workers
-	successChannel := make(chan Job) // Create channel to send successful jobs to
+	// Create channels for data and success
+	channels := types.Channels{
+		Data:    make(chan Job),
+		Success: make(chan Job),
+	}
 
 	var DownloadUploadwg sync.WaitGroup // Create wait group to wait for all downloder/uploaderworkers to finish
 	var SuccessWorkerwg sync.WaitGroup  // Create wait group to wait for all success workers to finish
@@ -61,19 +64,19 @@ func main() {
 		// Add worker to wait group
 		DownloadUploadwg.Add(1)
 		// Start worker
-		go downloadImageWorker(i+1, dataChannel, successChannel, &DownloadUploadwg, supabaseClient, pool, publisher) // Start worker
+		go downloadImageWorker(i+1, channels, &DownloadUploadwg, supabaseClient, pool, publisher) // Start worker
 	}
 
 	// Start the success worker
 	SuccessWorkerwg.Add(1)
-	go successWorker(successChannel, &SuccessWorkerwg, pool) // Start success worker
+	go successWorker(channels.Success, &SuccessWorkerwg, pool) // Start success worker
 
 	// Consume queue messages and feed the worker channel.
-	ConsumeJobs(client, ctx, cancel, dataChannel, successChannel, &jobsEnqueued, subscriptionID, pool, publisher)
+	ConsumeJobs(client, ctx, cancel, channels, &jobsEnqueued, subscriptionID, pool, publisher)
 
 	// Wait for workers to finish after the channel is closed.
 	DownloadUploadwg.Wait()
-	close(successChannel) // Close the success channel to signal the success worker to finish
+	close(channels.Success) // Close the success channel to signal the success worker to finish
 	SuccessWorkerwg.Wait()
 	fmt.Printf("Total jobs put into worker channel: %d\n", atomic.LoadInt64(&jobsEnqueued))
 }
@@ -83,8 +86,7 @@ func ConsumeJobs(
 	client *pubsub.Client,
 	ctx context.Context,
 	cancel context.CancelFunc,
-	dataChannel chan Job,
-	successChannel chan Job,
+	channels types.Channels,
 	jobsEnqueued *int64,
 	subscriptionID string,
 	pool *pgxpool.Pool,
@@ -97,7 +99,7 @@ func ConsumeJobs(
 		- client: Pubsub client
 		- ctx: Context
 		- cancel: Cancel function
-		- dataChannel: Channel to send jobs to workers
+		- channels: Channels to receive and send jobs from
 		- jobsEnqueued: Counter to track number of jobs enqueued
 		- subscriptionID: Subscription ID
 		- pool: Postgres connection
@@ -112,7 +114,7 @@ func ConsumeJobs(
 		for {
 			if time.Since(timeSinceLastMessage) > timeSinceLastMessageThreshold {
 				fmt.Println("No messages received in the last 60 seconds. Shutting down consumer.")
-				close(dataChannel)
+				close(channels.Data)
 				cancel()
 				return
 			}
@@ -142,7 +144,7 @@ func ConsumeJobs(
 		job.Msg = msg
 
 		log.Println("Received message for:", job.NormalizedName)
-		dataChannel <- job // Send the job to the dataChannel
+		channels.Data <- job // Send the job to the dataChannel
 		atomic.AddInt64(jobsEnqueued, 1)
 	})
 	if err != nil {
@@ -152,8 +154,7 @@ func ConsumeJobs(
 
 // downloadImageWorker consumes jobs and downloads each fighter image.
 func downloadImageWorker(workerID int,
-	dataChannel <-chan Job,
-	successChannel chan Job,
+	channels types.Channels,
 	wg *sync.WaitGroup,
 	supabaseClient *storage_go.Client,
 	pool *pgxpool.Pool,
@@ -164,8 +165,7 @@ func downloadImageWorker(workerID int,
 
 		PARAMS:
 		- workerID: ID of the worker
-		- dataChannel: Channel to receive jobs from
-		- successChannel: Channel to send successful jobs to
+		- channels: Channels to receive and send jobs from
 		- wg: Wait group to wait for all workers to finish
 		- supabaseClient: Supabase client
 		- pool: Postgres connection
@@ -175,8 +175,8 @@ func downloadImageWorker(workerID int,
 	defer wg.Done() // Done the worker when the wait group is done
 
 	// Loop through the dataChannel and download each image
-	for job := range dataChannel {
-		err := downloadImage(job, supabaseClient, successChannel) // Download the image
+	for job := range channels.Data {
+		err := downloadImage(job, supabaseClient, channels.Success) // Download the image
 		if err != nil {
 			fmt.Printf("Image job failed | id=%d fighter=%s error=%v\n",
 				job.ID,

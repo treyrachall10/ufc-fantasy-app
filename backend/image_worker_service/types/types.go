@@ -14,3 +14,8 @@ type ImageJob struct {
 	SupabasePath   string          `json:"-"`
 	ErrorMsg       string          `json:"-"`
 }
+
+type Channels struct {
+	Data    chan ImageJob
+	Success chan ImageJob
+}
