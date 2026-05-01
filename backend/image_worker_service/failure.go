@@ -5,7 +5,17 @@ import (
 	"image-worker/types"
 )
 
-func handleFailedJob(job *types.ImageJob, errMsg string) {
+func handleFailedJob(job *types.ImageJob, errMsg string, pool *pgxpool.Pool, publisher *pubsub.Publisher) {
+	/*
+			Handles a failed job by updating the job in the database and nack/acking the message.
+
+		PARAMS:
+		- job: Job to handle
+		- errMsg: Error message
+		- pool: Postgres connection
+		- publisher: Publisher for topic
+	*/
+
 	if job == nil {
 		fmt.Println("handleFailedJob received nil job")
 		return

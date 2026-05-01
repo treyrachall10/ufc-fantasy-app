@@ -33,12 +33,11 @@ func main() {
 	supabaseClient := supabase.NewStorageClient() // Create Supabase client
 
 	// Create postgres client
-	conn := supabase.NewPostgresClient()   // Create postgres client
-	defer conn.Close(context.Background()) // Close postgres client
+	pool := supabase.NewPostgresClient() // Create postgres client
+	defer pool.Close()                   // Close postgres client
 
 	// Create pubsub client and subscription
 	ctx, cancel := context.WithCancel(context.Background())
-
 	client, err := pubsub.NewClient(ctx, projectID) // Create Pubsub client
 	if err != nil {
 		log.Fatalf("Failed to create pubsub client: %v", err)
@@ -58,15 +57,15 @@ func main() {
 		// Add worker to wait group
 		DownloadUploadwg.Add(1)
 		// Start worker
-		go downloadImageWorker(i+1, dataChannel, successChannel, &DownloadUploadwg, supabaseClient) // Start worker
+		go downloadImageWorker(i+1, dataChannel, successChannel, &DownloadUploadwg, supabaseClient, pool, publisher) // Start worker
 	}
 
 	// Start the success worker
 	SuccessWorkerwg.Add(1)
-	go successWorker(successChannel, &SuccessWorkerwg, conn) // Start success worker
+	go successWorker(successChannel, &SuccessWorkerwg, pool) // Start success worker
 
 	// Consume queue messages and feed the worker channel.
-	ConsumeJobs(client, ctx, cancel, dataChannel, successChannel, &jobsEnqueued, subscriptionID)
+	ConsumeJobs(client, ctx, cancel, dataChannel, successChannel, &jobsEnqueued, subscriptionID, pool, publisher)
 
 	// Wait for workers to finish after the channel is closed.
 	DownloadUploadwg.Wait()
@@ -76,7 +75,16 @@ func main() {
 }
 
 // ConsumeJobs handles pubsub communication and sends jobs to dataChannel.
-func ConsumeJobs(client *pubsub.Client, ctx context.Context, cancel context.CancelFunc, dataChannel chan Job, successChannel chan Job, jobsEnqueued *int64, subscriptionID string) {
+func ConsumeJobs(
+	client *pubsub.Client,
+	ctx context.Context,
+	cancel context.CancelFunc,
+	dataChannel chan Job,
+	successChannel chan Job,
+	jobsEnqueued *int64,
+	subscriptionID string,
+	pool *pgxpool.Pool,
+	publisher *pubsub.Publisher) {
 	/*
 		Consumes messages from the pubsub subscription and sends them to the dataChannel.
 		Shuts down the consumer if no messages are received in the last 30 seconds.
@@ -131,7 +139,13 @@ func ConsumeJobs(client *pubsub.Client, ctx context.Context, cancel context.Canc
 }
 
 // downloadImageWorker consumes jobs and downloads each fighter image.
-func downloadImageWorker(workerID int, dataChannel <-chan Job, successChannel chan Job, wg *sync.WaitGroup, supabaseClient *storage_go.Client) {
+func downloadImageWorker(workerID int,
+	dataChannel <-chan Job,
+	successChannel chan Job,
+	wg *sync.WaitGroup,
+	supabaseClient *storage_go.Client,
+	pool *pgxpool.Pool,
+	publisher *pubsub.Publisher) {
 	/*
 		Consumes jobs from the dataChannel and downloads each fighter image.
 		Shuts down the worker if a stop job is received.
@@ -139,8 +153,11 @@ func downloadImageWorker(workerID int, dataChannel <-chan Job, successChannel ch
 		PARAMS:
 		- workerID: ID of the worker
 		- dataChannel: Channel to receive jobs from
+		- successChannel: Channel to send successful jobs to
 		- wg: Wait group to wait for all workers to finish
 		- supabaseClient: Supabase client
+		- pool: Postgres connection
+		- publisher: Publisher for topic
 	*/
 
 	defer wg.Done() // Done the worker when the wait group is done

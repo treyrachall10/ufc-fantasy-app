@@ -11,16 +11,39 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func NewPostgresClient() *pgx.Conn {
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+func NewPostgresClient() *pgxpool.Pool {
+	/*
+		Creates a new postgres client.
+		PARAMS:
+			- None
+		RETURNS:
+			- pool: Postgres connection
+	*/
+
+	config, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatalf("Failed to parse database URL: %v", err)
+	}
+
+	config.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
+
 	log.Println("Connected to database")
-	return conn
+	return pool
 }
 
-func BulkUpdateImageJobs(conn *pgx.Conn, jobs []types.ImageJob) error {
+func BulkUpdateImageJobs(pool *pgxpool.Pool, jobs []types.ImageJob) error {
+	/*
+		Bulk updates the image jobs in the database.
+		PARAMS:
+			- pool: Postgres connection
+			- jobs: Jobs to update
+		RETURNS:
+			- err: Error if any
+	*/
 
 	args := generateArgsList(jobs)                // Generate the arguments list for the query
 	sqlStrings := generateBulkSQLSring(len(jobs)) // Generate the SQL strings for the query
@@ -39,7 +62,7 @@ func BulkUpdateImageJobs(conn *pgx.Conn, jobs []types.ImageJob) error {
 		WHERE ij.id = data.id::bigint
 	`, sqlStrings)
 
-	_, err := conn.Exec(context.Background(), query, args...)
+	_, err := pool.Exec(context.Background(), query, args...)
 	if err != nil {
 		return err
 	}
@@ -47,6 +70,14 @@ func BulkUpdateImageJobs(conn *pgx.Conn, jobs []types.ImageJob) error {
 }
 
 func generateBulkSQLSring(length int) string {
+	/*
+		Generates the SQL strings for the query.
+		PARAMS:
+			- length: Length of the jobs
+		RETURNS:
+			- s: SQL strings
+	*/
+
 	paramIndex := 1
 	s := ""
 	// Loop through the length and generate the SQL strings
