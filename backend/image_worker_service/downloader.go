@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 	storage_go "github.com/supabase-community/storage-go"
 )
 
@@ -27,6 +28,7 @@ func main() {
 	workerCount := 3                                         // Number of workers to start
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")           // Project ID from environment variables
 	subscriptionID := os.Getenv("PUBSUB_IMAGE_SUBSCRIPTION") // Subscription ID from environment variables
+	topicID := os.Getenv("PUBSUB_IMAGE_JOB_TOPIC")           // Topic ID from environment variables
 
 	fmt.Println("Image worker service starting...")
 
@@ -39,6 +41,8 @@ func main() {
 	// Create pubsub client and subscription
 	ctx, cancel := context.WithCancel(context.Background())
 	client, err := pubsub.NewClient(ctx, projectID) // Create Pubsub client
+	publisher := client.Publisher(topicID)          // Create publisher for topic
+
 	if err != nil {
 		log.Fatalf("Failed to create pubsub client: %v", err)
 	}
@@ -87,7 +91,7 @@ func ConsumeJobs(
 	publisher *pubsub.Publisher) {
 	/*
 		Consumes messages from the pubsub subscription and sends them to the dataChannel.
-		Shuts down the consumer if no messages are received in the last 30 seconds.
+		Shuts down the consumer if no messages are received in the last 60 seconds.
 
 		PARAMS:
 		- client: Pubsub client
@@ -96,29 +100,37 @@ func ConsumeJobs(
 		- dataChannel: Channel to send jobs to workers
 		- jobsEnqueued: Counter to track number of jobs enqueued
 		- subscriptionID: Subscription ID
+		- pool: Postgres connection
+		- publisher: Publisher for topic
 	*/
 
 	timeSinceLastMessage := time.Now()                // Track time since last message was received
-	timeSinceLastMessageThreshold := 30 * time.Second // Threshold for how long to wait before shutting down consumer
+	timeSinceLastMessageThreshold := 60 * time.Second // Threshold for how long to wait before shutting down consumer
 
-	// Start a goroutine to check for inactivity and shut down the consumer if no messages are received in the last 30 seconds
+	// Start a goroutine to check for inactivity and shut down the consumer if no messages are received in the last 60 seconds
 	go func() {
 		for {
 			if time.Since(timeSinceLastMessage) > timeSinceLastMessageThreshold {
-				fmt.Println("No messages received in the last 30 seconds. Shutting down consumer.")
+				fmt.Println("No messages received in the last 60 seconds. Shutting down consumer.")
 				close(dataChannel)
 				cancel()
 				return
 			}
-			time.Sleep(5 * time.Second)
+			time.Sleep(10 * time.Second)
 		}
 	}()
 
 	sub := client.Subscriber(subscriptionID) // Get subscription from client
-	// Receive messages from the subscription and send them to the dataChannel
+	/*
+		Receive messages from the subscription and send them to the dataChannel.
+		PARAMS:
+			- ctx: Context
+			- msg: Message
+	*/
+
 	err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
-		timeSinceLastMessage = time.Now()     // Update time since last message was received
-		defer msg.Ack()                       // Ack the message to remove it from the subscription
+		timeSinceLastMessage = time.Now() // Update time since last message was received
+		//defer msg.Ack()                       // Ack the message to remove it from the subscription
 		var job Job                           // Create a new job
 		err := json.Unmarshal(msg.Data, &job) // Unmarshal the message data into the job
 		if err != nil {
@@ -166,8 +178,13 @@ func downloadImageWorker(workerID int,
 	for job := range dataChannel {
 		err := downloadImage(job, supabaseClient, successChannel) // Download the image
 		if err != nil {
-			fmt.Printf("Error downloading image for %s: %v\n", job.NormalizedName, err)
-			job.Msg.Nack() // Nack the message to put it back in the subscription
+			fmt.Printf("Image job failed | id=%d fighter=%s error=%v\n",
+				job.ID,
+				job.NormalizedName,
+				err,
+			)
+			job.ErrorMsg = err.Error()                           // Set the error message for the job
+			handleFailedJob(&job, job.ErrorMsg, pool, publisher) // Handle the failed job
 			continue
 		}
 
