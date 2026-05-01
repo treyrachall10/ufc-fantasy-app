@@ -100,3 +100,20 @@ func generateArgsList(jobs []types.ImageJob) []interface{} {
 	}
 	return args
 }
+
+func UpdateFailedImageJob(pool *pgxpool.Pool, job *types.ImageJob, query string) (int64, error) {
+	/*
+		Updates a failed image job in the database.
+		PARAMS:
+			- pool: Postgres connection
+			- job: Image job
+			- query: Query to update the image job
+	*/
+	var retryCount int64
+	err := pool.QueryRow(context.Background(), query, job.ErrorMsg, job.ID).Scan(&retryCount) // Scan the retry count from the database
+	if err != nil {
+		return 0, err
+	}
+	fmt.Printf("Retry count for job %d: %d\n", job.ID, retryCount)
+	return retryCount, nil
+}
