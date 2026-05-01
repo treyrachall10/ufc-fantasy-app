@@ -6,10 +6,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func successWorker(successChannel <-chan Job, wg *sync.WaitGroup, conn *pgx.Conn) {
+func successWorker(successChannel <-chan Job, wg *sync.WaitGroup, pool *pgxpool.Pool) {
+	/*
+		Consumes successful jobs from the successChannel and updates the image jobs in the database.
+		PARAMS:
+		- successChannel: Channel to receive successful jobs from
+		- wg: Wait group to wait for all workers to finish
+		- pool: Postgres connection
+	*/
+
 	defer wg.Done()
 
 	jobs := make([]Job, 0, 50)              // Create a slice to store the jobs
@@ -17,12 +25,17 @@ func successWorker(successChannel <-chan Job, wg *sync.WaitGroup, conn *pgx.Conn
 	defer timer.Stop()
 
 	flushJobs := func() {
-		// If there are no jobs, return
+		/*
+			Flushes the jobs to the database.
+			PARAMS:
+			- None
+		*/
+
 		if len(jobs) == 0 {
 			return
 		}
 
-		err := supabase.BulkUpdateImageJobs(conn, jobs) // Bulk update the image jobs
+		err := supabase.BulkUpdateImageJobs(pool, jobs) // Bulk update the image jobs
 		if err != nil {
 			fmt.Printf("Failed to bulk update image jobs: %v\n", err)
 			return
