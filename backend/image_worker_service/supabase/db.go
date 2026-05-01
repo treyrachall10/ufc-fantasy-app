@@ -9,6 +9,7 @@ import (
 	"image-worker/types"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func NewPostgresClient() *pgxpool.Pool {
@@ -93,6 +94,14 @@ func generateBulkSQLSring(length int) string {
 }
 
 func generateArgsList(jobs []types.ImageJob) []interface{} {
+	/*
+		Generates the arguments list for the query.
+		PARAMS:
+			- jobs: Jobs to generate the arguments list for
+		RETURNS:
+			- args: Arguments list
+	*/
+
 	// Generate the arguments list for the query
 	args := make([]interface{}, 0)
 	for _, job := range jobs {
