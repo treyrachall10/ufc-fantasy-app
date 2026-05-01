@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-v5vvwe4ka+p&3#96s_^7!isbygf9+*o)uzp0j2)_y-eyua@!w5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -55,6 +55,8 @@ INSTALLED_APPS = [
 
     # Filters
     'django_filters',
+    # API key auth
+    "rest_framework_api_key"
 ]
 SITE_ID = 1
 CORS_ALLOW_ALL_ORIGINS = True
@@ -193,3 +195,4 @@ ACCOUNT_EMAIL_VERIFICATION = 'none'
 
 # Supabase settings
 SUPABASE_TEAM_IMAGE_BUCKET = os.environ.get("SUPABASE_TEAM_IMAGE_BUCKET")
+SUPABASE_FIGHTER_IMAGE_BUCKET = os.environ.get("SUPABASE_FIGHTER_IMAGE_BUCKET")

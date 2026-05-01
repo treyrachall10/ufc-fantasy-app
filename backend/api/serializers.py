@@ -56,6 +56,15 @@ class FighterSerializer(serializers.HyperlinkedModelSerializer):
     height = serializers.IntegerField(source='fighter.height')
     reach = serializers.IntegerField(source='fighter.reach')
     dob = serializers.DateField(source='fighter.dob')
+    img_url = serializers.SerializerMethodField()
+
+    def get_img_url(self, obj):
+        '''
+            -   Returns public url for fighter image if it exists in Supabase storage, otherwise returns None
+        '''
+        if obj.fighter.img_url:
+            return supabase.storage.from_(settings.SUPABASE_FIGHTER_IMAGE_BUCKET).get_public_url(obj.fighter.img_url)
+        return None
 
     class Meta:
         model = FighterCareerStats
@@ -71,6 +80,7 @@ class FighterSerializer(serializers.HyperlinkedModelSerializer):
             'reach',
             'dob',
             'record',
+            'img_url',
         ]
 
 class EventSerializer(serializers.ModelSerializer):
@@ -527,12 +537,23 @@ class DraftSerializer(serializers.ModelSerializer):
         ]
 
 class TeamListFighterSerializer(serializers.ModelSerializer):
+    img_url = serializers.SerializerMethodField()
+
+    def get_img_url(self, obj):
+        '''
+            -   Returns public url for fighter image if it exists in Supabase storage, otherwise returns None
+        '''
+        if obj.img_url:
+            return supabase.storage.from_(settings.SUPABASE_FIGHTER_IMAGE_BUCKET).get_public_url(obj.img_url)
+        return None
+    
     class Meta:
         model = Fighters
         fields = [
             'fighter_id',
             'full_name',
             'weight',
+            'img_url'
         ]
 
 class TeamListFantasyScoreSerializer(serializers.Serializer):
@@ -574,3 +595,9 @@ class DraftPickHistorySerializer(serializers.ModelSerializer):
             'team',
             'fighter',
         ]
+
+# Serializer for Fighter image candidate selection
+class FighterImageCandidateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Fighters
+        fields = ["fighter_id", "normalized_name"]

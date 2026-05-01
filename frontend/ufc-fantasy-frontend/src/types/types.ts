@@ -9,6 +9,7 @@ export interface Fighter {
     height: number | null,
     reach: number | null,
     dob: string | null,
+    img_url: string | null,
     record: {
         wins: {
             total: number,
@@ -267,6 +268,7 @@ export interface TeamListFighter {
     fighter_id: number;
     full_name: string;
     weight: number;
+    img_url: string | null;
 }
 
 export interface TeamFighterFantasyStats {

@@ -5,7 +5,7 @@
 """
 import pandas as pd
 from config import DATARAWPATH, DATACLEANPATH
-from scripts.utils import normalize_name
+from backend.shared.utils import normalize_name
 from scripts.scrape.scrape_active_fighters import scrape_active_fighters_df
 
 def convert_to_inches(value_to_conv):
@@ -147,6 +147,7 @@ def parse_fighters():
     df2["normalized_name"] = df2["full_name"].apply(normalize_name)
 
     active_fighters_df["normalized_name"] = active_fighters_df["Fighter Name"].apply(normalize_name)
+    active_fighters_df = active_fighters_df.drop(columns=["Fighter Name"]) # Drop original name column since we have normalized names now
 
     # Merge on normalized name
     main_df = df1.merge(

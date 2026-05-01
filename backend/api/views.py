@@ -3,7 +3,7 @@
 '''
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, BasePermission
 from rest_framework import generics, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import IntegrityError
@@ -13,12 +13,16 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from django.db.models import Q
+from rest_framework_api_key.permissions import HasAPIKey
+
 from dateutil.parser import parse
 from dateutil.parser import ParserError
 from django.shortcuts import get_object_or_404
 from zoneinfo import ZoneInfo
 from datetime import timezone as datetime_timezone
 from pathlib import Path
+
 from services.supabase import supabase
 
 from api.pagination_classes import FighterListPagination, UserLeaguesPagination
@@ -39,6 +43,7 @@ from .serializers import (
     TeamListFighterSerializer,
     TeamSerializer,
     UserLeaguesAndTeamsListSerializer,
+    FighterImageCandidateSerializer
 )
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
                             FightStats, RoundStats, FightScore, League, LeagueMember, 
@@ -50,6 +55,8 @@ from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftabl
                     )
 
 from accounts.models import User
+
+from .permissions import IsAthleteImageService, IsUploaderService
 
 from authlib.integrations.django_oauth2 import ResourceProtector
 from .auth0_validator import Auth0JWTBearerTokenValidator
@@ -1102,6 +1109,42 @@ class SetTeamImage(generics.UpdateAPIView):
                 "team_id": team.id,
                 "image_path": image_path,
                 "detail": "Team image updated successfully.",
+            },
+            status=200,
+        )
+
+class GetFighterImageCandidates(generics.ListAPIView):
+    '''
+        API view to get fighters without images for athlete image service to consume and update with images.
+    '''
+    permission_classes = [HasAPIKey, IsAthleteImageService]
+    serializer_class = FighterImageCandidateSerializer
+
+    def get_queryset(self):
+        return Fighters.objects.filter(Q(img_url__isnull=True) | Q(img_url=""))
+    
+class AddFighterImageURL(generics.UpdateAPIView):
+    '''
+        API view to allow athlete image service to update fighter record with image url after processing.
+    '''
+    permission_classes = [HasAPIKey, IsUploaderService]
+
+    def patch(self, request, fighter_id):
+        '''
+            Expects img_url in request data, updates fighter record with image url for frontend to consume.
+        '''
+        fighter = get_object_or_404(Fighters, fighter_id=fighter_id)
+        image_url = request.data.get("img_url") # Expecting full URL from athlete image service
+
+        if not image_url:
+            return Response({"detail": "img_url is required"}, status=400)
+        
+        fighter.img_url = image_url
+        fighter.save(update_fields=["img_url"])
+
+        return Response(
+            {
+                "detail": "Fighter image URL updated successfully.",
             },
             status=200,
         )
