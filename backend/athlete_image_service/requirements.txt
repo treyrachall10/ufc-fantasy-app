@@ -1,0 +1,6 @@
+beautifulsoup4
+requests
+pandas
+PyYAML
+google-cloud-pubsub
+psycopg2-binary

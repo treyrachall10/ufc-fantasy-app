@@ -10,6 +10,4 @@ class Command(BaseCommand):
     help = "Updates athlete images in the database"
 
     def handle(self, *args, **options):
-        thread = threading.Thread(target=consume_jobs, daemon=False) # Start worker thread to consume jobs from queue
-        thread.start()
         scrape_fighter_images_df()

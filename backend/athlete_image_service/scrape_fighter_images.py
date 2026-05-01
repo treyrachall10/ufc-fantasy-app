@@ -4,11 +4,16 @@ import json
 import pandas as pd
 import yaml
 import os
-import threading
 from .parser import parse_html
-from shared.job_queue import publish_job, worker_queue
+from google.cloud import pubsub_v1
+from athlete_image_service.db.postgres_client import get_db
+from psycopg2.extras import execute_values
 
 image_service_key = os.getenv("IMAGE_SERVICE_KEY")
+PUBSUB_IMAGE_JOB_TOPIC = os.getenv("PUBSUB_IMAGE_JOB_TOPIC")
+GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT")
+publisher = pubsub_v1.PublisherClient()
+IMAGE_JOBS_TOPIC_PATH = f"projects/{GOOGLE_CLOUD_PROJECT}/topics/{PUBSUB_IMAGE_JOB_TOPIC}"
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.yaml')
 
@@ -43,6 +48,14 @@ def scrape_fighter_images_df():
         print("No fighters with missing images found in database.")
         return
     else:
+        connection, cursor = get_db() # Get connection and cursor to database
+        # Define insert query for image job table
+        insert_query = """
+        INSERT INTO image_job (fighter_id, src_img_url, normalized_name, status, retry_count) 
+        VALUES %s
+        RETURNING id, fighter_id, normalized_name, retry_count, src_img_url;
+        """
+
         print("Scraping fighter images...")
 
         # Convert JSON string to python object
@@ -74,6 +87,8 @@ def scrape_fighter_images_df():
         
         # Loop through pages until no more fighters are found
         while True:
+            db_entries = [] # List to hold db entries for each fighter
+
             url_params["page"] = page
             response = session.get(ALL_FIGHTERS_URL, params=url_params, headers=HEADERS)
             soup = BeautifulSoup(response.text, "html.parser")
@@ -93,14 +108,33 @@ def scrape_fighter_images_df():
                 # If id does not exist or image url is null, skip fighter
                 if fighter_id is None or res['img_url'] is None:
                     continue
-                res['fighter_id'] = fighter_id
-                publish_job(res) # publish job to queue for worker to consume
+
+                db_entries.append((fighter_id, res['img_url'], normalized_name, 'SCRAPED', 0)) # Append db entry to list
+
+            # Insert db entries into database
+            returned_db_entries =execute_values(cur=cursor,sql=insert_query, argslist=db_entries, fetch=True) # Bulk insert db entries into database
+            connection.commit()
+            print(f"Inserted {len(db_entries)} db entries into database")
+
+            # Publish jobs to queue for worker to consume
+            for db_entry in returned_db_entries:
+                job = {
+                    'id': db_entry[0],
+                    'fighter_id': db_entry[1],
+                    'normalized_name': db_entry[2],
+                    'retry_count': db_entry[3],
+                    'img_url': db_entry[4]
+                }
+
+                publisher.publish(IMAGE_JOBS_TOPIC_PATH, json.dumps(job).encode("utf-8"))
 
             page += 1 # Increment page number for next request
-            
-        publish_job(None) # Publish None to signal worker to stop consuming after all jobs are processed
-        worker_queue.join() # Wait for all jobs to be processed before exiting function
 
+        # Close connection and cursor to database
+        cursor.close()
+        connection.close()
+        print("Scraping fighter images complete.")
+            
 def get_fighters_with_missing_images():
     '''
         Makes a request to the API to get all fighters in the db that are missing image url's
@@ -126,3 +160,6 @@ def get_fighter_id(lookup, normalized_name):
     if key: 
         return lookup.get(normalized_name).get("fighter_id")
     return None
+
+if __name__ == "__main__":
+    scrape_fighter_images_df()
