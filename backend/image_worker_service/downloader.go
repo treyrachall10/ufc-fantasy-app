@@ -48,18 +48,11 @@ func main() {
 		log.Fatalf("Failed to create pubsub client: %v", err)
 	}
 	publisher := client.Publisher(topicID) // Create publisher for topic
-	if err != nil {
-		log.Fatalf("Failed to create publisher: %v", err)
-	}
 
 	connection := types.Connection{
 		Client:    client,
 		Publisher: publisher,
 		Pool:      pool,
-	}
-
-	if err != nil {
-		log.Fatalf("Failed to create pubsub client: %v", err)
 	}
 
 	defer client.Close() // Close Pubsub client at end of function
@@ -79,7 +72,7 @@ func main() {
 		// Add worker to wait group
 		DownloadUploadwg.Add(1)
 		// Start worker
-		go downloadImageWorker(i+1, channels, &DownloadUploadwg, supabaseClient, pool, publisher) // Start worker
+		go downloadImageWorker(channels, &DownloadUploadwg, supabaseClient, pool, publisher) // Start worker
 	}
 
 	// Start the success worker
@@ -93,7 +86,6 @@ func main() {
 	DownloadUploadwg.Wait()
 	close(channels.Success) // Close the success channel to signal the success worker to finish
 	SuccessWorkerwg.Wait()
-	fmt.Printf("Total jobs put into worker channel: %d\n", atomic.LoadInt64(&jobsEnqueued))
 }
 
 // ConsumeJobs handles pubsub communication and sends jobs to dataChannel.
@@ -158,7 +150,7 @@ func ConsumeJobs(
 }
 
 // downloadImageWorker consumes jobs and downloads each fighter image.
-func downloadImageWorker(workerID int,
+func downloadImageWorker(
 	channels types.Channels,
 	wg *sync.WaitGroup,
 	supabaseClient *storage_go.Client,
@@ -195,7 +187,6 @@ func downloadImageWorker(workerID int,
 
 		job.Msg.Ack()
 	}
-	fmt.Println("Download worker exited")
 }
 
 // downloadImage fetches image bytes from URL and forwards to uploader.
