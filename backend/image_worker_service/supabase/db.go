@@ -51,7 +51,7 @@ func BulkUpdateImageJobs(pool *pgxpool.Pool, jobs []types.ImageJob) error {
 
 	// Build the query
 	query := fmt.Sprintf(`
-		UPDATE image_job as ij
+		UPDATE worker.image_job as ij
 		SET 
 			status = 'COMPLETED',
 			supabase_path = 'fighter-images/' || data.fighter_id || '/' || data.supabase_path,

@@ -35,7 +35,7 @@ func handleFailedJob(job *types.ImageJob, errMsg string, pool *pgxpool.Pool, pub
 		if job.Msg != nil {
 			retryCount, err := supabase.UpdateFailedImageJob(pool,
 				job,
-				`UPDATE image_job
+				`UPDATE worker.image_job
 				SET status = 'FAILED',
 				retry_count = retry_count + 1,
 				updated_at = NOW(),
@@ -60,7 +60,7 @@ func handleFailedJob(job *types.ImageJob, errMsg string, pool *pgxpool.Pool, pub
 		if job.Msg != nil {
 			_, err := supabase.UpdateFailedImageJob(pool,
 				job,
-				`UPDATE image_job
+				`UPDATE worker.image_job
 				SET status = 'DEAD',
 				updated_at = NOW(),
 				error_msg = $1::text
