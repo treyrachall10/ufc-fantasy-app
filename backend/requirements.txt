@@ -22,3 +22,5 @@ ruff
 Pillow
 supabase
 djangorestframework-api-key==2.*
+celery
+redis
