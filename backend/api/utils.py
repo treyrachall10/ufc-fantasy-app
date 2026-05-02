@@ -13,6 +13,7 @@ import string
 import random
 from django.db.models import Prefetch
 from services.supabase import supabase
+from fantasy.tasks import execute_autodraft_check
 
 def create_fantasy_for_fighter(fight, fighter,  round_stats):
     """
@@ -135,6 +136,12 @@ def execute_draft_pick(team, fighter, slot_type, draft, pick_num):
     draft.current_pick += 1
     draft.pick_start_time = timezone.now()
     draft.save()
+
+    # Schedule autodraft timer for next pick
+    # draft.id: identifies which draft to check
+    # draft.current_pick: the pick number worker will verify after timer
+    # countdown=60: seconds to wait before worker checks if current pick is the same 
+    execute_autodraft_check.apply_async(args=[draft.id, draft.current_pick], countdown=60)
 
 def autopick_fighter(team, draft):
     """
