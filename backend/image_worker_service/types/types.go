@@ -14,11 +14,9 @@ type ImageJob struct {
 	RetryCount     int64           `json:"retry_count"`
 	SupabasePath   string          `json:"-"`
 	ErrorMsg       string          `json:"-"`
-	Done           chan error      `json:"-"`
 }
 
 type Channels struct {
-	Data    chan ImageJob
 	Success chan ImageJob
 }
 
