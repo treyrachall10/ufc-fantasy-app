@@ -836,6 +836,10 @@ def GetDraftState(request, draft_id):
         draft.current_pick = 1
         draft.pick_start_time = timezone.now()
         draft.save()
+        
+        # Queue the very first pick autodraft timer
+        from fantasy.tasks import execute_autodraft_check
+        execute_autodraft_check.apply_async(args=[draft.id, draft.current_pick], countdown=60)
      # if draft is pending and date not passed return pending
     if draft.status == Draft.Status.PENDING:
         return Response(
@@ -878,15 +882,6 @@ def GetDraftState(request, draft_id):
 
         draft_order = draft_orders[draft.current_pick - 1]
         team_to_pick = draft_order.team
-        # Check time remaining for pick and if time has expired, auto pick for team to pick and advance draft
-        time_elapsed = timezone.now() - draft.pick_start_time
-        if time_elapsed >= timezone.timedelta(seconds=60): # 60 second pick timer
-            fighter, slot_type = autopick_fighter(team=team_to_pick, draft=draft)
-            if fighter and slot_type is not None:
-                execute_draft_pick(team=team_to_pick, fighter=fighter, draft=draft, pick_num=draft.current_pick, slot_type=slot_type)
-                if draft.current_pick > total_draft_orders:
-                    draft.status = Draft.Status.COMPLETED
-                    draft.save(update_fields=['status'])
         return Response(
             {
                 "draft_status": draft.status,
