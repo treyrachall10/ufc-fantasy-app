@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub/v2"
-	"github.com/jackc/pgx/v5/pgxpool"
 	storage_go "github.com/supabase-community/storage-go"
 )
 
@@ -31,8 +30,6 @@ func main() {
 	topicID := os.Getenv("PUBSUB_IMAGE_JOB_TOPIC")           // Topic ID from environment variables
 
 	fmt.Println("Image worker service starting...")
-
-	supabaseClient := supabase.NewStorageClient() // Create Supabase client
 
 	// Create postgres client
 	pool, err := supabase.NewPostgresClient() // Create postgres client
@@ -57,33 +54,21 @@ func main() {
 
 	defer client.Close() // Close Pubsub client at end of function
 
-	// Create channels for data and success
+	// Create channel for successful jobs.
 	channels := types.Channels{
-		Data:    make(chan Job),
 		Success: make(chan Job),
 	}
 
-	var DownloadUploadwg sync.WaitGroup // Create wait group to wait for all downloder/uploaderworkers to finish
 	var SuccessWorkerwg sync.WaitGroup  // Create wait group to wait for all success workers to finish
 	var jobsEnqueued int64              // Create counter to track number of jobs enqueued
-
-	// Start download/upload workers (workerCount).
-	for i := 0; i < workerCount; i++ {
-		// Add worker to wait group
-		DownloadUploadwg.Add(1)
-		// Start worker
-		go downloadImageWorker(channels, &DownloadUploadwg, supabaseClient, pool, publisher) // Start worker
-	}
 
 	// Start the success worker
 	SuccessWorkerwg.Add(1)
 	go successWorker(channels.Success, &SuccessWorkerwg, pool) // Start success worker
 
 	// Consume queue messages and feed the worker channel.
-	ConsumeJobs(connection, ctx, cancel, channels, &jobsEnqueued, subscriptionID)
+	ConsumeJobs(connection, ctx, cancel, channels, &jobsEnqueued, subscriptionID, workerCount)
 
-	// Wait for workers to finish after the channel is closed.
-	DownloadUploadwg.Wait()
 	close(channels.Success) // Close the success channel to signal the success worker to finish
 	SuccessWorkerwg.Wait()
 }
@@ -95,7 +80,8 @@ func ConsumeJobs(
 	cancel context.CancelFunc,
 	channels types.Channels,
 	jobsEnqueued *int64,
-	subscriptionID string) {
+	subscriptionID string,
+	workerCount int) {
 	/*
 		Consumes messages from the pubsub subscription and sends them to the dataChannel.
 		Shuts down the consumer if no messages are received in the last 60 seconds.
@@ -117,7 +103,6 @@ func ConsumeJobs(
 		for {
 			if time.Since(timeSinceLastMessage) > timeSinceLastMessageThreshold {
 				fmt.Println("No messages received in the last 60 seconds. Shutting down consumer.")
-				close(channels.Data)
 				cancel()
 				return
 			}
@@ -127,12 +112,11 @@ func ConsumeJobs(
 
 	sub := connection.Client.Subscriber(subscriptionID) // Get subscription from client
 	sub.ReceiveSettings.MaxExtension = 2 * time.Minute  // Set the maximum extension to 2 minutes
-	sub.ReceiveSettings.MaxOutstandingMessages = 10     // Set the maximum number of outstanding messages to 10
+	sub.ReceiveSettings.MaxOutstandingMessages = workerCount // Set outstanding messages to worker capacity
 
 	err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		timeSinceLastMessage = time.Now() // Update time since last message was received
 		var job Job                       // Create a new job
-		job.Done = make(chan error)
 		err := json.Unmarshal(msg.Data, &job) // Unmarshal the message data into the job
 		if err != nil {
 			log.Printf("Failed to unmarshal message: %v", err)
@@ -142,9 +126,17 @@ func ConsumeJobs(
 
 		job.Msg = msg
 
-		log.Println("Received message for:", job.NormalizedName)
-		channels.Data <- job // Send the job to the dataChannel
-		err = <-job.Done     // Wait for the job to be done
+		err = downloadImageWorker(job, channels.Success)
+		if err != nil {
+			job.ErrorMsg = err.Error()
+			if failErr := handleFailedJob(&job, job.ErrorMsg, connection.Pool, connection.Publisher); failErr != nil {
+				log.Printf("Failed to handle failed job %d: %v", job.ID, failErr)
+				msg.Nack()
+				return
+			}
+		}
+
+		msg.Ack() // Ack only after processing (or failed-job handling) is complete
 		atomic.AddInt64(jobsEnqueued, 1)
 	})
 	if err != nil {
@@ -152,46 +144,31 @@ func ConsumeJobs(
 	}
 }
 
-// downloadImageWorker consumes jobs and downloads each fighter image.
+// downloadImageWorker processes one image job and returns an error on failure.
 func downloadImageWorker(
-	channels types.Channels,
-	wg *sync.WaitGroup,
-	supabaseClient *storage_go.Client,
-	pool *pgxpool.Pool,
-	publisher *pubsub.Publisher) {
+	job Job,
+	successChannel chan Job) error {
 	/*
-		Consumes jobs from the dataChannel and downloads each fighter image.
-		Shuts down the worker if a stop job is received.
+		Processes a single image job.
 
 		PARAMS:
-		- workerID: ID of the worker
-		- channels: Channels to receive and send jobs from
-		- wg: Wait group to wait for all workers to finish
-		- supabaseClient: Supabase client
-		- pool: Postgres connection
-		- publisher: Publisher for topic
+		- job: Image job to process
+		- successChannel: Channel to send successful jobs to
 	*/
 
-	defer wg.Done() // Done the worker when the wait group is done
+	supabaseClient := supabase.NewStorageClient() // Create Supabase client
 
-	// Loop through the dataChannel and download each image
-	for job := range channels.Data {
-		err := downloadImage(job, supabaseClient, channels.Success) // Download the image
-		if err != nil {
-			fmt.Printf("Image job failed | id=%d fighter=%s error=%v\n",
-				job.ID,
-				job.NormalizedName,
-				err,
-			)
-			job.ErrorMsg = err.Error()                           // Set the error message for the job
-			handleFailedJob(&job, job.ErrorMsg, pool, publisher) // Handle the failed job
-			continue
-		}
-
-		job.Done <- nil // Send nil to the done channel to indicate that the job is done
-		job.Msg.Ack()   // Ack the message to remove it from the subscription
-		fmt.Println("Image downloaded for:", job.NormalizedName, "Ack'd message")
+	err := downloadImage(job, supabaseClient, successChannel) // Download the image
+	if err != nil {
+		fmt.Printf("Image job failed | id=%d fighter=%s error=%v\n",
+			job.ID,
+			job.NormalizedName,
+			err,
+		)
+		return err
 	}
+
+	return nil
 }
 
 // downloadImage fetches image bytes from URL and forwards to uploader.

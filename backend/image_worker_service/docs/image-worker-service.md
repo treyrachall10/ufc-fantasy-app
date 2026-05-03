@@ -30,25 +30,31 @@ The `image_worker_service` processes fighter image jobs created by the scraper s
 
 1. The scraper service creates image jobs and publishes them to Pub/Sub topic: `image-jobs`.
 2. `image_worker_service` listens to `image-jobs` and consumes job messages.
-3. Worker goroutines process jobs concurrently (**10** Go workers).
+3. **Pub/Sub owns per-message concurrency**, not a separate pool of download goroutines started from `main`. The subscriber’s `Receive` handler runs the work for each message (up to `ReceiveSettings.MaxOutstandingMessages`, aligned with **10** in code). This matches Google’s guidance: **`Ack` / `Nack` happen inside the subscriber callback**, after processing finishes, so flow control and delivery semantics stay correct.
 4. On success:
-   - The job result is sent to a success channel.
+   - `downloadImageWorker` returns `nil`.
+   - The job is sent on a success channel.
    - A dedicated success worker performs batch updates for successful jobs, reducing network/database calls.
    - The service submits image URL changes to the main system through the web API endpoint:
      - `path('api/fighters/<int:fighter_id>/SetFighterImage', views.AddFighterImageURL.as_view())`
+   - The receive callback then **`Ack`s** the Pub/Sub message.
 5. On failure:
-   - The service immediately calls `HandleFailedJob`.
-   - It republishes the same message payload with an incremented retry count.
-   - It updates failure metadata in the shared jobs table.
+   - `downloadImageWorker` returns a non-nil `error`.
+   - The callback calls `handleFailedJob`, which also returns **`nil` or `error`**. If handling succeeds (DB update / republish as designed), the callback **`Ack`s** the original message so it is not redelivered as a duplicate. If `handleFailedJob` fails, the callback **`Nack`s** so the message can be retried.
+   - Under the retry cap, the service republishes the payload with an incremented retry count and updates failure metadata in the shared jobs table; beyond the cap it marks the job dead in the shared table.
 
-### Per-job `Done` channel (receive callback synchronization)
+### Receive callback: work, return values, and `Ack` / `Nack`
 
-For each incoming Pub/Sub message, the subscriber creates a `Done` channel on the job (`make(chan error)`). The receive callback:
+There is **no per-job `Done` channel** and **no `Data` worker channel** for downloads. For each message the `Receive` callback:
 
-1. Unmarshals the payload into `ImageJob`, attaches the Pub/Sub `Message`, and sends the job on the unbuffered `Data` channel (this blocks until one of the download/upload workers is ready to take the job).
-2. **Blocks on `<-job.Done`** until that worker finishes processing (success or handled failure) and signals completion by sending on `Done`.
+1. Unmarshals the payload into `ImageJob` and attaches the Pub/Sub `Message` when needed for bookkeeping.
+2. Calls **`downloadImageWorker`**, which returns **`nil` on success** or an **`error` on failure** (download/upload/API update failures).
+3. **Branches on that return value:**
+   - **`nil` from `downloadImageWorker`:** **`msg.Ack()`** (work succeeded).
+   - **Non-nil from `downloadImageWorker`:** set `job.ErrorMsg`, call **`handleFailedJob`**; if that returns **`nil`**, **`msg.Ack()`**; if **`handleFailedJob`** returns **`error`**, **`msg.Nack()`**.
+4. Invalid JSON: **`msg.Nack()`** in the callback (poison/dead-letter policy could **`Ack`** elsewhere; today the code **`Nack`s**).
 
-Because the callback does not return until the job is fully processed, the client does not treat that message as finished while work is still in flight. Together with the subscription’s outstanding-message limits, this keeps the service from effectively pulling and acknowledging work faster than the worker pool can accept it: the callback stays alive until a worker is done, so new messages are not advanced past “received” in a way that outruns worker readiness.
+Because the callback does the work and only then acknowledges, the client does not complete a message while work is still logically in flight on another goroutine you spawned yourself. Concurrency is bounded by **`MaxOutstandingMessages`** (set from the same **10** as `workerCount` in code).
 
 ### Boundaries
 
@@ -62,11 +68,10 @@ Because the callback does not return until the job is fully processed, the clien
 
 - Service runs as a Go worker process.
 - Consumes Google Pub/Sub messages from `image-jobs`.
-- Uses **10** concurrent workers to improve throughput.
+- Uses **Pub/Sub `Receive` concurrency** (outstanding messages aligned with **10**) for parallel image jobs; each invocation runs **`downloadImageWorker`** and then **`Ack` / `Nack`** in the same callback.
 - Uses in-process channels to coordinate:
-  - Job processing workers
-  - Success batching worker
-  - Failure handling path
+  - Success batching worker (success channel only)
+  - Failure handling path (invoked from the receive callback when `downloadImageWorker` returns an error)
 
 ### Deployment and scaling notes
 
@@ -104,11 +109,11 @@ flowchart TD
     end
 
     subgraph Service[image_worker_service]
-        listener[Subscriber Listener]
-        workers[10 Go Workers]
+        listener[Subscriber Receive]
+        perMsg[Per-message handler:\ndownloadImageWorker\nreturns err or nil]
         successCh[[success channel]]
         successWorker[Success Worker\nBatch Success Updater]
-        failPath[HandleFailedJob]
+        failPath[handleFailedJob\nreturns err or nil]
         retryPub[Republish Message\nretry_count + 1]
     end
 
@@ -118,12 +123,12 @@ flowchart TD
         shared[(Shared Jobs Table)]
     end
 
-    topic --> listener --> workers
-    workers -->|success event| successCh --> successWorker
+    topic --> listener --> perMsg
+    perMsg -->|nil| successCh --> successWorker
     successWorker -->|batch update successful jobs| shared
     successWorker -->|submit image URL updates| api --> main
 
-    workers -->|failure event| failPath --> shared
+    perMsg -->|error| failPath --> shared
     failPath --> retryPub --> topic
 ```
 
@@ -134,12 +139,12 @@ Endpoint reference used by `image_worker_service` for fighter image updates:
 
 | Requirement | Technical Choice | User Outcome |
 |---|---|---|
-| Throughput | **10** concurrent Go workers | Faster image processing and fresher fighter profiles. |
+| Throughput | **10** concurrent in-flight messages via Pub/Sub `Receive` (not a separate download worker pool) | Faster image processing and fresher fighter profiles. |
 | Reduced network load | Success channel + batch success worker | Fewer update calls and better efficiency under load. |
 | Reliability | Immediate failure handling + retry republish with incremented count | Temporary failures recover automatically with less manual intervention. |
 | Data ownership boundaries | Update main fighter image data via web API endpoint, not direct DB writes | Safer integration and clearer ownership of main application data. |
 | Ecosystem alignment | Google Pub/Sub (`image-jobs`) | Consistent platform usage with existing Google ecosystem and room to experiment. |
-| Backpressure | Per-job `Done` channel; receive callback waits for worker completion | Work is not driven ahead of worker capacity. |
+| Backpressure | `ReceiveSettings.MaxOutstandingMessages` aligned with worker count; processing and **`Ack` / `Nack`** in the subscriber callback | Pub/Sub flow control matches in-flight work; avoids orphaned or duplicate deliveries from ack timing drift. |
 
 ## 6) Communication Flows
 
@@ -157,8 +162,8 @@ Endpoint reference used by `image_worker_service` for fighter image updates:
 
 ### Failure and retry behavior
 
-- Failed jobs are handled immediately by `HandleFailedJob`.
-- The same job message is republished with only retry count incremented.
+- When `downloadImageWorker` returns an error, the receive callback invokes **`handleFailedJob`**, which returns **`nil` or `error`**. The callback **`Nack`s** only if failure handling itself fails; otherwise it **`Ack`s** after a successful failure-handling path.
+- Under the retry cap, the same logical job is republished with retry count incremented (and the original delivery is acked so it is not redelivered in parallel with the republish).
 - This preserves payload consistency while enabling controlled retry attempts.
 
 ## 7) Why Pub/Sub
