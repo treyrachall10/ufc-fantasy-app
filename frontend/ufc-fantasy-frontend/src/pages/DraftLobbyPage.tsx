@@ -158,7 +158,11 @@ export default function DraftLobbyPage() {
                 (payload) => {
                     //  fires the exact millisecond the database changes
                     console.log('Database event detected! Fetching fresh data...', payload);
+                    // Invalidate all queries SIMULTANEOUSLY so they fetch in parallel
                     queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'state'] });
+                    queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
+                    queryClient.invalidateQueries({ queryKey: ['team', selectedTeamId] });
+                    queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'draftableFighters'] });
                 }
             )
             .subscribe();
@@ -233,19 +237,13 @@ export default function DraftLobbyPage() {
     const nextUserPick = draftOrderData && draftStateData ? draftOrderData.find((pick) => pick.team.id === draftStateData.user_team_id && pick.pick_num >= draftStateData.current_pick) : undefined;
     const picksUntilUserNextPick = nextUserPick && draftStateData ? nextUserPick.pick_num - draftStateData.current_pick : undefined;
 
-    // Effect to invalidate past picks query and update when user next pick is when current_pick changes
-    useEffect(() => {
-        if (!draftStateData?.current_pick) return;
-
-        queryClient.invalidateQueries({ queryKey: ['draft', params.draftId, 'pastPicks'] });
-        queryClient.invalidateQueries({ queryKey: ['team', selectedTeamId] });
-    }, [draftStateData?.current_pick, params.draftId, queryClient, selectedTeamId]);
+    // Removed the sequential useEffect because the WebSocket now invalidates all queries in parallel.
 
     // Effect to update the past picks reference when new picks are added to trigger animations in the AnimatedList component
     useEffect(() => {
-        if(!pastPicksData) return;
+        if (!pastPicksData) return;
 
-       setDraftHistory(pastPicksData.map((pick: any) => ({
+        setDraftHistory(pastPicksData.map((pick: any) => ({
             id: pick.pick_num,
             round: Math.ceil(pick.pick_num / leagueData?.league.capacity!),
             pick: pick.pick_num,
