@@ -152,8 +152,9 @@ export default function DraftLobbyPage() {
             .on(
                 'postgres_changes',
                 {
-                    event: '*',   // Listen to all events (INSERT, UPDATE, DELETE)
-                    schema: 'public'
+                    event: 'INSERT',   // Only listen for new picks being inserted
+                    schema: 'public',
+                    table: 'fantasy_draftpick' // Only listen to this table to avoid duplicate pings
                 },
                 (payload) => {
                     //  fires the exact millisecond the database changes
