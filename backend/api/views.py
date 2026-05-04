@@ -837,9 +837,9 @@ def GetDraftState(request, draft_id):
         draft.pick_start_time = timezone.now()
         draft.save()
         
-        # Queue the very first pick autodraft timer
+        # Queue the very first pick autodraft timer (starts pre-calculating at 55s)
         from fantasy.tasks import execute_autodraft_check
-        execute_autodraft_check.apply_async(args=[draft.id, draft.current_pick], countdown=60)
+        execute_autodraft_check.apply_async(args=[draft.id, draft.current_pick], countdown=55)
      # if draft is pending and date not passed return pending
     if draft.status == Draft.Status.PENDING:
         return Response(

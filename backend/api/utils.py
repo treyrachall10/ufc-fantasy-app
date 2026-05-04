@@ -140,8 +140,8 @@ def execute_draft_pick(team, fighter, slot_type, draft, pick_num):
     # Schedule autodraft timer for next pick
     # draft.id: identifies which draft to check
     # draft.current_pick: the pick number worker will verify after timer
-    # countdown=60: seconds to wait before worker checks if current pick is the same 
-    execute_autodraft_check.apply_async(args=[draft.id, draft.current_pick], countdown=60)
+    # countdown=55: seconds to wait before worker checks if current pick is the same 
+    execute_autodraft_check.apply_async(args=[draft.id, draft.current_pick], countdown=55)
 
 def autopick_fighter(team, draft):
     """
