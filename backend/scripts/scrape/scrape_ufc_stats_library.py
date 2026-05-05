@@ -131,8 +131,9 @@ def parse_fight_details(soup):
             'URL': tag['data-link'],
             'BOUT': fighter_tags[0].text.strip() + ' vs. ' + fighter_tags[1].text.strip(),
         }
-        # check if 'view matchup' is present in the row, if true then event is incomplete and fight cannot be parsed
-        if 'view matchup' in tag.get_text(' ', strip=True).lower():
+        result_tag = tag.find('i', class_="b-flag__inner")
+        # If result tag is None, then event incomplete and fight incomplete
+        if result_tag is None:
             event_complete = False
             fights[tag['data-link']]['CAN_PARSE'] = False
             fights[tag['data-link']]['HAS_BEEN_PARSED'] = False
