@@ -99,7 +99,7 @@ def scrape_stats():
         list_of_unparsed_events_urls = list(updated_event_details_df['URL'].loc[(updated_event_details_df['EVENT'].isin(list_of_unparsed_events))])
 
         # create empty df to store fight details
-        unparsed_fight_details_df = pd.DataFrame(columns=config['fight_details_column_names'])
+        new_fight_details_df = pd.DataFrame(columns=config['fight_details_column_names'])
 
         # loop through each event and parse fight details
         for url in tqdm(list_of_unparsed_events_urls):
@@ -115,7 +115,7 @@ def scrape_stats():
 
             # concat fight details to parsed fight details
             # concat update fight details to the top of existing df
-            new_fight_details_df = pd.concat([unparsed_fight_details_df, fight_details_df])
+            new_fight_details_df = pd.concat([new_fight_details_df, fight_details_df])
 
         # write updated event details to file
         updated_event_details_df.to_csv(config['event_details_file_name'], index=False)
@@ -125,6 +125,7 @@ def scrape_stats():
         new_fight_details_df = new_fight_details_df.set_index('URL') # set index to URL
         parsed_fight_details_df.update(new_fight_details_df) # update parsed fight details df with new fight details
         parsed_fight_details_df = parsed_fight_details_df.reset_index()
+        new_fight_details_df = new_fight_details_df.reset_index()
 
         # filter fight df's on fight url to not have duplicate fight details for the same fight and parse only unparsed fights
         filtered_new_fight_details_df = new_fight_details_df[~new_fight_details_df['URL'].isin(parsed_fight_details_df['URL'])]
