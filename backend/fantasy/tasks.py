@@ -50,8 +50,9 @@ def execute_autodraft_check(draft_id, expected_pick):
         now = timezone.now()
         sleep_seconds = (target_time - now).total_seconds()
         
-        # If the worker arrived early (e.g. at 50 seconds), sleep for the remaining time
+        # If the worker arrived early (e.g. at 55 seconds), sleep for the remaining time
         if sleep_seconds > 0:
+            logger.info(f"Pre-calculated {fighter.full_name} for Pick {expected_pick}. Sleeping for {sleep_seconds:.2f}s until 00:00...")
             time.sleep(sleep_seconds)
             
         # STEP 3: EXECUTE INSTANTLY AT T=60s WITH LOCKS
