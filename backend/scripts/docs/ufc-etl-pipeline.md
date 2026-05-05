@@ -59,9 +59,9 @@ The scraper loads this file with `yaml.safe_load` at import time in `scrape_ufc_
 
    - **`LIB.get_soup(url)`** then **`LIB.parse_fight_details(soup)`**:
      - Walks each fight row (`tr` with `js-fight-details-click`).
-     - **`event_complete`**: starts `True`; if **any** row’s visible text contains **`view matchup`** (case-insensitive), that row is treated as a **future / unbooked slot**: the **event** is marked incomplete for this scrape, and that fight gets **`CAN_PARSE = False`** and **`HAS_BEEN_PARSED = False`** — meaning **not parsable** and **not yet parsed** for results/stats.
-     - Rows without “view matchup” get **`CAN_PARSE = True`**, **`HAS_BEEN_PARSED = False`** until results are pulled.
-   - Merges new fight rows into `ufc_fight_details.csv` (indexed updates by `URL`).
+     - **`event_complete`**: starts `True`; if a row is missing the result marker (`i.b-flag__inner`), that fight is treated as incomplete: the **event** is marked incomplete for this scrape, and that fight gets **`CAN_PARSE = False`** and **`HAS_BEEN_PARSED = False`** — meaning **not parsable** and **not yet parsed** for results/stats.
+     - Rows with a result marker get **`CAN_PARSE = True`**, **`HAS_BEEN_PARSED = False`** until results are pulled.
+   - Fight rows are merged by `URL`, and existing rows are updated in place via dataframe `update()` before concatenating truly new rows.
 
 3. **Fight-level results and stats (only when `CAN_PARSE` is true)**  
    For each fight URL where **`CAN_PARSE`** is true:
@@ -151,7 +151,7 @@ Ensure relative paths such as `scripts/scrape/scrape_ufc_stats_config.yaml` and 
 
 ### Idempotency notes
 
-- Events can remain **`incomplete`** until all bout rows show finalized fight links (no “view matchup”).
+- Events can remain **`incomplete`** until all bout rows include a result marker (`i.b-flag__inner`).
 - Fights with **`CAN_PARSE == False`** stay unscraped for results/stats until the card updates.
 - DB population **updates** existing rows when CSV natural keys match but attributes changed.
 
@@ -170,7 +170,7 @@ flowchart TD
     evcsv[(ufc_event_details.csv)]
     fe[For each unparsed / incomplete event URL]
     pfd[LIB.parse_fight_details]
-    vm{Row text contains\nview matchup?}
+    vm{Result tag\n`i.b-flag__inner`\npresent?}
     nc[CAN_PARSE = False\nHAS_BEEN_PARSED = False]
     ok[CAN_PARSE = True]
     fcsv[(ufc_fight_details.csv)]
@@ -233,7 +233,8 @@ flowchart LR
 
 | Requirement | Technical choice | User outcome |
 |-------------|------------------|--------------|
-| Skip unfinished bouts | Detect **“view matchup”** in fight row text; set **`CAN_PARSE` / `HAS_BEEN_PARSED`** accordingly | No bogus results for scheduled-but-unmatched fights |
+| Skip unfinished bouts | Detect missing result tag (`i.b-flag__inner`) in fight rows; set **`CAN_PARSE` / `HAS_BEEN_PARSED`** accordingly | No bogus results for scheduled-but-unmatched fights |
+| Keep fight details current | Update existing `ufc_fight_details.csv` rows by `URL` before appending new rows | Corrects changed bouts/statuses without duplicating records |
 | Resume safely | Merge **`EVENT_STATUS`** from disk; only scrape **new** or **incomplete** events | Faster reruns; less redundant HTTP |
 | Configurable I/O | **`scrape_ufc_stats_config.yaml`** for URLs, paths, column lists | One place to adjust scrape outputs |
 | Stable DB keys | **`MODEL_MAP`** `unique_fields` + normalized names for fighters | Predictable upserts across runs |
@@ -252,10 +253,10 @@ flowchart LR
 - **Clean**: `data/clean/` (parser output; names from `parse_data.py` and `config`).
 - **Models**: Driven by **`MODEL_MAP`**: which CSV populates which table and which columns participate in uniqueness and updates.
 
-### Completed fights vs “view matchup”
+### Completed fights vs result-tag detection
 
 - **Event listing** uses the **completed events** URL from config (only completed **cards** are listed).
-- **Per-fight** completeness uses **`parse_fight_details`**: if the row still advertises **View Matchup**, the fight is **not** treated as having post-fight stats on UFCstats; it is labeled **not parsable** and **not parsed** until the page shows real fight links.
+- **Per-fight** completeness uses **`parse_fight_details`**: if the row is missing the result tag (`i.b-flag__inner`), the fight is treated as incomplete; it is labeled **not parsable** and **not parsed** until a result marker appears.
 
 ## 7) Why This ETL Shape
 
