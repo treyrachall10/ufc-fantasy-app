@@ -138,6 +138,7 @@ def parse_fight_details(soup):
             fights[tag['data-link']]['HAS_BEEN_PARSED'] = False
         else:
             fights[tag['data-link']]['CAN_PARSE'] = True
+            fights[tag['data-link']]['HAS_BEEN_PARSED'] = False
 
     # create df to store fights
     fight_details_df = pd.DataFrame.from_dict(fights, orient='index')

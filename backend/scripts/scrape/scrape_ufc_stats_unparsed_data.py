@@ -115,16 +115,22 @@ def scrape_stats():
 
             # concat fight details to parsed fight details
             # concat update fight details to the top of existing df
-            unparsed_fight_details_df = pd.concat([unparsed_fight_details_df, fight_details_df])
+            new_fight_details_df = pd.concat([unparsed_fight_details_df, fight_details_df])
 
         # write updated event details to file
         updated_event_details_df.to_csv(config['event_details_file_name'], index=False)
 
+        # update existing fight details df with new fight details
+        parsed_fight_details_df = parsed_fight_details_df.set_index('URL') # set index to URL
+        new_fight_details_df = new_fight_details_df.set_index('URL') # set index to URL
+        parsed_fight_details_df.update(new_fight_details_df) # update parsed fight details df with new fight details
+        parsed_fight_details_df = parsed_fight_details_df.reset_index()
+
         # filter fight df's on fight url to not have duplicate fight details for the same fight and parse only unparsed fights
-        unparsed_fight_details_df = unparsed_fight_details_df[~unparsed_fight_details_df['URL'].isin(parsed_fight_details_df['URL'])]
+        filtered_new_fight_details_df = new_fight_details_df[~new_fight_details_df['URL'].isin(parsed_fight_details_df['URL'])]
 
         # concat unparsed and parsed fight details
-        parsed_fight_details_df = pd.concat([unparsed_fight_details_df, parsed_fight_details_df])
+        parsed_fight_details_df = pd.concat([filtered_new_fight_details_df, parsed_fight_details_df])
 
         # write fight details to file
         parsed_fight_details_df.to_csv(config['fight_details_file_name'], index=False)
@@ -133,7 +139,7 @@ def scrape_stats():
 
         # define list of urls of fights to parse
         list_of_unparsed_fight_details_urls = []
-        for row in unparsed_fight_details_df.itertuples():
+        for row in parsed_fight_details_df.itertuples():
             if row.CAN_PARSE:
                 list_of_unparsed_fight_details_urls.append(row.URL)
 
