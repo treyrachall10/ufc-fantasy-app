@@ -5,7 +5,7 @@
 """
 import pandas as pd
 from config import DATARAWPATH, DATACLEANPATH
-from backend.shared.utils import normalize_name
+from shared.utils import normalize_name
 from scripts.scrape.scrape_active_fighters import scrape_active_fighters_df
 
 def convert_to_inches(value_to_conv):
