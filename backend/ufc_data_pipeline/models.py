@@ -1,9 +1,7 @@
 from django.db import models
 
-
-class EventSyncJob(models.Model):
-    """Tracks a UFC Stats completed-events listing scrape/sync run."""
-
+class BaseJobModel(models.Model):
+    """Base model for all job models."""
     class Status(models.TextChoices):
         RUNNING = "RUNNING", "Running"
         COMPLETED = "COMPLETED", "Completed"
@@ -21,4 +19,14 @@ class EventSyncJob(models.Model):
     retry_count = models.PositiveIntegerField(default=0)
 
     class Meta:
+        abstract = True
+
+class EventSyncJob(BaseJobModel):
+    """Tracks a UFC Stats completed-events listing scrape/sync run."""
+    class Meta:
         db_table = "event_sync_job"
+
+class FightCreationJob(BaseJobModel):
+    """Tracks a UFC Stats fights creation run."""
+    class Meta:
+        db_table = "fight_creation_job"
