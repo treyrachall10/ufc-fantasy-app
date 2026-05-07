@@ -8,6 +8,7 @@ class EventSyncJob(models.Model):
         RUNNING = "RUNNING", "Running"
         COMPLETED = "COMPLETED", "Completed"
         RETRYING = "RETRYING", "Retrying"
+        FAILED = "FAILED", "Failed"
 
     ran_at = models.DateTimeField()
     completed_at = models.DateTimeField(null=True, blank=True)
