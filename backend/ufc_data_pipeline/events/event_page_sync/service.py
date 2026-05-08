@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from datetime import date as Date
 
+import os
+import json
 import requests
 from bs4 import BeautifulSoup
 from django.db import transaction
@@ -21,7 +23,12 @@ from tenacity import Retrying
 from tenacity import stop_after_attempt
 from tenacity import wait_exponential
 
+from google.cloud import pubsub_v1
+
+
 _REQUEST_TIMEOUT_S = 60
+PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
+TOPIC_ID = os.getenv("PUBSUB_FIGHTS_IN_EVENT_TOPIC")
 
 def sync_event_page() -> tuple[EventSyncJob, list[Events]]:
     """
@@ -40,6 +47,9 @@ def sync_event_page() -> tuple[EventSyncJob, list[Events]]:
         The job row and newly created ``Events`` instances (with primary keys set where
         the database supports it for ``bulk_create``).
     """
+    publisher = pubsub_v1.PublisherClient() # create a publisher client
+    topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID) # create a topic path
+
     ran_at = timezone.now()
     job = EventSyncJob.objects.create(
         ran_at=ran_at,
@@ -87,10 +97,20 @@ def sync_event_page() -> tuple[EventSyncJob, list[Events]]:
                 # if there are events to create, bulk create them
                 if to_create:
                     with transaction.atomic():
-                        Events.objects.bulk_create(to_create) # bulk create events  
+                        objs = Events.objects.bulk_create(to_create) # bulk create events  
                         job.status = EventSyncJob.Status.COMPLETED
                         job.completed_at = timezone.now() # set completed at to current time
                         job.save(update_fields=["status", "completed_at"])
+
+                        # publish messages to Pub/Sub
+                        for obj in objs:
+                            try:
+                                publisher.publish(topic_path, json.dumps({
+                                    "url": obj.url,
+                                    "event_id": obj.event_id,
+                                }).encode("utf-8"))
+                            except Exception as exc:
+                                raise Exception(f"Failed to publish message to Pub/Sub") from exc
 
                 return job, to_create
 
