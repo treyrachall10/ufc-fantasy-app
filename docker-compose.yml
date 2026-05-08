@@ -51,5 +51,7 @@ services:
       gcloud config set auth/disable_credentials true &&
       gcloud config set project local-project &&
       gcloud pubsub topics create image-jobs --project=local-project &&
-      gcloud pubsub subscriptions create image-worker-sub --topic=image-jobs --project=local-project
+      gcloud pubsub subscriptions create image-worker-sub --topic=image-jobs --project=local-project &&
+      gcloud pubsub topics create fights-in-event --project=local-project &&
+      gcloud pubsub subscriptions create fights-in-event-sub --topic=fights-in-event --project=local-project
       "
