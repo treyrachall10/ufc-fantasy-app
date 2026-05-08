@@ -85,7 +85,7 @@ def ensure_fighters_exist(fighter_names: list[str]) -> None:
         _enqueue_fighter_profile_sync(fighter)
 
 
-def scrape_fights_in_event(soup: BeautifulSoup, event: Events) -> list[Fights]:
+def scrape_fights_in_event(soup: BeautifulSoup, event_id: int) -> list[Fights]:
     """
     Extract fight rows, resolve fighters, and return unsaved ``Fights`` rows for ``event``.
 
@@ -125,7 +125,7 @@ def scrape_fights_in_event(soup: BeautifulSoup, event: Events) -> list[Fights]:
         # create fight object and add to pending list
         pending.append(
             Fights(
-                event=event,
+                event_id=event_id,
                 url=(row.get("data-link") or "").strip(),
                 bout=bout_name_from_pair(fighter_a, fighter_b),
                 weight_class=weight_class,
