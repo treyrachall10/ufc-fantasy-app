@@ -110,7 +110,13 @@ def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None
         if n not in existing_by_norm
     ]
     if missing:
-        created: list[Fighters] = Fighters.objects.bulk_create(missing)
+        try:
+            created: list[Fighters] = Fighters.objects.bulk_create(missing)
+        except Exception as e:
+            raise Exception(
+                f"Failed to bulk create missing fighters: {e}"
+            ) from e
+
         for fighter in created:
             #_enqueue_fighter_profile_sync(fighter)
             print(f"Fighter created: {fighter.full_name}")
@@ -126,7 +132,13 @@ def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None
             to_update.append(fighter)
 
     if to_update:
-        Fighters.objects.bulk_update(to_update, ["profile_url"])
+        try:
+            Fighters.objects.bulk_update(to_update, ["profile_url"])
+        except Exception as e:
+            raise Exception(
+                f"Failed to bulk update fighters: {e}"
+            ) from e
+            
         for fighter in to_update:
             #_enqueue_fighter_profile_sync(fighter)
             print(f"Fighter updated: {fighter.full_name}")
