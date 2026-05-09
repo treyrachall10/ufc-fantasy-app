@@ -27,6 +27,21 @@ class EventSyncJob(BaseJobModel):
         db_table = "event_sync_job"
 
 class FightCreationJob(BaseJobModel):
-    """Tracks a UFC Stats fights creation run."""
+    """Tracks a UFC Stats fights creation run (one Pub/Sub delivery per logical job)."""
+
+    pubsub_message_id = models.CharField(
+        max_length=256,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="GCP Pub/Sub message_id so redeliveries update the same row.",
+    )
+    event = models.ForeignKey(
+        "fantasy.Events",
+        on_delete=models.CASCADE,
+        related_name="fight_creation_jobs",
+    )
+    url = models.CharField(max_length=512)
+
     class Meta:
         db_table = "fight_creation_job"
