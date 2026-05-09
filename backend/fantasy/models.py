@@ -24,6 +24,12 @@ class Fighters(models.Model):
     dob = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=False)
     img_url=models.CharField(max_length=256, null=True, blank=True)
+    profile_url = models.CharField(
+        max_length=512,
+        blank=True,
+        default="",
+        help_text="UFC Stats fighter detail page URL (for profile sync jobs).",
+    )
     class Meta:
         constraints = [
             models.UniqueConstraint(
