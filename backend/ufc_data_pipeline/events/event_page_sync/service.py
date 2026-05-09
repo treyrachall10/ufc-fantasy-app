@@ -102,15 +102,16 @@ def sync_event_page() -> tuple[EventSyncJob, list[Events]]:
                         job.completed_at = timezone.now() # set completed at to current time
                         job.save(update_fields=["status", "completed_at"])
 
-                        # publish messages to Pub/Sub
-                        for obj in objs:
-                            try:
-                                publisher.publish(topic_path, json.dumps({
-                                    "url": obj.url,
-                                    "event_id": obj.event_id,
-                                }).encode("utf-8"))
-                            except Exception as exc:
-                                raise Exception(f"Failed to publish message to Pub/Sub") from exc
+                    # publish messages to Pub/Sub
+                    for obj in objs:
+                        try:
+                            future = publisher.publish(topic_path, json.dumps({
+                                "url": obj.url,
+                                "event_id": obj.event_id,
+                            }).encode("utf-8"))
+                        except Exception as exc:
+                            raise Exception(f"Failed to publish message to Pub/Sub {exc}") from exc
+                            
 
                 return job, to_create
 
