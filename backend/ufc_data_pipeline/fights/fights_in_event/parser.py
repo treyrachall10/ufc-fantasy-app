@@ -75,9 +75,13 @@ def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None
     ``fighter_name_url_pairs`` is ``(display_name, profile_page_url)`` from the event
     table; the URL is stored on ``Fighters.profile_url`` and sent to the profile sync
     topic when a row is new or had an empty profile URL.
+
+    RETURNS: Nothing; it just ensures that the fighters exist
     """
-    first_raw_by_norm: dict[str, str] = {}
-    profile_url_by_norm: dict[str, str] = {}
+    first_raw_by_norm: dict[str, str] = {} # dictionary of first raw (display name) by normalized name
+    profile_url_by_norm: dict[str, str] = {} # dictionary of profile url by normalized name
+
+    # loop through all fighter name url pairs
     for raw, profile_url in fighter_name_url_pairs:
         raw = (raw or "").strip()
         if not raw:
@@ -85,31 +89,39 @@ def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None
         norm = normalize_name(raw)
         if not norm:
             continue
-        first_raw_by_norm.setdefault(norm, raw)
-        pu = (profile_url or "").strip()
+        first_raw_by_norm.setdefault(norm, raw) # set default first raw for normalized name
+        pu = (profile_url or "").strip() # get profile url
+        # if profile url is not empty, set default profile url for normalized name
         if pu:
             profile_url_by_norm.setdefault(norm, pu)
 
+    # if there are no first raw by normalized name, return
     if not first_raw_by_norm:
         return
 
-    norms = list(first_raw_by_norm.keys())
+    norms = list(first_raw_by_norm.keys()) # get list of normalized names
+    # get existing fighters by normalized name
     existing_by_norm: dict[str, Fighters] = {
         f.normalized_name: f
+        # if normalized name is in existing fighters, add to existing by normalized name dictionary
         for f in Fighters.objects.filter(normalized_name__in=norms)
         if f.normalized_name
     }
 
+    # create list of missing fighters
     missing = [
         Fighters(
             full_name=first_raw_by_norm[n],
             normalized_name=n,
             profile_url=profile_url_by_norm.get(n, ""),
         )
+        # if normalized name is not in existing fighters, add to missing list
         for n in norms
         if n not in existing_by_norm
     ]
+    # if there are missing fighters, bulk create them
     if missing:
+        # bulk create missing fighters
         try:
             created: list[Fighters] = Fighters.objects.bulk_create(missing)
         except Exception as e:
@@ -122,15 +134,18 @@ def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None
             print(f"Fighter created: {fighter.full_name}")
 
     to_update: list[Fighters] = []
+    # loop through all normalized names, update profile url if it is not empty and fighter profile url is empty
     for n in norms:
         if n not in existing_by_norm:
             continue
         fighter = existing_by_norm[n]
         new_url = profile_url_by_norm.get(n, "")
+        # if new url is not empty and fighter profile url is empty, update profile url
         if new_url and not (fighter.profile_url or "").strip():
             fighter.profile_url = new_url
             to_update.append(fighter)
 
+    # if there are fighters to update, bulk update them
     if to_update:
         try:
             Fighters.objects.bulk_update(to_update, ["profile_url"])
@@ -148,7 +163,7 @@ def scrape_fights_in_event(soup: BeautifulSoup, event_id: int) -> list[Fights]:
     """
     Extract fight rows, resolve fighters, and return unsaved ``Fights`` rows for ``event``.
 
-    Each row's ``data-link`` is stored on ``Fights.url`` for a later detail scrape.
+    Each row's ``data-link`` is stored on ``Fights.url`` for a later detail scrape when fights are finished
     """
     rows = soup.find_all(is_fight_table_row) # get all fight table rows
     fighter_name_url_pairs: list[tuple[str, str]] = []
@@ -162,19 +177,20 @@ def scrape_fights_in_event(soup: BeautifulSoup, event_id: int) -> list[Fights]:
 
         fighter_a = name_els[0].get_text(strip=True)
         fighter_b = name_els[1].get_text(strip=True)
-        url_a = name_els[0].get("href")
+        # get profile link for each fighter
+        url_a = name_els[0].get("href") 
         url_b = name_els[1].get("href")
         if not fighter_a or not fighter_b:
             continue
 
-        # get weight class from table row
+        # get weight class from table row (second td in row)
         wc_td = row.find_all(
             "td",
             class_=lambda c: c
             and "b-fight-details__table-col" in c
             and "l-page_align_left" in c,
         )
-        wc_td = wc_td[1]
+        wc_td = wc_td[1] # get weight class text
         weight_class = ""
         if wc_td is not None:
             wc_p = wc_td.find("p", class_="b-fight-details__table-text") # get weight class text
