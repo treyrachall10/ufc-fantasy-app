@@ -8,8 +8,8 @@ from datetime import date as Date
 
 import os
 import json
-import requests
 from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 from django.db import transaction
 from django.utils import timezone
 
@@ -68,9 +68,20 @@ def sync_event_page() -> tuple[EventSyncJob, list[Events]]:
                 )
                 cutoff: Date = latest.date if latest else Date.min # get latest date or minimum date if no latest date
 
-                response = requests.get(URL, timeout=_REQUEST_TIMEOUT_S)
-                response.raise_for_status()
-                soup = BeautifulSoup(response.content, "html.parser") # parse response content to soup
+                # Use Playwright so the page can execute JavaScript before we parse HTML.
+                with sync_playwright() as playwright:
+                    browser = playwright.chromium.launch()
+                    page = browser.new_page()
+                    # Navigate to the UFC stats page.
+                    page.goto(URL, timeout=_REQUEST_TIMEOUT_S * 1000)
+                    # Wait for the table rows that indicate the page is fully rendered.
+                    page.wait_for_selector(".b-statistics__table-row", timeout=_REQUEST_TIMEOUT_S * 1000)
+                    html = page.content()
+                    browser.close()
+
+                # Parse the fully-rendered HTML.
+                soup = BeautifulSoup(html, "html.parser")
+                print(soup.prettify()[:3000])
                 parsed = parse_completed_events_after(soup, cutoff) # parse completed events after cutoff
 
                 dates = {row.event_date for row in parsed} # get set of event dates
