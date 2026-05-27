@@ -24,3 +24,4 @@ supabase
 djangorestframework-api-key==2.*
 pytest
 google-cloud-pubsub
+playwright
