@@ -109,9 +109,6 @@ def sync_event_page() -> tuple[EventSyncJob, list[Events]]:
                 if to_create:
                     with transaction.atomic():
                         objs = Events.objects.bulk_create(to_create) # bulk create events  
-                        job.status = EventSyncJob.Status.COMPLETED
-                        job.completed_at = timezone.now() # set completed at to current time
-                        job.save(update_fields=["status", "completed_at"])
 
                     # publish messages to Pub/Sub
                     for obj in objs:
@@ -122,7 +119,10 @@ def sync_event_page() -> tuple[EventSyncJob, list[Events]]:
                             }).encode("utf-8"))
                         except Exception as exc:
                             raise Exception(f"Failed to publish message to Pub/Sub {exc}") from exc
-                            
+
+                job.status = EventSyncJob.Status.COMPLETED
+                job.completed_at = timezone.now() # set completed at to current time
+                job.save(update_fields=["status", "completed_at"])
 
                 return job, to_create
 
