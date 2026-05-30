@@ -5,15 +5,14 @@ Parse fight rows from a UFC Stats *event detail* page (completed card).
 
 from __future__ import annotations
 
-import json
 import logging
-import os
+from dataclasses import dataclass, field
 
-from bs4 import BeautifulSoup
-from google.cloud import pubsub_v1
+from bs4 import BeautifulSoup, Tag
 
 from fantasy.models import Fighters, Fights
 from shared.utils import normalize_name
+from ufc_data_pipeline.fighters.fighter_profile.enqueue import enqueue_fighter_profile_sync
 
 logger = logging.getLogger(__name__)
 
