@@ -3,6 +3,7 @@ from django.db import models
 class BaseJobModel(models.Model):
     """Base model for all job models."""
     class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending"
         RUNNING = "RUNNING", "Running"
         COMPLETED = "COMPLETED", "Completed"
         RETRYING = "RETRYING", "Retrying"
@@ -45,3 +46,21 @@ class FightCreationJob(BaseJobModel):
 
     class Meta:
         db_table = "fight_creation_job"
+
+
+class FighterProfileScrapeJob(BaseJobModel):
+    """Tracks a UFC Stats fighter profile scrape run."""
+
+    fighter_id = models.PositiveIntegerField()
+    profile_url = models.CharField(max_length=512)
+    status = models.CharField(
+        max_length=16,
+        choices=BaseJobModel.Status.choices,
+        default=BaseJobModel.Status.PENDING,
+    )
+
+    class Meta:
+        db_table = "fighter_profile_scrape_job"
+        indexes = [
+            models.Index(fields=["fighter_id", "status"]),
+        ]
