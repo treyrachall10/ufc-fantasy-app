@@ -296,8 +296,7 @@ def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None
             ) from e
 
         for fighter in created:
-            #_enqueue_fighter_profile_sync(fighter)
-            print(f"Fighter created: {fighter.full_name}")
+            _enqueue_fighter_profile_sync(fighter)
 
     to_update: list[Fighters] = []
     # loop through all normalized names, update profile url if it is not empty and fighter profile url is empty
@@ -319,63 +318,110 @@ def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None
             raise Exception(
                 f"Failed to bulk update fighters: {e}"
             ) from e
-            
+
         for fighter in to_update:
-            #_enqueue_fighter_profile_sync(fighter)
-            print(f"Fighter updated: {fighter.full_name}")
+            _enqueue_fighter_profile_sync(fighter)
+
+
+@dataclass
+class _ParsedFightRow:
+    event_id: int
+    fight_url: str
+    bout: str
+    weight_class: str
+    fighter_a: str
+    url_a: str
+    fighter_b: str
+    url_b: str
+    is_completed: bool
+    result_fields: dict[str, str | int] = field(default_factory=dict)
 
 
 def scrape_fights_in_event(soup: BeautifulSoup, event_id: int) -> list[Fights]:
     """
     Extract fight rows, resolve fighters, and return unsaved ``Fights`` rows for ``event``.
 
-    Each row's ``data-link`` is stored on ``Fights.url`` for a later detail scrape when fights are finished
+    Each row's ``data-link`` is stored on ``Fights.url`` for a later detail scrape when fights are finished.
+    Completed rows also receive event-page result summaries (method, round, time, winner).
     """
-    rows = soup.find_all(is_fight_table_row) # get all fight table rows
+    rows = soup.find_all(is_fight_table_row)
     fighter_name_url_pairs: list[tuple[str, str]] = []
-    pending: list[Fights] = []
+    parsed_rows: list[_ParsedFightRow] = []
 
-    # loop through all rows in the soup
     for row in rows:
-        name_els = row.find_all("a", class_="b-link b-link_style_black") # get all fighter names
-        if len(name_els) < 2:
+        pair = parse_fighter_pair_from_row(row)
+        if pair is None:
             continue
 
-        fighter_a = name_els[0].get_text(strip=True)
-        fighter_b = name_els[1].get_text(strip=True)
-        # get profile link for each fighter
-        url_a = name_els[0].get("href") 
-        url_b = name_els[1].get("href")
-        if not fighter_a or not fighter_b:
-            continue
+        fighter_a, url_a, fighter_b, url_b = pair
+        weight_class = weight_class_from_row(row)
+        is_completed = is_fight_row_completed(row)
+        result_fields: dict[str, str | int] = {}
+        if is_completed:
+            result_fields = parse_event_page_result_fields(row)
 
-        # get weight class from table row (second td in row)
-        wc_td = row.find_all(
-            "td",
-            class_=lambda c: c
-            and "b-fight-details__table-col" in c
-            and "l-page_align_left" in c,
-        )
-        wc_td = wc_td[1] # get weight class text
-        weight_class = ""
-        if wc_td is not None:
-            wc_p = wc_td.find("p", class_="b-fight-details__table-text") # get weight class text
-            if wc_p is not None:
-                weight_class = wc_p.get_text(strip=True)
+        fighter_name_url_pairs.extend(((fighter_a, url_a), (fighter_b, url_b)))
 
-        fighter_name_url_pairs.extend(
-            ((fighter_a, url_a), (fighter_b, url_b))
-        )
-
-        # create fight object and add to pending list
-        pending.append(
-            Fights(
+        parsed_rows.append(
+            _ParsedFightRow(
                 event_id=event_id,
-                url=(row.get("data-link") or "").strip(),
+                fight_url=(row.get("data-link") or "").strip(),
                 bout=bout_name_from_pair(fighter_a, fighter_b),
                 weight_class=weight_class,
+                fighter_a=fighter_a,
+                url_a=url_a,
+                fighter_b=fighter_b,
+                url_b=url_b,
+                is_completed=is_completed,
+                result_fields=result_fields,
             )
         )
 
     ensure_fighters_exist(fighter_name_url_pairs)
+
+    norms: list[str] = []
+    urls: list[str] = []
+    for raw, profile_url in fighter_name_url_pairs:
+        norm = normalize_name(raw)
+        if norm:
+            norms.append(norm)
+        pu = (profile_url or "").strip()
+        if pu:
+            urls.append(pu)
+
+    fighters_by_norm, fighters_by_url = build_fighters_lookup(norms, urls)
+
+    pending: list[Fights] = []
+    for parsed in parsed_rows:
+        fight_kwargs: dict = {
+            "event_id": parsed.event_id,
+            "url": parsed.fight_url,
+            "bout": parsed.bout,
+            "weight_class": parsed.weight_class,
+        }
+
+        if parsed.is_completed:
+            fight_kwargs["fight_status"] = Fights.FightStatus.COMPLETED
+            winner = resolve_winner_fighter(
+                parsed.fighter_a,
+                parsed.url_a,
+                fighters_by_norm,
+                fighters_by_url,
+            )
+            if winner is not None:
+                fight_kwargs["winner"] = winner
+
+            if "method" in parsed.result_fields:
+                fight_kwargs["method"] = parsed.result_fields["method"]
+            if "round" in parsed.result_fields:
+                fight_kwargs["round"] = parsed.result_fields["round"]
+            if "time" in parsed.result_fields:
+                fight_kwargs["time"] = parsed.result_fields["time"]
+            if "round_format" in parsed.result_fields:
+                fight_kwargs["round_format"] = parsed.result_fields["round_format"]
+        else:
+            fight_kwargs["fight_status"] = Fights.FightStatus.UPCOMING
+
+        pending.append(Fights(**fight_kwargs))
+
     return pending
