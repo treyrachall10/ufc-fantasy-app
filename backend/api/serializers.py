@@ -105,6 +105,7 @@ class FightSerializer(serializers.ModelSerializer):
             'event',
             'bout',
             'weight_class',
+            'fight_status',
             'method',
             'round',
             'round_format',
