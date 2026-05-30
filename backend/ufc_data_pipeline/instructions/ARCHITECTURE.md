@@ -87,27 +87,28 @@ Scale-to-zero worker.
 
 ### Responsibility
 
-The Fights In Event Scraper processes one event and discovers all fights attached to that event.
+The Fights In Event Scraper processes one event and discovers all fights attached to that event. It also detects whether each fight is already completed on the event page and, when it is, scrapes the result summary fields available there (winner, method, round, time, and round format when present). Fighter rows are resolved via the existing get-or-create flow (profile URL preferred, normalized name as fallback).
 
 ### Flow
 
 1. Receive event_id and event_url.
-2. Scrape all fights from that event page.
-3. For each fight, get or create both fighters.
-4. Create fight records or FightCreationJob records.
-5. Bulk insert fight jobs.
-6. If a new fighter is created, create a FighterProfileScrapeJob.
+2. Scrape all fights from that event page (bout, weight class, fight URL, and related metadata).
+3. For each fight row, detect completed vs upcoming from the event-page result banner and set `fight_status` to `COMPLETED` or `UPCOMING`.
+4. For completed fights, parse available result summary fields from the event page and resolve `winner` using batch fighter lookup after fighters are ensured to exist.
+5. For each fight, get or create both fighters.
+6. Bulk insert fight records.
+7. If a new fighter is created, create a FighterProfileScrapeJob.
 
 ### Output
 
 Creates:
 
-- Fight records or FightCreationJob records
+- Fight records (including `fight_status` and event-page result summaries when already completed)
 - FighterProfileScrapeJob records for newly discovered fighters
 
 ### Boundary
 
-This worker must not scrape detailed fight stats or fight results.
+This worker must not scrape individual fight detail pages or deep per-round fight stats. Event-page result summaries are in scope here; detailed stats and round-level data remain downstream (Fight Results Watcher / Fight Stats Scraper). For live events, the Fight Results Watcher may still poll until fights complete.
 
 ## 4. Fighter Profile Scraper
 
