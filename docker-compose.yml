@@ -28,6 +28,16 @@ services:
     depends_on:
       - web
       - pubsub
+
+  fighter-profile-worker:
+    build: ./backend
+    command: python ufc_data_pipeline/fighters/fighter_profile/fighter_profile_worker.py
+    env_file:
+      - .env
+    depends_on:
+      - web
+      - pubsub
+      - pubsub-init
   
   pubsub:
     image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
@@ -53,5 +63,7 @@ services:
       gcloud pubsub topics create image-jobs --project=local-project &&
       gcloud pubsub subscriptions create image-worker-sub --topic=image-jobs --project=local-project &&
       gcloud pubsub topics create fights-in-event --project=local-project &&
-      gcloud pubsub subscriptions create fights-in-event-sub --topic=fights-in-event --project=local-project
+      gcloud pubsub subscriptions create fights-in-event-sub --topic=fights-in-event --project=local-project &&
+      gcloud pubsub topics create fighter-profile-jobs --project=local-project &&
+      gcloud pubsub subscriptions create fighter-profile-jobs-sub --topic=fighter-profile-jobs --project=local-project
       "
