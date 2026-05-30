@@ -54,11 +54,20 @@ class Events(models.Model):
 
 
 class Fights(models.Model):
+    class FightStatus(models.TextChoices):
+        UPCOMING = "UPCOMING", "Upcoming"
+        COMPLETED = "COMPLETED", "Completed"
+
     fight_id = models.AutoField(primary_key=True)
     event = models.ForeignKey(Events, on_delete=models.CASCADE, null=True, blank=True)
     url = models.CharField(max_length=256, null=True, blank=True)
     bout = models.CharField(max_length=100, null=True, blank=True)
     weight_class = models.CharField(max_length=100, null=True, blank=True)
+    fight_status = models.CharField(
+        max_length=16,
+        choices=FightStatus.choices,
+        default=FightStatus.UPCOMING,
+    )
     method = models.CharField(max_length=50, null=True, blank=True)
     round = models.IntegerField(null=True, blank=True)
     round_format = models.CharField(max_length=50, null=True, blank=True)
