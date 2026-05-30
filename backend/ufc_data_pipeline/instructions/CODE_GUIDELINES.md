@@ -462,3 +462,24 @@ Cursor must:
 * explain what files it plans to change
 * explain why each change is needed
 * not silently change architecture decisions
+
+---
+
+# Worker, Consumer, Service, and Folder Structure Rules
+
+## Worker Rule
+
+A worker is the overall background process.
+
+Workers are responsible for:
+
+- starting the process
+- loading configuration
+- initializing dependencies
+- starting the correct consumer
+- keeping the process alive
+- handling graceful shutdown
+
+Workers should not contain the main business logic.
+
+Example: fighter_profile_worker.py
