@@ -483,3 +483,36 @@ Workers are responsible for:
 Workers should not contain the main business logic.
 
 Example: fighter_profile_worker.py
+
+# 19. If Statement Comment Guideline
+
+For any if statement that is more complex than a simple boolean check, add a short comment directly above it explaining what the condition is checking in plain English.
+
+Simple boolean checks do not need comments.
+
+Example:
+
+# Check if this fight row has a completed fight result banner.
+if row.find("i", class_="b-flag__text"):
+    fight_status = "COMPLETED"
+
+Avoid comments that repeat the code exactly. The comment should explain the purpose of the condition.
+
+# 20. Scraping Comment Guideline
+
+For scraping logic, add a short comment that explains exactly what the selector is grabbing from the website in plain English.
+
+The comment should describe the real page element or data being scraped, not just the HTML tag or class name.
+
+Example:
+
+# Get the two fighter profile links/names listed in this fight row.
+fighter_links = row.find_all("a", class_="b-link b-link_style_black")
+
+# Get the completed-fight result banner from this fight row.
+result_banner = row.find("i", class_="b-flag__text")
+
+# Get the method, round, and time result columns from this fight row.
+result_columns = row.find_all("td", class_="b-fight-details__table-col")
+
+When possible, comments should explain the data being extracted from the site, such as winner name, fighter profile URL, method, round, time, event date, or fight status.
