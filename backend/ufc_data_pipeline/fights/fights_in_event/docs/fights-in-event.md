@@ -2,7 +2,7 @@
 
 This feature consumes **Pub/Sub** messages that point at a UFC Stats **event detail** page, downloads the HTML, parses fight rows and fighter links, upserts **`Fighters`** rows (by normalized name), bulk-inserts **`Fights`** rows for that event, and records each delivery in **`FightCreationJob`**. It is the downstream step after **`event_page_sync`** publishes new events (see related doc below).
 
-Planned follow-on work—publishing to a **fighter profile** topic after creating/updating fighters—is **not wired up** in this repo: the enqueue helper exists, but its call sites are commented out, **`PUBSUB_FIGHTER_PROFILE_TOPIC`** is only read in that helper, and **no subscriber/worker** for fighter profiles exists in this codebase. The GCP topic and consumer service for that pipeline are **not implemented here** (and per product context, not created yet).
+When new fighters are created or an existing fighter receives a backfilled `profile_url`, it enqueues **`FighterProfileScrapeJob`** rows and publishes to the **`fighter-profile-jobs`** topic for the fighter profile worker (see `backend/ufc_data_pipeline/fighters/fighter_profile/docs/fighter-profile.md`).
 
 ## Purpose
 
