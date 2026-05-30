@@ -17,6 +17,7 @@ import os
 from threading import Lock
 from time import monotonic
 from concurrent.futures import TimeoutError
+from playwright.sync_api import sync_playwright
 
 import requests
 from bs4 import BeautifulSoup
@@ -125,10 +126,25 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
         message.ack()
         return
 
-    # Try to scrape the fights in the event
     try:
-        soup = fetch_soup(job.url) # fetch the soup from the event page
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch()
+
+            # Try to scrape the fights in the event
+            try:
+                # Navigate to the UFC stats page.
+                page = browser.new_page()
+                page.goto(job.url, timeout=_REQUEST_TIMEOUT_S * 1000)
+                # Wait for the table rows that indicate the page is fully rendered.
+                page.wait_for_selector(".b-fight-details__table-row", timeout=_REQUEST_TIMEOUT_S * 1000)
+                html = page.content()
+                soup = BeautifulSoup(html, "html.parser")
+
+            finally:
+                browser.close()
+
         fights = scrape_fights_in_event(soup, job.event_id) # scrape the fights in the event
+                
 
         # If there are fights, bulk create them
         with transaction.atomic():
