@@ -9,6 +9,7 @@ from django.test import SimpleTestCase, TestCase
 
 from fantasy.models import Events, Fighters, Fights
 from ufc_data_pipeline.fights.fights_in_event.parser import (
+    _publish_fighter_profile_message,
     is_fight_row_completed,
     parse_event_page_result_fields,
     parse_fighter_pair_from_row,
@@ -145,8 +146,7 @@ class FightRowParsingTests(SimpleTestCase):
 
 
 @patch(
-    "ufc_data_pipeline.fights.fights_in_event.parser.enqueue_fighter_profile_sync",
-    return_value=None,
+    "ufc_data_pipeline.fights.fights_in_event.parser._publish_fighter_profile_message",
 )
 class ScrapeFightsInEventTests(TestCase):
     def setUp(self) -> None:
@@ -229,3 +229,38 @@ class ScrapeFightsInEventTests(TestCase):
         fights = scrape_fights_in_event(soup, self.event.event_id)
 
         assert fights[0].winner_id == winner.fighter_id
+
+
+class PublishFighterProfileMessageTests(TestCase):
+    @patch("ufc_data_pipeline.fights.fights_in_event.parser.pubsub_v1.PublisherClient")
+    @patch.dict(
+        "os.environ",
+        {
+            "GOOGLE_CLOUD_PROJECT": "local-project",
+            "PUBSUB_FIGHTER_PROFILE_TOPIC": "fighter-profile-jobs",
+        },
+    )
+    def test_publish_fighter_profile_message_publishes_payload(
+        self, publisher_cls
+    ) -> None:
+        publisher = publisher_cls.return_value
+        publisher.topic_path.return_value = (
+            "projects/local-project/topics/fighter-profile-jobs"
+        )
+
+        _publish_fighter_profile_message(
+            99, "http://ufcstats.com/fighter-details/test"
+        )
+
+        publisher.publish.assert_called_once()
+        published_payload = publisher.publish.call_args[0][1].decode("utf-8")
+        assert '"fighter_id": 99' in published_payload
+        assert '"fighter_url": "http://ufcstats.com/fighter-details/test"' in published_payload
+
+    @patch("ufc_data_pipeline.fights.fights_in_event.parser.pubsub_v1.PublisherClient")
+    def test_publish_fighter_profile_message_skips_empty_url(
+        self, publisher_cls
+    ) -> None:
+        _publish_fighter_profile_message(99, "")
+
+        publisher_cls.return_value.publish.assert_not_called()
