@@ -56,7 +56,7 @@ class FighterProfileScrapeJob(BaseJobModel):
     status = models.CharField(
         max_length=16,
         choices=BaseJobModel.Status.choices,
-        default=BaseJobModel.Status.PENDING,
+        default=BaseJobModel.Status.RUNNING,
     )
 
     class Meta:
