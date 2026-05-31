@@ -31,9 +31,12 @@ services:
 
   fighter-profile-worker:
     build: ./backend
-    command: python ufc_data_pipeline/fighters/fighter_profile/fighter_profile_worker.py
+    command: python -m ufc_data_pipeline.fighters.fighter_profile.fighter_profile_worker
     env_file:
       - .env
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+      PIPELINE_API_BASE_URL: http://web:8000
     depends_on:
       - web
       - pubsub
