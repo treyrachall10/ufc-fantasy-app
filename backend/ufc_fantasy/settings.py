@@ -56,7 +56,7 @@ INSTALLED_APPS = [
     # Filters
     'django_filters',
     # API key auth
-    "rest_framework_api_key"
+    "rest_framework_api_key",
 
     "ufc_data_pipeline",
 ]
