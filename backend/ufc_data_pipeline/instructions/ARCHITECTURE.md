@@ -26,7 +26,7 @@ Event Watcher
 - Job records should be stored in the database.
 - Downstream work should be triggered by creating/publishing jobs.
 - Workers should be idempotent.
-- Duplicate jobs should not be created if a pending, running, or completed job already exists.
+- Duplicate in-flight jobs should be avoided; exact dedup rules are stage-specific (for example, the fighter profile worker skips only when a `RUNNING` job exists, but allows a new scrape after `COMPLETED`).
 - Bulk inserts should be used when creating many records.
 - Related database writes should use transactions when partial writes would corrupt the pipeline.
 - Each stage should update its job status.
@@ -97,14 +97,14 @@ The Fights In Event Scraper processes one event and discovers all fights attache
 4. For completed fights, parse available result summary fields from the event page and resolve `winner` using batch fighter lookup after fighters are ensured to exist.
 5. For each fight, get or create both fighters.
 6. Bulk insert fight records.
-7. If a new fighter is created, create a FighterProfileScrapeJob.
+7. Publish fighter profile scrape messages to Pub/Sub for new fighters and for existing fighters whose `profile_url` was backfilled (see `fights_in_event/parser.py` → `ensure_fighters_exist`).
 
 ### Output
 
 Creates:
 
 - Fight records (including `fight_status` and event-page result summaries when already completed)
-- FighterProfileScrapeJob records for newly discovered fighters
+- Pub/Sub messages on `fighter-profile-jobs` for downstream profile scraping (consumer creates `FighterProfileScrapeJob` rows when processing)
 
 ### Boundary
 
@@ -114,25 +114,33 @@ This worker must not scrape individual fight detail pages or deep per-round figh
 
 ### Role
 
-Scale-to-zero worker.
+Scale-to-zero worker (Pub/Sub consumer + Playwright scraper).
 
 ### Responsibility
 
-The Fighter Profile Scraper scrapes individual fighter profile pages.
+The Fighter Profile Scraper consumes Pub/Sub messages for individual fighter profile pages, scrapes metadata with Playwright, and updates fighter records via the main API service.
 
 ### Flow
 
-1. Receive a FighterProfileScrapeJob.
-2. Scrape the fighter profile URL.
-3. Update fighter metadata and profile stats.
-4. Mark the job completed or failed.
+1. Receive a Pub/Sub message: `{fighter_id, fighter_url}` (published by `fights_in_event`).
+2. Create or resume a `FighterProfileScrapeJob` row (`RUNNING`). Skip only if another job for the same fighter is already `RUNNING`; reuse `RETRYING`; allow new runs after `COMPLETED`.
+3. Load the profile page with Playwright (Chromium).
+4. Parse name from `.b-content__title-highlight` (split into first/last), nickname from `.b-content__Nickname`, and tale-of-the-tape stats from `ul.b-list__box-list`.
+5. `PATCH /api/fighters/<fighter_id>/SetFighterProfile`.
+6. Mark the job `COMPLETED` or `FAILED` / `RETRYING`.
 
 ### Required Modes
 
 This worker should support:
 
-- processing one fighter profile job
-- bulk processing fighters missing profile data
+- processing one fighter profile job from Pub/Sub
+- bulk processing fighters missing profile data (future / not yet implemented as a separate entry point)
+
+### Local / Docker notes
+
+- Pub/Sub emulator host must be `localhost:8085` on the host and `pubsub:8085` inside docker-compose.
+- Chromium must be installed in the Docker image (`playwright install --with-deps chromium` in `backend/Dockerfile`).
+- Worker idles out after 60s without messages (scale-to-zero behavior).
 
 ## 5. DB Event Watcher
 

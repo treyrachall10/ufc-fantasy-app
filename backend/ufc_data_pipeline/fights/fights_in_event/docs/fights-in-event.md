@@ -33,14 +33,17 @@ When new fighters are created or an existing fighter receives a backfilled `prof
   - If job already `COMPLETED` or `FAILED` → **ack** (no reprocessing).
   - Else: `fetch_soup(job.url)` → `scrape_fights_in_event(soup, job.event_id)` → in `transaction.atomic()`, optional `Fights.objects.bulk_create(fights)`, then job `COMPLETED`, `completed_at`, clear `error_msg` → **ack**.
   - On exception: increment `retry_count`, set `error_msg`; if `retry_count >= 3` → `FAILED` and **ack**; else `RETRYING` and **nack** (redelivery).
-- **Parser path:** `scrape_fights_in_event` collects fight rows, builds unsaved `Fights` with `event_id`, `url` from `data-link`, `bout`, `weight_class`; calls `ensure_fighters_exist` which bulk-creates missing `Fighters` and bulk-updates `profile_url` when empty; returns pending `Fights` list (may be empty).
+- **Parser path:** `scrape_fights_in_event` collects fight rows, builds unsaved `Fights` with `event_id`, `url` from `data-link`, `bout`, `weight_class`; calls `ensure_fighters_exist` which bulk-creates missing `Fighters`, bulk-updates `profile_url` when empty, and publishes fighter-profile Pub/Sub messages for new or backfilled fighters; returns pending `Fights` list (may be empty).
 
 ## Data Flow
 
 - **Input:** Pub/Sub message bytes: JSON `{"url": "<event page>", "event_id": <int>}` (same shape produced by `event_page_sync` when publishing).
 - **Processing:** HTTP GET → BeautifulSoup → table rows → `Fighters` upsert logic → list of `Fights` → optional bulk insert.
 - **Output (database):** `fight_creation_job` row updates; new/updated `fantasy_fighters`; new `fantasy_fights` rows when parse returns fights.
-- **Output (messaging):** Publishes `{"fighter_id": <int>, "fighter_url": "<profile URL>"}` to `PUBSUB_FIGHTER_PROFILE_TOPIC` when new fighters are created or `profile_url` is backfilled.
+- **Output (messaging):** Publishes `{"fighter_id": <int>, "fighter_url": "<profile URL>"}` to `PUBSUB_FIGHTER_PROFILE_TOPIC` when:
+  - a **new** fighter row is bulk-created and has a non-empty `profile_url`, or
+  - an **existing** fighter had an empty `profile_url` and receives a backfilled URL from the event page.
+  - Fighters that already have a `profile_url` are not re-published. See `ensure_fighters_exist` in `parser.py`.
 
 ```mermaid
 flowchart TB
@@ -57,17 +60,17 @@ flowchart TB
     F[("Fighters")]
     FT[("Fights")]
   end
-  subgraph planned [Not implemented in repo]
-    TProf["Topic PUBSUB_FIGHTER_PROFILE_TOPIC"]
-    Svc["Fighter profile subscriber\nnot present in this repo"]
+  subgraph downstream [Downstream messaging]
+    TProf["Topic PUBSUB_FIGHTER_PROFILE_TOPIC\nfighter-profile-jobs"]
+    FPW["fighter_profile consumer\nufc_data_pipeline/fighters/fighter_profile"]
   end
   T --> Sub --> CB
   CB -->|GET| UFC
   CB -->|parse + ORM| F
   CB --> FT
   J --> CB
-  F -.->|would publish if enabled| TProf
-  TProf -.->|no consumer in this repo| Svc
+  F -->|publish on new/backfilled fighter| TProf
+  TProf --> FPW
 ```
 
 ## External Dependencies
@@ -95,7 +98,15 @@ GOOGLE_CLOUD_PROJECT
 PUBSUB_FIGHTER_PROFILE_TOPIC
 ```
 
-Example values are deployment-specific and not defined in this repository.
+Example values for local emulator (from repo `.env` and `docker-compose.yml`):
+
+```text
+GOOGLE_CLOUD_PROJECT=local-project
+PUBSUB_FIGHTS_IN_EVENT_SUBSCRIPTION=fights-in-event-sub
+PUBSUB_FIGHTER_PROFILE_TOPIC=fighter-profile-jobs
+PUBSUB_EMULATOR_HOST=localhost:8085   # host / IDE debugger
+PUBSUB_EMULATOR_HOST=pubsub:8085      # inside docker-compose services
+```
 
 ## How to Run Locally
 
@@ -116,7 +127,7 @@ Requires Django settings, database, valid GCP credentials for the subscriber cli
 - **Relative `url`:** If upstream sends a path-only URL, `requests.get` may fail unless the URL is absolute; behavior depends on the published payload.
 - **`wc_td` indexing:** Parser uses `wc_td = wc_td[1]` after `find_all`; if fewer than two matching `td` elements exist, this can raise and drive retries/failure.
 - **Debug `print` in `parser.py`:** None in current `ensure_fighters_exist` publish path; use logging if adding diagnostics.
-- **Fighter profile downstream:** Consumer lives in `ufc_data_pipeline/fighters/fighter_profile/`; see that module's doc for job lifecycle owned by the fighter profile worker.
+- **Fighter profile downstream:** Consumer lives in `ufc_data_pipeline/fighters/fighter_profile/`; see `fighter-profile.md` for Playwright scraping, parser selectors, job dedup rules (skip only when `RUNNING`; re-scrape allowed after `COMPLETED`), and Docker Pub/Sub host configuration.
 
 ## Notes for Future Developers
 
