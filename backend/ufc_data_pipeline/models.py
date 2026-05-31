@@ -64,3 +64,16 @@ class FighterProfileScrapeJob(BaseJobModel):
         indexes = [
             models.Index(fields=["fighter_id", "status"]),
         ]
+
+
+class FightStatsScrapeJob(BaseJobModel):
+    """Tracks a UFC Stats fight detail stats scrape run."""
+
+    fight_id = models.PositiveIntegerField()
+    fight_url = models.CharField(max_length=512)
+
+    class Meta:
+        db_table = "fight_stats_scrape_job"
+        indexes = [
+            models.Index(fields=["fight_id", "status"]),
+        ]
