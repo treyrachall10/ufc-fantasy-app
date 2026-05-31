@@ -5,14 +5,16 @@ Parse fight rows from a UFC Stats *event detail* page (completed card).
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 from dataclasses import dataclass, field
 
 from bs4 import BeautifulSoup, Tag
+from google.cloud import pubsub_v1
 
 from fantasy.models import Fighters, Fights
 from shared.utils import normalize_name
-from ufc_data_pipeline.fighters.fighter_profile.enqueue import enqueue_fighter_profile_sync
 
 logger = logging.getLogger(__name__)
 
@@ -226,12 +228,42 @@ def resolve_winner_fighter(
     return None
 
 
-def _enqueue_fighter_profile_sync(fighter: Fighters) -> None:
+def _publish_fighter_profile_message(fighter_id: int, fighter_url: str) -> None:
     """
-    Create a fighter profile scrape job and publish it to Pub/Sub.
-    Receives a Fighters instance and returns nothing.
+    Publish a fighter profile scrape request to Pub/Sub.
+    Receives fighter_id and fighter_url; returns nothing.
     """
-    enqueue_fighter_profile_sync(fighter)
+    profile_url = (fighter_url or "").strip()
+    if not profile_url:
+        return
+
+    project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+    topic_id = os.getenv("PUBSUB_FIGHTER_PROFILE_TOPIC")
+    if not project_id or not topic_id:
+        logger.warning(
+            "Skipping fighter profile publish; Pub/Sub env is not configured fighter_id=%s",
+            fighter_id,
+        )
+        return
+
+    # Try to publish the fighter profile scrape request to Pub/Sub.
+    try:
+        publisher = pubsub_v1.PublisherClient()
+        topic_path = publisher.topic_path(project_id, topic_id)
+        publisher.publish(
+            topic_path,
+            json.dumps(
+                {
+                    "fighter_id": fighter_id,
+                    "fighter_url": profile_url,
+                }
+            ).encode("utf-8"),
+        )
+    except Exception:
+        logger.exception(
+            "Failed to publish fighter profile message fighter_id=%s",
+            fighter_id,
+        )
 
 
 def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None:
@@ -296,7 +328,7 @@ def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None
             ) from e
 
         for fighter in created:
-            _enqueue_fighter_profile_sync(fighter)
+            _publish_fighter_profile_message(fighter.fighter_id, fighter.profile_url)
 
     to_update: list[Fighters] = []
     # loop through all normalized names, update profile url if it is not empty and fighter profile url is empty
@@ -320,7 +352,7 @@ def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None
             ) from e
 
         for fighter in to_update:
-            _enqueue_fighter_profile_sync(fighter)
+            _publish_fighter_profile_message(fighter.fighter_id, fighter.profile_url)
 
 
 @dataclass
