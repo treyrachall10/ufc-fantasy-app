@@ -43,7 +43,8 @@ from .serializers import (
     TeamListFighterSerializer,
     TeamSerializer,
     UserLeaguesAndTeamsListSerializer,
-    FighterImageCandidateSerializer
+    FighterImageCandidateSerializer,
+    FighterProfileUpdateSerializer,
 )
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
                             FightStats, RoundStats, FightScore, League, LeagueMember, 
@@ -56,7 +57,7 @@ from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftabl
 
 from accounts.models import User
 
-from .permissions import IsAthleteImageService, IsUploaderService
+from .permissions import IsAthleteImageService, IsUploaderService, IsPipelineService
 
 from authlib.integrations.django_oauth2 import ResourceProtector
 from .auth0_validator import Auth0JWTBearerTokenValidator
@@ -1145,6 +1146,30 @@ class AddFighterImageURL(generics.UpdateAPIView):
         return Response(
             {
                 "detail": "Fighter image URL updated successfully.",
+            },
+            status=200,
+        )
+
+
+class SetFighterProfile(generics.UpdateAPIView):
+    '''
+        API view to allow the UFC data pipeline to update fighter profile metadata.
+    '''
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = FighterProfileUpdateSerializer
+
+    def patch(self, request, fighter_id):
+        '''
+            Expects fighter profile fields in request data and updates the fighter record.
+        '''
+        fighter = get_object_or_404(Fighters, fighter_id=fighter_id)
+        serializer = self.serializer_class(fighter, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            {
+                "detail": "Fighter profile updated successfully.",
             },
             status=200,
         )

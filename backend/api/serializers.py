@@ -602,3 +602,19 @@ class FighterImageCandidateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Fighters
         fields = ["fighter_id", "normalized_name"]
+
+
+class FighterProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Fighters
+        fields = [
+            "first_name",
+            "last_name",
+            "full_name",
+            "nick_name",
+            "stance",
+            "weight",
+            "height",
+            "reach",
+            "dob",
+        ]
