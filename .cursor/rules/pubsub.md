@@ -279,6 +279,26 @@ max_retry_count = 3
 
 ---
 
+## 10a. Docker Pub/Sub Emulator Host
+
+When a publisher or subscriber runs **inside a Docker container**, set:
+
+```text
+PUBSUB_EMULATOR_HOST=pubsub:8085
+```
+
+Use the Compose **service name** (`pubsub`), not `localhost:8085`. Inside a container, `localhost` is that container — not the emulator.
+
+When running on the **host** (IDE debugger, local shell), use:
+
+```text
+PUBSUB_EMULATOR_HOST=localhost:8085
+```
+
+Override in `docker-compose.yml` `environment` for containerized services; keep `localhost:8085` in `.env` for host-side runs.
+
+---
+
 ## 11. Subscriber Rules
 
 The subscriber should:

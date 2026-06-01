@@ -164,11 +164,38 @@ Do not hardcode these values inside processing logic.
 
 ---
 
+## 7a. Docker and Pub/Sub Emulator Host
+
+When using the **Pub/Sub emulator** with Docker Compose, `PUBSUB_EMULATOR_HOST` must match **where the process runs**, not where the emulator is published on the host.
+
+| Process runs on | Set `PUBSUB_EMULATOR_HOST` to |
+|-----------------|-------------------------------|
+| Host (IDE debugger, local terminal) | `localhost:8085` |
+| Another Docker container on the same Compose network | `pubsub:8085` (the **service name**, not `localhost`) |
+
+**Why:** Inside a container, `localhost` refers to that container itself. The emulator runs in the `pubsub` service, so workers started from `web`, `fighter-profile-worker`, or an ad-hoc `docker compose exec web` shell must use the Docker network hostname `pubsub:8085`.
+
+**Symptom:** Worker starts and appears healthy, but no messages are consumed and no job rows are written — publish succeeds from host or another container, yet the subscriber never receives callbacks.
+
+**Fix:** Override `PUBSUB_EMULATOR_HOST` in `docker-compose.yml` for any service that publishes or subscribes from inside Docker:
+
+```yaml
+environment:
+  PUBSUB_EMULATOR_HOST: pubsub:8085
+```
+
+Keep `PUBSUB_EMULATOR_HOST=localhost:8085` in `.env` for host-side development; Compose `environment` overrides take precedence inside containers.
+
+Reference: `fighter-profile-worker` and `web` in `docker-compose.yml`.
+
+---
+
 ## 8. Debugging Guide
 
 If messages are not being consumed, check:
 
 - worker or container is running
+- **`PUBSUB_EMULATOR_HOST` matches host vs container** (see section 7a)
 - project id is correct
 - topic exists
 - subscription exists

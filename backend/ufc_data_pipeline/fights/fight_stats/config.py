@@ -1,0 +1,24 @@
+"""
+Configuration for the fight stats scraper pipeline stage.
+"""
+
+from __future__ import annotations
+
+import os
+
+# GCP Pub/Sub (local emulator defaults match docker-compose pubsub-init)
+PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "local-project")
+TOPIC_ID = os.getenv("PUBSUB_FIGHT_STATS_TOPIC", "fight-stats-jobs")
+SUBSCRIPTION_ID = os.getenv("PUBSUB_FIGHT_STATS_SUBSCRIPTION", "fight-stats-jobs-sub")
+
+# Downstream handoff (slice 007)
+CAREER_STATS_TOPIC_ID = os.getenv("PUBSUB_CAREER_STATS_TOPIC", "career-stats-jobs")
+
+# Worker behavior
+PLAYWRIGHT_TIMEOUT_S = 60
+MAX_RETRY_COUNT = 3
+IDLE_SHUTDOWN_S = 60
+IDLE_CHECK_INTERVAL_S = 5
+
+# CSS selector waited on after Playwright loads a fight detail page (slice 003+).
+FIGHT_PAGE_READY_SELECTOR = "td.b-fight-details__table-col"

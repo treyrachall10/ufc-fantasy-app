@@ -8,6 +8,8 @@ services:
       - ./backend:/app
     env_file:
       - .env
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub:8085
 
   scraper-job:
     build:
