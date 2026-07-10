@@ -1,5 +1,5 @@
 """
-HTTP client for updating fight result metadata via the main API service.
+HTTP client for updating fight result metadata and fight stats via the main API service.
 """
 
 from __future__ import annotations
@@ -19,28 +19,25 @@ logger = logging.getLogger(__name__)
 _REQUEST_TIMEOUT_S = 60
 
 
-def update_fight_result_metadata(fight_id: int, payload: dict) -> None:
-    """
-    PATCH fight result metadata through the main API service.
-    Receives fight_id and a payload dict; returns nothing; raises on failure.
-    """
+def _pipeline_headers() -> dict[str, str]:
     if not PIPELINE_API_BASE_URL:
         raise RuntimeError("PIPELINE_API_BASE_URL is not configured")
     if not PIPELINE_SERVICE_API_KEY:
         raise RuntimeError("PIPELINE_SERVICE_API_KEY is not configured")
-
-    base_url = PIPELINE_API_BASE_URL.rstrip("/")
-    url = f"{base_url}/api/fights/{fight_id}/SetFightResultMetadata"
-    headers = {
+    return {
         "Content-Type": "application/json",
         "Authorization": f"Api-Key {PIPELINE_SERVICE_API_KEY}",
     }
 
+
+def _patch(path: str, payload: dict) -> None:
+    base_url = PIPELINE_API_BASE_URL.rstrip("/")
+    url = f"{base_url}{path}"
     try:
         response = requests.patch(
             url,
             data=json.dumps(payload),
-            headers=headers,
+            headers=_pipeline_headers(),
             timeout=_REQUEST_TIMEOUT_S,
         )
     except requests.RequestException as exc:
@@ -50,3 +47,19 @@ def update_fight_result_metadata(fight_id: int, payload: dict) -> None:
         raise RuntimeError(
             f"API update failed status={response.status_code} body={response.text}"
         )
+
+
+def update_fight_result_metadata(fight_id: int, payload: dict) -> None:
+    """
+    PATCH fight result metadata through the main API service.
+    Receives fight_id and a payload dict; returns nothing; raises on failure.
+    """
+    _patch(f"/api/fights/{fight_id}/SetFightResultMetadata", payload)
+
+
+def upsert_fight_stats_totals(fight_id: int, payload: dict) -> None:
+    """
+    PATCH fight-total FightStats rows through the main API service.
+    Receives fight_id and a payload dict; returns nothing; raises on failure.
+    """
+    _patch(f"/api/fights/{fight_id}/SetFightStatsTotals", payload)
