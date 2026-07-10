@@ -45,6 +45,7 @@ from .serializers import (
     UserLeaguesAndTeamsListSerializer,
     FighterImageCandidateSerializer,
     FighterProfileUpdateSerializer,
+    FightResultMetadataUpdateSerializer,
 )
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
                             FightStats, RoundStats, FightScore, League, LeagueMember, 
@@ -58,6 +59,8 @@ from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftabl
 from accounts.models import User
 
 from .permissions import IsAthleteImageService, IsUploaderService, IsPipelineService
+
+from shared.utils import normalize_name
 
 from authlib.integrations.django_oauth2 import ResourceProtector
 from .auth0_validator import Auth0JWTBearerTokenValidator
@@ -1171,5 +1174,47 @@ class SetFighterProfile(generics.UpdateAPIView):
             {
                 "detail": "Fighter profile updated successfully.",
             },
+            status=200,
+        )
+
+
+class SetFightResultMetadata(generics.GenericAPIView):
+    """
+    API view to allow the UFC data pipeline to update fight result metadata.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = FightResultMetadataUpdateSerializer
+
+    def patch(self, request, fight_id: int):
+        """
+        Expects fight result fields in request data and updates the fight record.
+        """
+        fight = get_object_or_404(Fights, fight_id=fight_id)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+
+        winner_name = data.pop("winner_name", None)
+        data.pop("fighter_a_name", None)
+        data.pop("fighter_b_name", None)
+
+        for field, value in data.items():
+            setattr(fight, field, value)
+
+        if winner_name:
+            normalized = normalize_name(winner_name)
+            winner = Fighters.objects.filter(normalized_name=normalized).first()
+            if winner is None:
+                return Response(
+                    {"detail": f"Fighter not found for winner_name: {winner_name}"},
+                    status=400,
+                )
+            fight.winner = winner
+
+        fight.save()
+
+        return Response(
+            {"detail": "Fight result metadata updated successfully."},
             status=200,
         )

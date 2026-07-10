@@ -618,3 +618,20 @@ class FighterProfileUpdateSerializer(serializers.ModelSerializer):
             "reach",
             "dob",
         ]
+
+
+class FightResultMetadataUpdateSerializer(serializers.Serializer):
+    """Pipeline payload for updating completed-fight result metadata."""
+
+    method = serializers.CharField(max_length=50, required=False, allow_null=True)
+    round = serializers.IntegerField(required=False, allow_null=True)
+    time = serializers.IntegerField(required=False, allow_null=True)
+    round_format = serializers.CharField(max_length=50, required=False, allow_null=True)
+    weight_class = serializers.CharField(max_length=100, required=False, allow_null=True)
+    fight_status = serializers.ChoiceField(
+        choices=Fights.FightStatus.choices,
+        required=False,
+    )
+    winner_name = serializers.CharField(max_length=200, required=False, allow_null=True)
+    fighter_a_name = serializers.CharField(max_length=200, required=False, allow_null=True)
+    fighter_b_name = serializers.CharField(max_length=200, required=False, allow_null=True)

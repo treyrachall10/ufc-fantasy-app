@@ -38,4 +38,5 @@ urlpatterns = [
     path('api/fighters/ImageCandidates', views.GetFighterImageCandidates.as_view()),
     path('api/fighters/<int:fighter_id>/SetFighterImage', views.AddFighterImageURL.as_view()),
     path('api/fighters/<int:fighter_id>/SetFighterProfile', views.SetFighterProfile.as_view()),
+    path('api/fights/<int:fight_id>/SetFightResultMetadata', views.SetFightResultMetadata.as_view()),
 ]
