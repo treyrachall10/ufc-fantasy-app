@@ -47,6 +47,7 @@ from .serializers import (
     FighterProfileUpdateSerializer,
     FightResultMetadataUpdateSerializer,
     FightStatsTotalsUpdateSerializer,
+    RoundStatsUpdateSerializer,
 )
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
                             FightStats, RoundStats, FightScore, League, LeagueMember, 
@@ -1268,6 +1269,70 @@ class SetFightStatsTotals(generics.GenericAPIView):
             {
                 "detail": "Fight stats totals upserted successfully.",
                 "fight_stats_ids": updated_ids,
+            },
+            status=200,
+        )
+
+
+class SetRoundStats(generics.GenericAPIView):
+    """
+    API view to allow the UFC data pipeline to upsert per-round RoundStats rows.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = RoundStatsUpdateSerializer
+
+    def patch(self, request, fight_id: int):
+        """
+        Expects two fighter round bundles and upserts RoundStats by fight_stats + round_number.
+        """
+        fight = get_object_or_404(Fights, fight_id=fight_id)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        resolved: list[tuple] = []
+        for fighter_payload in serializer.validated_data["fighters"]:
+            fighter_name = fighter_payload["fighter_name"]
+            normalized = normalize_name(fighter_name)
+            fighter = Fighters.objects.filter(normalized_name=normalized).first()
+            if fighter is None:
+                return Response(
+                    {"detail": f"Fighter not found for fighter_name: {fighter_name}"},
+                    status=400,
+                )
+            fight_stats = FightStats.objects.filter(fight=fight, fighter=fighter).first()
+            if fight_stats is None:
+                return Response(
+                    {
+                        "detail": (
+                            f"FightStats not found for fight_id={fight_id} "
+                            f"fighter_name={fighter_name}"
+                        )
+                    },
+                    status=400,
+                )
+            resolved.append((fight_stats, fighter_payload["rounds"]))
+
+        updated_ids: list[int] = []
+        with transaction.atomic():
+            for fight_stats, rounds in resolved:
+                for round_payload in rounds:
+                    defaults = {
+                        key: value
+                        for key, value in round_payload.items()
+                        if key != "round_number"
+                    }
+                    round_stats, _created = RoundStats.objects.update_or_create(
+                        fight_stats=fight_stats,
+                        round_number=round_payload["round_number"],
+                        defaults=defaults,
+                    )
+                    updated_ids.append(round_stats.pk)
+
+        return Response(
+            {
+                "detail": "Round stats upserted successfully.",
+                "round_stats_ids": updated_ids,
             },
             status=200,
         )

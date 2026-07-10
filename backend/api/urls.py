@@ -40,4 +40,5 @@ urlpatterns = [
     path('api/fighters/<int:fighter_id>/SetFighterProfile', views.SetFighterProfile.as_view()),
     path('api/fights/<int:fight_id>/SetFightResultMetadata', views.SetFightResultMetadata.as_view()),
     path('api/fights/<int:fight_id>/SetFightStatsTotals', views.SetFightStatsTotals.as_view()),
+    path('api/fights/<int:fight_id>/SetRoundStats', views.SetRoundStats.as_view()),
 ]
