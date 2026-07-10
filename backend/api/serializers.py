@@ -635,3 +635,43 @@ class FightResultMetadataUpdateSerializer(serializers.Serializer):
     winner_name = serializers.CharField(max_length=200, required=False, allow_null=True)
     fighter_a_name = serializers.CharField(max_length=200, required=False, allow_null=True)
     fighter_b_name = serializers.CharField(max_length=200, required=False, allow_null=True)
+
+
+class FighterFightStatsTotalsSerializer(serializers.Serializer):
+    """One fighter's fight-total stats for SetFightStatsTotals."""
+
+    fighter_name = serializers.CharField(max_length=200)
+    result = serializers.CharField(max_length=10, required=False, allow_null=True)
+    kd = serializers.IntegerField(required=False, allow_null=True)
+    sig_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    sig_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    total_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    total_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    td_landed = serializers.IntegerField(required=False, allow_null=True)
+    td_attempted = serializers.IntegerField(required=False, allow_null=True)
+    sub_att = serializers.IntegerField(required=False, allow_null=True)
+    ctrl_time = serializers.IntegerField(required=False, allow_null=True)
+    reversals = serializers.IntegerField(required=False, allow_null=True)
+    head_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    head_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    body_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    body_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    leg_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    leg_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    distance_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    distance_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    clinch_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    clinch_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    ground_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    ground_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+
+
+class FightStatsTotalsUpdateSerializer(serializers.Serializer):
+    """Pipeline payload for upserting two FightStats rows for a fight."""
+
+    fighters = FighterFightStatsTotalsSerializer(many=True)
+
+    def validate_fighters(self, value):
+        if len(value) != 2:
+            raise serializers.ValidationError("Exactly two fighter stat bundles are required.")
+        return value

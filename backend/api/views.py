@@ -46,6 +46,7 @@ from .serializers import (
     FighterImageCandidateSerializer,
     FighterProfileUpdateSerializer,
     FightResultMetadataUpdateSerializer,
+    FightStatsTotalsUpdateSerializer,
 )
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
                             FightStats, RoundStats, FightScore, League, LeagueMember, 
@@ -1216,5 +1217,57 @@ class SetFightResultMetadata(generics.GenericAPIView):
 
         return Response(
             {"detail": "Fight result metadata updated successfully."},
+            status=200,
+        )
+
+
+class SetFightStatsTotals(generics.GenericAPIView):
+    """
+    API view to allow the UFC data pipeline to upsert fight-total FightStats rows.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = FightStatsTotalsUpdateSerializer
+
+    def patch(self, request, fight_id: int):
+        """
+        Expects two fighter stat bundles and upserts FightStats by fight + fighter.
+        """
+        fight = get_object_or_404(Fights, fight_id=fight_id)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        resolved: list[tuple] = []
+        for fighter_payload in serializer.validated_data["fighters"]:
+            fighter_name = fighter_payload["fighter_name"]
+            normalized = normalize_name(fighter_name)
+            fighter = Fighters.objects.filter(normalized_name=normalized).first()
+            if fighter is None:
+                return Response(
+                    {"detail": f"Fighter not found for fighter_name: {fighter_name}"},
+                    status=400,
+                )
+            resolved.append((fighter, fighter_payload))
+
+        updated_ids: list[int] = []
+        with transaction.atomic():
+            for fighter, fighter_payload in resolved:
+                defaults = {
+                    key: value
+                    for key, value in fighter_payload.items()
+                    if key != "fighter_name"
+                }
+                fight_stats, _created = FightStats.objects.update_or_create(
+                    fight=fight,
+                    fighter=fighter,
+                    defaults=defaults,
+                )
+                updated_ids.append(fight_stats.pk)
+
+        return Response(
+            {
+                "detail": "Fight stats totals upserted successfully.",
+                "fight_stats_ids": updated_ids,
+            },
             status=200,
         )
