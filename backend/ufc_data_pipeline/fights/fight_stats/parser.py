@@ -28,6 +28,35 @@ class ParsedFightMetadata:
 
 
 @dataclass
+class ParsedRoundStats:
+    """Parsed per-round stats for one fighter on a fight detail page."""
+
+    round_number: int
+    kd: int | None = None
+    sig_str_landed: int | None = None
+    sig_str_attempted: int | None = None
+    total_str_landed: int | None = None
+    total_str_attempted: int | None = None
+    td_landed: int | None = None
+    td_attempted: int | None = None
+    sub_att: int | None = None
+    ctrl_time: int | None = None
+    reversals: int | None = None
+    head_str_landed: int | None = None
+    head_str_attempted: int | None = None
+    body_str_landed: int | None = None
+    body_str_attempted: int | None = None
+    leg_str_landed: int | None = None
+    leg_str_attempted: int | None = None
+    distance_str_landed: int | None = None
+    distance_str_attempted: int | None = None
+    clinch_str_landed: int | None = None
+    clinch_str_attempted: int | None = None
+    ground_str_landed: int | None = None
+    ground_str_attempted: int | None = None
+
+
+@dataclass
 class ParsedFighterFightStats:
     """Parsed fight-total stats for one fighter on a fight detail page."""
 
@@ -55,6 +84,7 @@ class ParsedFighterFightStats:
     clinch_str_attempted: int | None = None
     ground_str_landed: int | None = None
     ground_str_attempted: int | None = None
+    rounds: list[ParsedRoundStats] = field(default_factory=list)
 
 
 @dataclass
@@ -206,6 +236,33 @@ def _summary_sig_strikes_from_block(block: list[str]) -> dict[str, int | None]:
     }
 
 
+def _parse_fighter_round_stats(organised: list[list[str]]) -> list[ParsedRoundStats]:
+    """
+    Build per-round stats from organised totals + significant-strikes blocks.
+    Receives organised blocks and returns a list of ParsedRoundStats.
+    """
+    # Fight stats has two summary rows and two rows of stats for each round.
+    if len(organised) < 4 or len(organised) % 2 != 0:
+        return []
+
+    number_of_rounds = (len(organised) - 2) // 2
+    if number_of_rounds < 1:
+        return []
+
+    half = len(organised) // 2
+    rounds: list[ParsedRoundStats] = []
+    for round_index in range(number_of_rounds):
+        totals_block = organised[round_index + 1]
+        sig_block = organised[round_index + 1 + half]
+        round_stats = ParsedRoundStats(round_number=round_index + 1)
+        for key, value in _summary_totals_from_block(totals_block).items():
+            setattr(round_stats, key, value)
+        for key, value in _summary_sig_strikes_from_block(sig_block).items():
+            setattr(round_stats, key, value)
+        rounds.append(round_stats)
+    return rounds
+
+
 def _parse_fighter_summary_stats(
     organised: list[list[str]],
     result: str | None,
@@ -228,6 +285,7 @@ def _parse_fighter_summary_stats(
         setattr(stats, key, value)
     for key, value in _summary_sig_strikes_from_block(sig_summary).items():
         setattr(stats, key, value)
+    stats.rounds = _parse_fighter_round_stats(organised)
     return stats
 
 
@@ -242,6 +300,9 @@ def parse_fight_totals(
     fighter_a_raw, fighter_b_raw = _extract_raw_fighter_stat_lists(soup)
     fighter_a_organised = _organise_stats_by_fighter_name(fighter_a_raw)
     fighter_b_organised = _organise_stats_by_fighter_name(fighter_b_raw)
+
+    if not fighter_a_organised and not fighter_b_organised:
+        raise ValueError("No fight stats tables found on fight detail page")
 
     result_a = metadata.fighter_a_result if metadata is not None else None
     result_b = metadata.fighter_b_result if metadata is not None else None
@@ -258,7 +319,7 @@ def parse_fight_totals(
 
 def parse_fight_page(soup: BeautifulSoup) -> ParsedFightPage:
     """
-    Parse fight metadata and per-fighter totals from a fight detail page.
+    Parse fight metadata, per-fighter totals, and per-round stats from a fight detail page.
     Receives BeautifulSoup and returns ParsedFightPage.
     """
     metadata = parse_fight_metadata(soup)
@@ -360,6 +421,29 @@ def fighter_stats_to_api_payload(
     fighters: list[dict] = []
     for stats in fighter_stats:
         row = asdict(stats)
+        row.pop("rounds", None)
         # API resolves fighters by name; keep only populated numeric/result fields.
         fighters.append({key: value for key, value in row.items() if value is not None})
+    return {"fighters": fighters}
+
+
+def round_stats_to_api_payload(
+    fighter_stats: list[ParsedFighterFightStats],
+) -> dict:
+    """
+    Convert per-fighter round stats into a SetRoundStats API payload.
+    Receives fighter fight-stat bundles and returns a dict with a fighters list.
+    """
+    fighters: list[dict] = []
+    for stats in fighter_stats:
+        rounds: list[dict] = []
+        for round_stats in stats.rounds:
+            row = asdict(round_stats)
+            rounds.append({key: value for key, value in row.items() if value is not None})
+        fighters.append(
+            {
+                "fighter_name": stats.fighter_name,
+                "rounds": rounds,
+            }
+        )
     return {"fighters": fighters}
