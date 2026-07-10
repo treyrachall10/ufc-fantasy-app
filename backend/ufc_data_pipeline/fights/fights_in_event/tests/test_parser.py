@@ -232,7 +232,7 @@ class ScrapeFightsInEventTests(TestCase):
 
 
 class PublishFighterProfileMessageTests(TestCase):
-    @patch("ufc_data_pipeline.fights.fights_in_event.parser.pubsub_v1.PublisherClient")
+    @patch("ufc_data_pipeline.fights.fights_in_event.parser.publish_json")
     @patch.dict(
         "os.environ",
         {
@@ -241,26 +241,27 @@ class PublishFighterProfileMessageTests(TestCase):
         },
     )
     def test_publish_fighter_profile_message_publishes_payload(
-        self, publisher_cls
+        self, publish_mock
     ) -> None:
-        publisher = publisher_cls.return_value
-        publisher.topic_path.return_value = (
-            "projects/local-project/topics/fighter-profile-jobs"
-        )
+        publish_mock.return_value = "msg-1"
 
         _publish_fighter_profile_message(
             99, "http://ufcstats.com/fighter-details/test"
         )
 
-        publisher.publish.assert_called_once()
-        published_payload = publisher.publish.call_args[0][1].decode("utf-8")
-        assert '"fighter_id": 99' in published_payload
-        assert '"fighter_url": "http://ufcstats.com/fighter-details/test"' in published_payload
+        publish_mock.assert_called_once_with(
+            "fighter-profile-jobs",
+            {
+                "fighter_id": 99,
+                "fighter_url": "http://ufcstats.com/fighter-details/test",
+            },
+            project_id="local-project",
+        )
 
-    @patch("ufc_data_pipeline.fights.fights_in_event.parser.pubsub_v1.PublisherClient")
+    @patch("ufc_data_pipeline.fights.fights_in_event.parser.publish_json")
     def test_publish_fighter_profile_message_skips_empty_url(
-        self, publisher_cls
+        self, publish_mock
     ) -> None:
         _publish_fighter_profile_message(99, "")
 
-        publisher_cls.return_value.publish.assert_not_called()
+        publish_mock.assert_not_called()
