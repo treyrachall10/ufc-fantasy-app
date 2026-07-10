@@ -19,6 +19,7 @@ from ufc_data_pipeline.fights.fight_stats.parser import (
     fighter_stats_to_api_payload,
     metadata_to_api_payload,
     parse_fight_page,
+    round_stats_to_api_payload,
 )
 
 logger = logging.getLogger(__name__)
@@ -50,11 +51,15 @@ def fetch_fight_soup(fight_url: str) -> BeautifulSoup:
 
 def process_fight_stats(fight_id: int, fight_url: str) -> None:
     """
-    Scrape a fight detail page and upsert fight metadata plus FightStats totals via API.
+    Scrape a fight detail page and upsert metadata, FightStats, and RoundStats via API.
     Receives fight_id and fight_url; returns nothing; raises on failure.
     """
     soup = fetch_fight_soup(fight_url)
-    parsed = parse_fight_page(soup)
+    try:
+        parsed = parse_fight_page(soup)
+    except ValueError as exc:
+        logger.error("Fight stats parse failed fight_id=%s: %s", fight_id, exc)
+        raise RuntimeError(str(exc)) from exc
 
     metadata_payload = metadata_to_api_payload(parsed.metadata)
     if len(metadata_payload) <= 1:
@@ -65,11 +70,19 @@ def process_fight_stats(fight_id: int, fight_url: str) -> None:
             f"Expected two fighter fight-stat bundles, got {len(parsed.fighter_stats)}"
         )
 
+    for stats in parsed.fighter_stats:
+        if not stats.rounds:
+            raise RuntimeError(
+                f"No per-round stats found for fighter={stats.fighter_name}"
+            )
+
     stats_payload = fighter_stats_to_api_payload(parsed.fighter_stats)
+    rounds_payload = round_stats_to_api_payload(parsed.fighter_stats)
 
     api_client.update_fight_result_metadata(fight_id, metadata_payload)
     api_client.upsert_fight_stats_totals(fight_id, stats_payload)
+    api_client.upsert_round_stats(fight_id, rounds_payload)
     logger.info(
-        "Updated fight metadata and FightStats totals fight_id=%s",
+        "Updated fight metadata, FightStats totals, and RoundStats fight_id=%s",
         fight_id,
     )
