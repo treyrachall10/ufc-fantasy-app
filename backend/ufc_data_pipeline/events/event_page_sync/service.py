@@ -4,10 +4,9 @@ Orchestrate fetching the UFC Stats events listing and persisting new ``Events`` 
 
 from __future__ import annotations
 
+import os
 from datetime import date as Date
 
-import os
-import json
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 from django.db import transaction
@@ -18,12 +17,11 @@ from fantasy.models import Events
 from ufc_data_pipeline.events.event_page_sync.config import URL
 from ufc_data_pipeline.events.event_page_sync.parser import parse_completed_events_after
 from ufc_data_pipeline.models import EventSyncJob
+from ufc_data_pipeline.pubsub_publish import publish_json
 
 from tenacity import Retrying
 from tenacity import stop_after_attempt
 from tenacity import wait_exponential
-
-from google.cloud import pubsub_v1
 
 
 _REQUEST_TIMEOUT_S = 60
@@ -47,9 +45,6 @@ def sync_event_page() -> tuple[EventSyncJob, list[Events]]:
         The job row and newly created ``Events`` instances (with primary keys set where
         the database supports it for ``bulk_create``).
     """
-    publisher = pubsub_v1.PublisherClient() # create a publisher client
-    topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID) # create a topic path
-
     ran_at = timezone.now()
     job = EventSyncJob.objects.create(
         ran_at=ran_at,
@@ -113,10 +108,11 @@ def sync_event_page() -> tuple[EventSyncJob, list[Events]]:
                     # publish messages to Pub/Sub
                     for obj in objs:
                         try:
-                            future = publisher.publish(topic_path, json.dumps({
-                                "url": obj.url,
-                                "event_id": obj.event_id,
-                            }).encode("utf-8"))
+                            publish_json(
+                                TOPIC_ID,
+                                {"url": obj.url, "event_id": obj.event_id},
+                                project_id=PROJECT_ID,
+                            )
                         except Exception as exc:
                             raise Exception(f"Failed to publish message to Pub/Sub {exc}") from exc
 
