@@ -33,7 +33,7 @@ Upstream publisher: `backend/ufc_data_pipeline/fights/fights_in_event/parser.py`
 - **Primary entry point:** `fighter_profile_worker.main()` → `run_subscriber()` in `consumer.py`.
 - **Django bootstrap:** `ensure_django()` sets `DJANGO_SETTINGS_MODULE` to `ufc_fantasy.settings` before DB use.
 - **Subscription:** `SubscriberClient.subscribe(subscription_path, callback=callback)` on `projects/local-project/subscriptions/fighter-profile-jobs-sub` (names from `config.py`).
-- **Idle shutdown:** Outer loop polls `streaming_pull_future.result(timeout=5)`; if no message has been received for `IDLE_SHUTDOWN_S` (60s), the subscriber cancels and exits. Each delivered message resets `_LAST_MESSAGE_AT` at the start of `callback`.
+- **Idle shutdown:** Controlled by `WORKER_IDLE_SHUTDOWN_ENABLED` / `WORKER_IDLE_TIMEOUT_SECONDS` (via `worker_settings`). When enabled, the outer loop exits after the idle timeout with no messages. Compose sets shutdown **disabled** for local development.
 - **Per-message `callback`:**
   - Parses JSON → `fighter_id` (int) and `fighter_url` (non-empty string). Bad payloads are **acked** (dropped).
   - `_get_or_create_job(fighter_id, fighter_url)`:
@@ -100,73 +100,53 @@ flowchart TB
 
 ## Environment Variables
 
-**Process environment (Google Pub/Sub client — not read in `config.py`):**
-
 ```text
-PUBSUB_EMULATOR_HOST     # localhost:8085 on host; pubsub:8085 inside docker-compose network
-```
-
-**`.env` / docker-compose `env_file`:**
-
-```text
-PIPELINE_SERVICE_API_KEY   # API key for SetFighterProfile (read in config.py)
-GOOGLE_CLOUD_PROJECT       # local-project (used by upstream publishers; worker uses config.py constants)
+PUBSUB_EMULATOR_HOST              # localhost:8085 on host; pubsub:8085 inside docker-compose
+GOOGLE_CLOUD_PROJECT              # default local-project
 PUBSUB_FIGHTER_PROFILE_TOPIC
 PUBSUB_FIGHTER_PROFILE_SUBSCRIPTION
+PIPELINE_API_BASE_URL             # http://web:8000 in Compose; http://localhost:8000 on host
+PIPELINE_SERVICE_API_KEY
+WORKER_IDLE_SHUTDOWN_ENABLED      # Compose sets false for local workers
+WORKER_IDLE_TIMEOUT_SECONDS       # default 60
+WORKER_IDLE_CHECK_INTERVAL_SECONDS
 ```
 
-**Docker Compose overrides for `fighter-profile-worker` (`docker-compose.yml`):**
+**Docker Compose overrides for `fighter-profile-worker`:**
 
 ```text
 PUBSUB_EMULATOR_HOST=pubsub:8085
 PIPELINE_API_BASE_URL=http://web:8000
-```
-
-**Hardcoded in `config.py` (edit file or extend to read env if needed):**
-
-```text
-PROJECT_ID=local-project
-TOPIC_ID=fighter-profile-jobs
-SUBSCRIPTION_ID=fighter-profile-jobs-sub
-PIPELINE_API_BASE_URL=http://web:8000
-IDLE_SHUTDOWN_S=60
-IDLE_CHECK_INTERVAL_S=5
-MAX_RETRY_COUNT=3
-PLAYWRIGHT_TIMEOUT_S=60
+WORKER_IDLE_SHUTDOWN_ENABLED=false
 ```
 
 ## How to Run Locally
 
-**IDE debugger (host process):**
+**Enqueue a test job (preferred):**
 
 ```bash
-cd backend
-# Ensure .env has PUBSUB_EMULATOR_HOST=localhost:8085
-python manage.py shell -c "import runpy; runpy.run_module('ufc_data_pipeline.fighters.fighter_profile.consumer', run_name='__main__')"
+docker compose exec web python manage.py enqueue_fighter_profile \
+  --fighter-id 1 \
+  --fighter-url 'http://ufcstats.com/fighter-details/...'
 ```
 
-Or use the VS Code launch config `"scrape fighter profile consumer"`. The worker must reach the Pub/Sub emulator on the host (`localhost:8085`) and the API (`http://localhost:8000` if `web` is not running in Docker).
-
-**Docker Compose:**
+**Docker Compose worker:**
 
 ```bash
-docker compose build fighter-profile-worker
-docker compose up fighter-profile-worker
+docker compose up --build
 ```
 
-Requires `pubsub`, `pubsub-init`, and `web` services. Rebuild the image after Dockerfile changes so Chromium is installed.
+Requires `pubsub`, `pubsub-init`, and `web` services.
 
 ## Common Errors / Gotchas
 
-- **Wrong `PUBSUB_EMULATOR_HOST` in Docker:** If the worker uses `localhost:8085` inside a container, it will not reach the emulator and will idle-shutdown after 60s with no messages processed. Use `pubsub:8085` via docker-compose `environment` overrides.
+- **Wrong `PUBSUB_EMULATOR_HOST` in Docker:** If the worker uses `localhost:8085` inside a container, it will not reach the emulator. Use `pubsub:8085` via docker-compose `environment` overrides.
 - **Playwright browser missing:** Run `playwright install --with-deps chromium` during the Docker image build (`backend/Dockerfile`). Rebuild the image if you see `Executable doesn't exist at .../ms-playwright/chromium...`.
 - **Re-scraping completed fighters:** A prior `COMPLETED` job does **not** block a new scrape; a new job row is created. Only an in-flight `RUNNING` job causes a skip.
 - **Invalid JSON or empty `fighter_url`:** Payload errors are **acked**; the message is dropped.
-- **`pubsub-init` not idempotent:** Re-running compose may fail topic/subscription create if resources already exist (init script uses chained `&&` without ignore-already-exists handling).
 
 ## Notes for Future Developers
 
 - Ack/nack must be called from the subscriber `callback` thread.
 - Upstream `fights_in_event` publishes to Pub/Sub only; it does not create `FighterProfileScrapeJob` rows.
-- Consider reading `PROJECT_ID`, `SUBSCRIPTION_ID`, and `PIPELINE_API_BASE_URL` from environment in `config.py` so docker-compose overrides and local debugger settings stay in one place.
 - Unit tests: `tests/test_parser.py`, `tests/test_consumer.py`.

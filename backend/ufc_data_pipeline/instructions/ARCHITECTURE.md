@@ -140,7 +140,7 @@ This worker should support:
 
 - Pub/Sub emulator host must be `localhost:8085` on the host and `pubsub:8085` inside docker-compose.
 - Chromium must be installed in the Docker image (`playwright install --with-deps chromium` in `backend/Dockerfile`).
-- Worker idles out after 60s without messages (scale-to-zero behavior).
+- Worker idle shutdown is controlled by `WORKER_IDLE_SHUTDOWN_ENABLED` (Compose disables it for local development).
 
 ## 5. DB Event Watcher
 

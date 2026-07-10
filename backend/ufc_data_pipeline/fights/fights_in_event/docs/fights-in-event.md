@@ -26,7 +26,7 @@ When new fighters are created or an existing fighter receives a backfilled `prof
 - **Primary entry point:** `run_subscriber()` in `consumer.py`; module `__main__` calls it with logging configured.
 - **Django bootstrap:** `ensure_django()` sets `DJANGO_SETTINGS_MODULE` to `ufc_fantasy.settings` and calls `django.setup()` before DB use.
 - **Env guard:** `run_subscriber()` exits with a message if `GOOGLE_CLOUD_PROJECT` or `PUBSUB_FIGHTS_IN_EVENT_SUBSCRIPTION` is missing.
-- **Subscription:** `SubscriberClient.subscribe(subscription_path, callback=callback)`; outer loop uses `result(timeout=5)` and `TimeoutError` to detect **idle** time (`_LAST_MESSAGE_AT`); after `_IDLE_SHUTDOWN_S` (60s) without traffic, cancels the pull future and exits.
+- **Idle shutdown:** Controlled by `WORKER_IDLE_SHUTDOWN_ENABLED` / `WORKER_IDLE_TIMEOUT_SECONDS`. Compose disables idle shutdown for local development.
 - **Per-message `callback`:**
   - Parses JSON body → `url` (non-empty string) and `event_id` (int). Bad payloads are **acked** (dropped) after logging.
   - Loads or creates `FightCreationJob` with `pubsub_message_id=message.message_id`, `url`, `event` FK via `event_id`, `RUNNING`, etc. DB create failure → **nack**.
