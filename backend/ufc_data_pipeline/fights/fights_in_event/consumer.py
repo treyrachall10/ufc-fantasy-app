@@ -27,6 +27,10 @@ from google.cloud import pubsub_v1
 from fantasy.models import Fights
 
 from ufc_data_pipeline.models import FightCreationJob
+from ufc_data_pipeline.worker_settings import (
+    idle_check_interval_seconds,
+    should_shutdown_for_idle,
+)
 
 from .parser import scrape_fights_in_event
 
@@ -34,8 +38,6 @@ logger = logging.getLogger(__name__)
 
 _REQUEST_TIMEOUT_S = 60
 _MAX_RETRY_COUNT_BEFORE_FAIL = 3
-_IDLE_SHUTDOWN_S = 60
-_IDLE_CHECK_INTERVAL_S = 5
 
 project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
 subscription_id = os.getenv("PUBSUB_FIGHTS_IN_EVENT_SUBSCRIPTION")
@@ -195,13 +197,12 @@ def run_subscriber() -> None:
     with subscriber:
         while True:
             try:
-                streaming_pull_future.result(timeout=_IDLE_CHECK_INTERVAL_S) # wait for a message
+                streaming_pull_future.result(timeout=idle_check_interval_seconds())
                 break
             except TimeoutError:
-                with _STATE_LOCK: # check if the subscriber is idle
-                    idle_for_s = monotonic() - _LAST_MESSAGE_AT # calculate the idle time
-                # if the idle time is greater than the idle shutdown time, shut down the subscriber
-                if idle_for_s > _IDLE_SHUTDOWN_S:
+                with _STATE_LOCK:
+                    idle_for_s = monotonic() - _LAST_MESSAGE_AT
+                if should_shutdown_for_idle(idle_for_s):
                     logger.info("No messages for %.1fs; shutting down subscriber.", idle_for_s)
                     streaming_pull_future.cancel()
                     streaming_pull_future.result()

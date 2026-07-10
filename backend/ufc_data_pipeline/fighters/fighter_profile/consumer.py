@@ -25,14 +25,16 @@ from django.utils import timezone
 from google.cloud import pubsub_v1
 
 from ufc_data_pipeline.fighters.fighter_profile.config import (
-    IDLE_CHECK_INTERVAL_S,
-    IDLE_SHUTDOWN_S,
     MAX_RETRY_COUNT,
     PROJECT_ID,
     SUBSCRIPTION_ID,
 )
 from ufc_data_pipeline.fighters.fighter_profile.service import process_fighter_profile
 from ufc_data_pipeline.models import FighterProfileScrapeJob
+from ufc_data_pipeline.worker_settings import (
+    idle_check_interval_seconds,
+    should_shutdown_for_idle,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -243,12 +245,12 @@ def run_subscriber() -> None:
     with subscriber:
         while True:
             try:
-                streaming_pull_future.result(timeout=IDLE_CHECK_INTERVAL_S)
+                streaming_pull_future.result(timeout=idle_check_interval_seconds())
                 break
             except TimeoutError:
                 with _STATE_LOCK:
                     idle_for_s = monotonic() - _LAST_MESSAGE_AT
-                if idle_for_s > IDLE_SHUTDOWN_S:
+                if should_shutdown_for_idle(idle_for_s):
                     logger.info(
                         "No messages for %.1fs; shutting down subscriber.",
                         idle_for_s,
