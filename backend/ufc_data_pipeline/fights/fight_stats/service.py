@@ -16,8 +16,9 @@ from ufc_data_pipeline.fights.fight_stats.config import (
     PLAYWRIGHT_TIMEOUT_S,
 )
 from ufc_data_pipeline.fights.fight_stats.parser import (
+    fighter_stats_to_api_payload,
     metadata_to_api_payload,
-    parse_fight_metadata,
+    parse_fight_page,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,14 +50,26 @@ def fetch_fight_soup(fight_url: str) -> BeautifulSoup:
 
 def process_fight_stats(fight_id: int, fight_url: str) -> None:
     """
-    Scrape a fight detail page and update fight result metadata via the API service.
+    Scrape a fight detail page and upsert fight metadata plus FightStats totals via API.
     Receives fight_id and fight_url; returns nothing; raises on failure.
     """
     soup = fetch_fight_soup(fight_url)
-    metadata = parse_fight_metadata(soup)
-    payload = metadata_to_api_payload(metadata)
-    if len(payload) <= 1:
+    parsed = parse_fight_page(soup)
+
+    metadata_payload = metadata_to_api_payload(parsed.metadata)
+    if len(metadata_payload) <= 1:
         raise RuntimeError("No fight metadata fields parsed from page")
 
-    api_client.update_fight_result_metadata(fight_id, payload)
-    logger.info("Updated fight result metadata fight_id=%s", fight_id)
+    if len(parsed.fighter_stats) != 2:
+        raise RuntimeError(
+            f"Expected two fighter fight-stat bundles, got {len(parsed.fighter_stats)}"
+        )
+
+    stats_payload = fighter_stats_to_api_payload(parsed.fighter_stats)
+
+    api_client.update_fight_result_metadata(fight_id, metadata_payload)
+    api_client.upsert_fight_stats_totals(fight_id, stats_payload)
+    logger.info(
+        "Updated fight metadata and FightStats totals fight_id=%s",
+        fight_id,
+    )
