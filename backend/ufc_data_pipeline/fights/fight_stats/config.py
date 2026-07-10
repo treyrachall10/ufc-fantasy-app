@@ -14,6 +14,10 @@ SUBSCRIPTION_ID = os.getenv("PUBSUB_FIGHT_STATS_SUBSCRIPTION", "fight-stats-jobs
 # Downstream handoff (slice 007)
 CAREER_STATS_TOPIC_ID = os.getenv("PUBSUB_CAREER_STATS_TOPIC", "career-stats-jobs")
 
+# Main API service (docker-compose web service hostname)
+PIPELINE_API_BASE_URL = os.getenv("PIPELINE_API_BASE_URL", "http://web:8000")
+PIPELINE_SERVICE_API_KEY = os.getenv("PIPELINE_SERVICE_API_KEY", "")
+
 # Worker behavior
 PLAYWRIGHT_TIMEOUT_S = 60
 MAX_RETRY_COUNT = 3
