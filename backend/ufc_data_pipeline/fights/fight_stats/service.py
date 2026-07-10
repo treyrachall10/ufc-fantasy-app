@@ -54,6 +54,12 @@ def process_fight_stats(fight_id: int, fight_url: str) -> None:
     Scrape a fight detail page and upsert metadata, FightStats, and RoundStats via API.
     Receives fight_id and fight_url; returns nothing; raises on failure.
     """
+    logger.info(
+        "Started fight stats job fight_id=%s fight_url=%s",
+        fight_id,
+        fight_url,
+    )
+
     soup = fetch_fight_soup(fight_url)
     try:
         parsed = parse_fight_page(soup)
@@ -83,6 +89,7 @@ def process_fight_stats(fight_id: int, fight_url: str) -> None:
     api_client.upsert_fight_stats_totals(fight_id, stats_payload)
     api_client.upsert_round_stats(fight_id, rounds_payload)
     logger.info(
-        "Updated fight metadata, FightStats totals, and RoundStats fight_id=%s",
+        "Completed API updates for fight stats job fight_id=%s fight_url=%s",
         fight_id,
+        fight_url,
     )
