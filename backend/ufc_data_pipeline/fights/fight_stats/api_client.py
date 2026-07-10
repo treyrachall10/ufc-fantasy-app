@@ -63,3 +63,11 @@ def upsert_fight_stats_totals(fight_id: int, payload: dict) -> None:
     Receives fight_id and a payload dict; returns nothing; raises on failure.
     """
     _patch(f"/api/fights/{fight_id}/SetFightStatsTotals", payload)
+
+
+def upsert_round_stats(fight_id: int, payload: dict) -> None:
+    """
+    PATCH per-round RoundStats rows through the main API service.
+    Receives fight_id and a payload dict; returns nothing; raises on failure.
+    """
+    _patch(f"/api/fights/{fight_id}/SetRoundStats", payload)
