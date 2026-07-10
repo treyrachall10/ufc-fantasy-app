@@ -5,16 +5,15 @@ Parse fight rows from a UFC Stats *event detail* page (completed card).
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 from dataclasses import dataclass, field
 
 from bs4 import BeautifulSoup, Tag
-from google.cloud import pubsub_v1
 
 from fantasy.models import Fighters, Fights
 from shared.utils import normalize_name
+from ufc_data_pipeline.pubsub_publish import publish_json
 
 logger = logging.getLogger(__name__)
 
@@ -246,18 +245,11 @@ def _publish_fighter_profile_message(fighter_id: int, fighter_url: str) -> None:
         )
         return
 
-    # Try to publish the fighter profile scrape request to Pub/Sub.
     try:
-        publisher = pubsub_v1.PublisherClient()
-        topic_path = publisher.topic_path(project_id, topic_id)
-        publisher.publish(
-            topic_path,
-            json.dumps(
-                {
-                    "fighter_id": fighter_id,
-                    "fighter_url": profile_url,
-                }
-            ).encode("utf-8"),
+        publish_json(
+            topic_id,
+            {"fighter_id": fighter_id, "fighter_url": profile_url},
+            project_id=project_id,
         )
     except Exception:
         logger.exception(
