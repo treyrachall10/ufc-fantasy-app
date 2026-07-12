@@ -14,8 +14,8 @@ services:
       BASE_API_URL: http://web:8000
       WORKER_IDLE_SHUTDOWN_ENABLED: "false"
     depends_on:
-      - pubsub
-      - pubsub-init
+      pubsub-init:
+        condition: service_completed_successfully
 
   scraper-job:
     build:
@@ -27,9 +27,10 @@ services:
       PUBSUB_EMULATOR_HOST: pubsub:8085
       BASE_API_URL: http://web:8000
     depends_on:
-      - web
-      - pubsub
-      - pubsub-init
+      pubsub-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
 
   image-worker-job:
     build:
@@ -42,9 +43,10 @@ services:
       BASE_API_URL: http://web:8000
       WORKER_IDLE_SHUTDOWN_ENABLED: "false"
     depends_on:
-      - web
-      - pubsub
-      - pubsub-init
+      pubsub-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
 
   fighter-profile-worker:
     build: ./backend
@@ -58,9 +60,10 @@ services:
       PIPELINE_API_BASE_URL: http://web:8000
       WORKER_IDLE_SHUTDOWN_ENABLED: "false"
     depends_on:
-      - web
-      - pubsub
-      - pubsub-init
+      pubsub-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
 
   fights-in-event-worker:
     build: ./backend
@@ -74,9 +77,10 @@ services:
       PIPELINE_API_BASE_URL: http://web:8000
       WORKER_IDLE_SHUTDOWN_ENABLED: "false"
     depends_on:
-      - web
-      - pubsub
-      - pubsub-init
+      pubsub-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
 
   fight-stats-worker:
     build: ./backend
@@ -91,9 +95,10 @@ services:
       WORKER_IDLE_SHUTDOWN_ENABLED: "false"
       WORKER_MAX_MESSAGES: "3"
     depends_on:
-      - web
-      - pubsub
-      - pubsub-init
+      pubsub-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
 
   pubsub:
     image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
@@ -102,18 +107,24 @@ services:
       - "8085:8085"
     environment:
       - PUBSUB_PROJECT_ID=local-project
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8085 || exit 1"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 2s
 
   pubsub-init:
     image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
     depends_on:
-      - pubsub
+      pubsub:
+        condition: service_healthy
     environment:
       - PUBSUB_EMULATOR_HOST=pubsub:8085
       - GOOGLE_CLOUD_PROJECT=local-project
       - CLOUDSDK_API_ENDPOINT_OVERRIDES_PUBSUB=http://pubsub:8085/
     command: >
       sh -c "
-      sleep 5 &&
       gcloud config set auth/disable_credentials true &&
       gcloud config set project local-project &&
       (gcloud pubsub topics create image-jobs --project=local-project || true) &&
