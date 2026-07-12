@@ -77,3 +77,15 @@ class FightStatsScrapeJob(BaseJobModel):
         indexes = [
             models.Index(fields=["fight_id", "status"]),
         ]
+
+
+class CareerStatsJob(BaseJobModel):
+    """Tracks a fighter career-stats recalculation run triggered by a fight."""
+
+    fight_id = models.PositiveIntegerField()
+
+    class Meta:
+        db_table = "career_stats_job"
+        indexes = [
+            models.Index(fields=["fight_id", "status"]),
+        ]
