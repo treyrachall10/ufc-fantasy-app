@@ -167,11 +167,11 @@ This job should only check the database. It should not scrape UFC.com.
 
 ### Role
 
-Temporary polling worker.
+Temporary polling worker (not implemented in this repo yet).
 
 ### Responsibility
 
-The Fight Results Watcher watches an active event for fight result availability.
+The Fight Results Watcher watches an active event for fight result availability and **publishes** fight-stats work to Pub/Sub.
 
 ### Flow
 
@@ -179,17 +179,15 @@ The Fight Results Watcher watches an active event for fight result availability.
 2. Use the saved event URL or fight URLs.
 3. Poll for the fight results badge.
 4. If no result badge exists, sleep for 5 minutes.
-5. If a result badge exists, check whether a FightStatsScrapeJob already exists.
-6. If a pending, running, or completed job exists, skip.
-7. If no job exists, create a FightStatsScrapeJob.
+5. If a result badge exists, publish a message to `fight-stats-jobs` with `{"fight_id": <int>, "fight_url": "<url>"}`.
 
 ### Output
 
-Creates FightStatsScrapeJob records.
+Publishes Pub/Sub messages to `fight-stats-jobs`. It does **not** create `FightStatsScrapeJob` rows — job creation is owned by the Fight Stats Scraper consumer.
 
 ### Boundary
 
-This watcher should not scrape full fight stats directly.
+This watcher should not scrape full fight stats directly. It must not write fantasy fight-stats tables or pipeline job rows.
 
 ## 7. Fight Stats Scraper
 
@@ -199,30 +197,46 @@ Scale-to-zero worker.
 
 ### Responsibility
 
-The Fight Stats Scraper scrapes raw fight performance data for a completed fight.
+The Fight Stats Scraper consumes `fight-stats-jobs`, creates/manages `FightStatsScrapeJob` rows, scrapes the UFC Stats fight detail page, and upserts fight metadata and stats through the main API service.
 
 ### Flow
 
-1. Receive a FightStatsScrapeJob.
-2. Scrape raw fight performance data.
-3. Create fighter fight metadata.
-4. Create one FightStats row.
-5. Bulk create RoundStats rows.
-6. Update the FightStatsScrapeJob status.
-7. Create/publish a CareerStatsJob.
+1. Receive a Pub/Sub message (`fight_id`, `fight_url`).
+2. Create or resume a `FightStatsScrapeJob` (skip if `RUNNING`; reuse `RETRYING`; allow a new job after `COMPLETED` / `FAILED`).
+3. Scrape the fight detail page with Playwright.
+4. Parse metadata, two fighter total bundles, and per-round stats.
+5. Persist via API:
+   - `PATCH .../SetFightResultMetadata` (fight result fields)
+   - `PATCH .../SetFightStatsTotals` (**two** `FightStats` rows, one per fighter)
+   - `PATCH .../SetRoundStats` (per-round rows)
+6. Mark the `FightStatsScrapeJob` `COMPLETED` after API writes succeed.
+7. Publish `{"fight_id": <int>}` to `career-stats-jobs` **after** the COMPLETED commit.
 
 ### Output
 
-Creates:
+Creates/updates:
 
-- Fighter fight metadata
-- FightStats row
-- RoundStats rows
-- CareerStatsJob
+- `FightStatsScrapeJob` rows (pipeline-owned)
+- Fight result metadata on `Fights` (via API)
+- **Two** `FightStats` rows per fight (via API)
+- `RoundStats` rows (via API)
+- Downstream Pub/Sub message on `career-stats-jobs`
 
-### Transaction Rule
+### Transaction / consistency rule
 
-FightStats, RoundStats, and job status updates should be handled safely so the job is not marked completed if dependent writes fail.
+Do not mark the job `COMPLETED` if API writes fail. Publish career-stats only after the COMPLETED status has committed so rolled-back or failed scrapes do not trigger downstream work.
+
+### Local operation
+
+Without the Fight Results Watcher, operators can publish test messages with:
+
+```bash
+docker compose exec web python manage.py enqueue_fight_stats \
+  --fight-id <id> \
+  --fight-url '<ufcstats fight-details url>'
+```
+
+See `backend/ufc_data_pipeline/fights/fight_stats/docs/fight-stats.md`.
 
 ## 8. Career Stats Worker
 
