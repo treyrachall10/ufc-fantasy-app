@@ -89,6 +89,7 @@ services:
       PUBSUB_EMULATOR_HOST: pubsub:8085
       PIPELINE_API_BASE_URL: http://web:8000
       WORKER_IDLE_SHUTDOWN_ENABLED: "false"
+      WORKER_MAX_MESSAGES: "3"
     depends_on:
       - web
       - pubsub

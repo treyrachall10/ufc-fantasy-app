@@ -53,6 +53,11 @@ def idle_check_interval_seconds() -> int:
     return _env_positive_int("WORKER_IDLE_CHECK_INTERVAL_SECONDS", 5)
 
 
+def max_messages() -> int:
+    """Max concurrent Pub/Sub callbacks per subscriber. Default: 3."""
+    return _env_positive_int("WORKER_MAX_MESSAGES", 3)
+
+
 def should_shutdown_for_idle(idle_for_s: float) -> bool:
     """
     Return True when the worker should exit due to idle time.
