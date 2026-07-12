@@ -726,3 +726,54 @@ class RoundStatsUpdateSerializer(serializers.Serializer):
         if len(value) != 2:
             raise serializers.ValidationError("Exactly two fighter round bundles are required.")
         return value
+
+
+class CareerStatsSourceStatRowSerializer(serializers.Serializer):
+    """One completed FightStats row plus fight outcome fields for counters."""
+
+    fight_id = serializers.IntegerField()
+    result = serializers.CharField(allow_null=True)
+    method = serializers.CharField(allow_null=True)
+    winner_id = serializers.IntegerField(allow_null=True)
+    round = serializers.IntegerField(allow_null=True)
+    time = serializers.IntegerField(allow_null=True)
+    kd = serializers.IntegerField(allow_null=True)
+    sig_str_landed = serializers.IntegerField(allow_null=True)
+    sig_str_attempted = serializers.IntegerField(allow_null=True)
+    total_str_landed = serializers.IntegerField(allow_null=True)
+    total_str_attempted = serializers.IntegerField(allow_null=True)
+    td_landed = serializers.IntegerField(allow_null=True)
+    td_attempted = serializers.IntegerField(allow_null=True)
+    sub_att = serializers.IntegerField(allow_null=True)
+    ctrl_time = serializers.IntegerField(allow_null=True)
+    reversals = serializers.IntegerField(allow_null=True)
+    head_str_landed = serializers.IntegerField(allow_null=True)
+    head_str_attempted = serializers.IntegerField(allow_null=True)
+    body_str_landed = serializers.IntegerField(allow_null=True)
+    body_str_attempted = serializers.IntegerField(allow_null=True)
+    leg_str_landed = serializers.IntegerField(allow_null=True)
+    leg_str_attempted = serializers.IntegerField(allow_null=True)
+    distance_str_landed = serializers.IntegerField(allow_null=True)
+    distance_str_attempted = serializers.IntegerField(allow_null=True)
+    clinch_str_landed = serializers.IntegerField(allow_null=True)
+    clinch_str_attempted = serializers.IntegerField(allow_null=True)
+    ground_str_landed = serializers.IntegerField(allow_null=True)
+    ground_str_attempted = serializers.IntegerField(allow_null=True)
+    sig_str_landed_opp = serializers.IntegerField(allow_null=True)
+    sig_str_attempted_opp = serializers.IntegerField(allow_null=True)
+    td_landed_opp = serializers.IntegerField(allow_null=True)
+    td_attempted_opp = serializers.IntegerField(allow_null=True)
+    ctrl_time_opp = serializers.IntegerField(allow_null=True)
+
+
+class CareerStatsSourceFighterSerializer(serializers.Serializer):
+    """One fighter and their completed FightStats history for career recalc."""
+
+    fighter_id = serializers.IntegerField()
+    fights = CareerStatsSourceStatRowSerializer(many=True)
+
+
+class CareerStatsSourceSerializer(serializers.Serializer):
+    """Career-stats source payload: both fighters' completed FightStats histories."""
+
+    fighters = CareerStatsSourceFighterSerializer(many=True)

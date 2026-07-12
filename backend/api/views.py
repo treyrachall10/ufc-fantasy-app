@@ -48,6 +48,7 @@ from .serializers import (
     FightResultMetadataUpdateSerializer,
     FightStatsTotalsUpdateSerializer,
     RoundStatsUpdateSerializer,
+    CareerStatsSourceSerializer,
 )
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
                             FightStats, RoundStats, FightScore, League, LeagueMember, 
@@ -55,7 +56,8 @@ from fantasy.models import (Fighters, Events, Fights, FighterCareerStats,
 from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftable_fighters, get_or_create_user_from_token, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
                     is_user_in_league, autopick_fighter, get_drafted_fighter_ids, check_draft_completed,
-                    get_league_standings, validate_image, upload_file
+                    get_league_standings, validate_image, upload_file,
+                    career_stats_source_stat_row,
                     )
 
 from accounts.models import User
@@ -1336,3 +1338,57 @@ class SetRoundStats(generics.GenericAPIView):
             },
             status=200,
         )
+
+
+class CareerStatsSource(generics.GenericAPIView):
+    """
+    API view to return FightStats history for career-stats recalculation.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = CareerStatsSourceSerializer
+
+    def get(self, request, fight_id: int):
+        """
+        Uses fight_id to identify both fighters, then returns each fighter's
+        completed FightStats history (including the triggering fight).
+        """
+        # Resolve the triggering fight; 404 if it does not exist.
+        fight = get_object_or_404(Fights, fight_id=fight_id)
+
+        # Load FightStats for this fight to discover the two fighters involved.
+        trigger_stats = list(
+            FightStats.objects.filter(fight=fight)
+            .select_related("fighter")
+            .order_by("pk")
+        )
+
+        fighters_payload: list[dict] = []
+        # For each fighter on the triggering fight, attach their completed-fight history.
+        for fight_stats in trigger_stats:
+            fighter = fight_stats.fighter
+            if fighter is None:
+                continue
+
+            # All completed FightStats for this fighter (includes the triggering fight).
+            history = (
+                FightStats.objects.filter(
+                    fighter=fighter,
+                    fight__fight_status=Fights.FightStatus.COMPLETED,
+                )
+                .select_related("fight", "fight__winner")
+                .order_by("fight_id", "pk")
+            )
+            fighters_payload.append(
+                {
+                    "fighter_id": fighter.fighter_id,
+                    # Map each FightStats row into the flat counter-ready dict shape.
+                    "fights": [career_stats_source_stat_row(row) for row in history],
+                }
+            )
+
+        payload = {"fighters": fighters_payload}
+        serializer = self.serializer_class(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=200)
+

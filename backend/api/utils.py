@@ -418,6 +418,7 @@ def career_stats_source_stat_row(fight_stats: FightStats) -> dict:
     """
     Build one CareerStatsSource fight history row from a FightStats instance.
     """
+    # Fight outcome fields come from the related Fights row (already select_related).
     fight = fight_stats.fight
     row = {
         "fight_id": fight.fight_id if fight is not None else None,
@@ -427,6 +428,7 @@ def career_stats_source_stat_row(fight_stats: FightStats) -> dict:
         "round": fight.round if fight is not None else None,
         "time": fight.time if fight is not None else None,
     }
+    # Copy additive FightStats numerics (including opponent fields) onto the row.
     for field in CAREER_STATS_NUMERIC_FIELDS:
         row[field] = getattr(fight_stats, field)
     return row
