@@ -20,8 +20,10 @@ from time import monotonic
 from django.db import transaction
 from django.utils import timezone
 from google.cloud import pubsub_v1
+from google.cloud.pubsub_v1 import types
 
 from ufc_data_pipeline.fights.fight_stats.config import (
+    MAX_MESSAGES,
     MAX_RETRY_COUNT,
     PROJECT_ID,
     SUBSCRIPTION_ID,
@@ -39,6 +41,8 @@ _STATE_LOCK = Lock()
 _LAST_MESSAGE_AT = monotonic()
 
 
+# Receives no parameters and returns nothing.
+# This function configures Django so the consumer can read and write job rows.
 def _django_setup() -> None:
     import os
 
@@ -51,22 +55,18 @@ def _django_setup() -> None:
 _django_ready = False
 
 
+# Receives no parameters and returns nothing.
+# This function initializes Django once before database access.
 def ensure_django() -> None:
-    """
-    Initialize Django once before database access.
-    Receives no parameters and returns nothing.
-    """
     global _django_ready
     if not _django_ready:
         _django_setup()
         _django_ready = True
 
 
+# Receives raw Pub/Sub bytes and returns fight_id and fight_url.
+# This function validates the message payload before a job row is created.
 def parse_message_payload(raw: bytes) -> tuple[int, str]:
-    """
-    Parse the message payload into fight_id and fight detail URL.
-    Receives raw Pub/Sub bytes and returns fight_id and fight_url.
-    """
     data = json.loads(raw.decode("utf-8"))
     fight_id = int(data["fight_id"])
     fight_url = str(data["fight_url"]).strip()
@@ -75,55 +75,52 @@ def parse_message_payload(raw: bytes) -> tuple[int, str]:
     return fight_id, fight_url
 
 
+# Receives fight_id and fight_url; returns a job instance or None.
+# This function claims work under row locks so concurrent deliveries cannot double-scrape.
 def _get_or_create_job(fight_id: int, fight_url: str) -> FightStatsScrapeJob | None:
-    """
-    Return a job row to process, or None when a scrape is already in progress.
-
-    Reuses a RETRYING job; creates a new job when none is active (including after COMPLETED).
-    Receives fight_id and fight_url; returns a job instance or None.
-    """
-    if FightStatsScrapeJob.objects.filter(
-        fight_id=fight_id,
-        status=FightStatsScrapeJob.Status.RUNNING,
-    ).exists():
-        return None
-
-    retrying_job = (
-        FightStatsScrapeJob.objects.filter(
+    with transaction.atomic():
+        if FightStatsScrapeJob.objects.select_for_update().filter(
             fight_id=fight_id,
-            status=FightStatsScrapeJob.Status.RETRYING,
+            status=FightStatsScrapeJob.Status.RUNNING,
+        ).exists():
+            return None
+
+        retrying_job = (
+            FightStatsScrapeJob.objects.select_for_update()
+            .filter(
+                fight_id=fight_id,
+                status=FightStatsScrapeJob.Status.RETRYING,
+            )
+            .order_by("-ran_at")
+            .first()
         )
-        .order_by("-ran_at")
-        .first()
-    )
-    if retrying_job is not None:
-        retrying_job.status = FightStatsScrapeJob.Status.RUNNING
-        retrying_job.fight_url = fight_url
-        retrying_job.error_msg = ""
-        retrying_job.save(update_fields=["status", "fight_url", "error_msg"])
-        return retrying_job
+        if retrying_job is not None:
+            retrying_job.status = FightStatsScrapeJob.Status.RUNNING
+            retrying_job.fight_url = fight_url
+            retrying_job.error_msg = ""
+            retrying_job.save(update_fields=["status", "fight_url", "error_msg"])
+            return retrying_job
 
-    return FightStatsScrapeJob.objects.create(
-        fight_id=fight_id,
-        fight_url=fight_url,
-        ran_at=timezone.now(),
-        status=FightStatsScrapeJob.Status.RUNNING,
-        retry_count=0,
-        error_msg="",
-    )
+        return FightStatsScrapeJob.objects.create(
+            fight_id=fight_id,
+            fight_url=fight_url,
+            ran_at=timezone.now(),
+            status=FightStatsScrapeJob.Status.RUNNING,
+            retry_count=0,
+            error_msg="",
+        )
 
 
+# Receives a Pub/Sub message and returns nothing.
+# This function owns payload parse, job lifecycle, scrape invocation, and ack/nack.
 def callback(message: pubsub_v1.subscriber.message.Message) -> None:
-    """
-    Handle one fight stats Pub/Sub message.
-    Receives a Pub/Sub message and returns nothing.
-    """
     global _LAST_MESSAGE_AT
     with _STATE_LOCK:
         _LAST_MESSAGE_AT = monotonic()
 
     ensure_django()
 
+    # Try to parse the Pub/Sub payload before creating or loading a job row.
     try:
         fight_id, fight_url = parse_message_payload(message.data)
     except (json.JSONDecodeError, KeyError, ValueError, TypeError) as exc:
@@ -140,6 +137,7 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
         message.ack()
         return
 
+    # Try to scrape the fight page and upsert stats through the API service.
     try:
         process_fight_stats(fight_id, fight_url)
         with transaction.atomic():
@@ -167,11 +165,9 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
             message.nack()
 
 
+# Receives no parameters and returns nothing.
+# This function starts the fight stats subscriber and shuts down after idle timeout.
 def run_subscriber() -> None:
-    """
-    Start the Pub/Sub subscriber for fight stats jobs.
-    Receives no parameters and returns nothing.
-    """
     ensure_django()
     if not PROJECT_ID or not SUBSCRIPTION_ID:
         raise SystemExit(
@@ -180,11 +176,23 @@ def run_subscriber() -> None:
 
     subscriber = pubsub_v1.SubscriberClient()
     subscription_path = subscriber.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
-    streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback)
-    logger.info("Listening on %s", subscription_path)
+    # Cap concurrent callbacks; same-fight_id dedup is enforced by select_for_update job claims.
+    flow_control = types.FlowControl(max_messages=MAX_MESSAGES)
+    streaming_pull_future = subscriber.subscribe(
+        subscription_path,
+        callback=callback,
+        flow_control=flow_control,
+    )
+    logger.info(
+        "Listening on %s (max_messages=%s)",
+        subscription_path,
+        MAX_MESSAGES,
+    )
 
     with subscriber:
+        # Loop until the streaming pull ends or idle shutdown cancels it.
         while True:
+            # Try to wait for the next idle-check interval without ending the subscriber.
             try:
                 streaming_pull_future.result(timeout=idle_check_interval_seconds())
                 break
