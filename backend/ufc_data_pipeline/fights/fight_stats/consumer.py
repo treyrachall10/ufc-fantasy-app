@@ -28,7 +28,10 @@ from ufc_data_pipeline.fights.fight_stats.config import (
     PROJECT_ID,
     SUBSCRIPTION_ID,
 )
-from ufc_data_pipeline.fights.fight_stats.service import process_fight_stats
+from ufc_data_pipeline.fights.fight_stats.service import (
+    process_fight_stats,
+    publish_career_stats_job,
+)
 from ufc_data_pipeline.models import FightStatsScrapeJob
 from ufc_data_pipeline.worker_settings import (
     idle_check_interval_seconds,
@@ -145,6 +148,8 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
             job.completed_at = timezone.now()
             job.error_msg = ""
             job.save(update_fields=["status", "completed_at", "error_msg"])
+        # Publish after the COMPLETED status commits so failures do not enqueue career-stats work.
+        publish_career_stats_job(fight_id)
         message.ack()
     except Exception as exc:
         err_text = str(exc)
