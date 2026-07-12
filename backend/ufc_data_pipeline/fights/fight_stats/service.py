@@ -34,6 +34,7 @@ def fetch_fight_soup(fight_url: str) -> BeautifulSoup:
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
     ):
+        # Loop through Playwright fetch attempts until the page loads or retries are exhausted.
         with attempt:
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch()
@@ -61,6 +62,7 @@ def process_fight_stats(fight_id: int, fight_url: str) -> None:
     )
 
     soup = fetch_fight_soup(fight_url)
+    # Try to parse the fight detail HTML into metadata, totals, and round stats.
     try:
         parsed = parse_fight_page(soup)
     except ValueError as exc:
@@ -76,6 +78,7 @@ def process_fight_stats(fight_id: int, fight_url: str) -> None:
             f"Expected two fighter fight-stat bundles, got {len(parsed.fighter_stats)}"
         )
 
+    # Loop through each fighter bundle to confirm per-round stats were parsed.
     for stats in parsed.fighter_stats:
         if not stats.rounds:
             raise RuntimeError(
