@@ -12,6 +12,7 @@ from ufc_data_pipeline.worker_settings import (
     idle_check_interval_seconds,
     idle_shutdown_enabled,
     idle_timeout_seconds,
+    max_messages,
     should_shutdown_for_idle,
 )
 
@@ -22,6 +23,16 @@ class WorkerSettingsTests(TestCase):
             assert idle_shutdown_enabled() is True
             assert idle_timeout_seconds() == 60
             assert idle_check_interval_seconds() == 5
+            assert max_messages() == 3
+
+    def test_max_messages_reads_env(self) -> None:
+        with patch.dict(os.environ, {"WORKER_MAX_MESSAGES": "5"}):
+            assert max_messages() == 5
+
+    def test_max_messages_rejects_non_positive(self) -> None:
+        with patch.dict(os.environ, {"WORKER_MAX_MESSAGES": "0"}):
+            with self.assertRaises(ValueError):
+                max_messages()
 
     def test_idle_shutdown_enabled_parses_truthy_and_falsy(self) -> None:
         with patch.dict(os.environ, {"WORKER_IDLE_SHUTDOWN_ENABLED": "false"}):

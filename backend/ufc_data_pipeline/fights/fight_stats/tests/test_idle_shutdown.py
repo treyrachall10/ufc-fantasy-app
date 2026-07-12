@@ -31,8 +31,10 @@ class FightStatsIdleShutdownTests(SimpleTestCase):
             "WORKER_IDLE_SHUTDOWN_ENABLED": "true",
             "WORKER_IDLE_TIMEOUT_SECONDS": "1",
             "WORKER_IDLE_CHECK_INTERVAL_SECONDS": "1",
+            "WORKER_MAX_MESSAGES": "3",
         },
     )
+    @patch("ufc_data_pipeline.fights.fight_stats.consumer.MAX_MESSAGES", 3)
     @patch("ufc_data_pipeline.fights.fight_stats.consumer.pubsub_v1.SubscriberClient")
     @patch("ufc_data_pipeline.fights.fight_stats.consumer.ensure_django")
     def test_run_subscriber_shuts_down_when_idle_enabled(
@@ -50,6 +52,9 @@ class FightStatsIdleShutdownTests(SimpleTestCase):
             consumer.run_subscriber()
 
         future.cancel.assert_called_once()
+        subscriber_cls.return_value.subscribe.assert_called_once()
+        subscribe_kwargs = subscriber_cls.return_value.subscribe.call_args.kwargs
+        assert subscribe_kwargs["flow_control"].max_messages == 3
 
     @patch.dict(
         os.environ,
