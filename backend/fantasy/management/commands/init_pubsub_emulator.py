@@ -18,6 +18,7 @@ _RESOURCES: list[tuple[str, str | None]] = [
     ("fighter-profile-jobs", "fighter-profile-jobs-sub"),
     ("fight-stats-jobs", "fight-stats-jobs-sub"),
     ("career-stats-jobs", "career-stats-jobs-sub"),
+    ("score-fight-jobs", "score-fight-jobs-sub"),
 ]
 
 
