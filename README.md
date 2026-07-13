@@ -86,7 +86,7 @@ This starts:
 
 - `web` — Django API on `http://localhost:8000`
 - `pubsub` / `pubsub-init` — local Pub/Sub emulator and topics
-- `fighter-profile-worker`, `fights-in-event-worker`, `fight-stats-worker`
+- `fighter-profile-worker`, `fights-in-event-worker`, `fight-stats-worker`, `career-stats-worker`
 - image scraper / image worker jobs
 
 Workers keep listening while idle in Compose (`WORKER_IDLE_SHUTDOWN_ENABLED=false`).
@@ -102,6 +102,10 @@ Workers keep listening while idle in Compose (`WORKER_IDLE_SHUTDOWN_ENABLED=fals
 docker compose exec web python manage.py enqueue_fight_stats \
   --fight-id 1 \
   --fight-url 'http://ufcstats.com/fight-details/...'
+```
+
+```bash
+docker compose exec web python manage.py enqueue_career_stats --fight-id 1
 ```
 
 Other useful commands:

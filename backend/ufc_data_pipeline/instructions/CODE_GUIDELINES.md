@@ -268,6 +268,9 @@ fight-stats-jobs-sub
 
 career-stats-jobs
 career-stats-jobs-sub
+
+score-fight-jobs
+score-fight-jobs-sub
 ```
 
 Avoid overly long or unclear names.

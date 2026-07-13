@@ -242,25 +242,43 @@ See `backend/ufc_data_pipeline/fights/fight_stats/docs/fight-stats.md`.
 
 ### Role
 
-Scale-to-zero worker.
+Scale-to-zero Pub/Sub worker (`career-stats-worker` in Compose).
 
 ### Responsibility
 
-The Career Stats Worker recalculates cumulative fighter stats after a completed fight.
+After fight stats are persisted, recalculate cumulative `FighterCareerStats` for both fighters on the triggering fight (full replace, not incremental), then hand off to score-fight.
+
+### Entry / messaging
+
+- **Inbound:** `career-stats-jobs` / `career-stats-jobs-sub` with payload `{"fight_id": <int>}` only (published by the Fight Stats Scraper after COMPLETED, or via `enqueue_career_stats`).
+- **Outbound:** `score-fight-jobs` with `{"fight_id": <int>}`, published **after** the `CareerStatsJob` row is committed as `COMPLETED`.
+
+### Persistence
+
+Fantasy writes go through the main API only (pipeline auth):
+
+1. `GET /api/fights/<fight_id>/CareerStatsSource` — both fighters’ completed FightStats histories for recalc.
+2. `PATCH /api/fighters/<fighter_id>/SetFighterCareerStats` — full-replace upsert per fighter (`select_for_update` on the fighter row).
+
+The worker owns only pipeline job state (`CareerStatsJob`). It does not query fantasy tables via ORM.
 
 ### Flow
 
-1. Receive fight_id, fighter_ids, round_stat_ids, and/or fight_stat_id.
-2. Query completed FightStats rows for the fighters.
-3. Query fighter history if needed.
-4. Calculate cumulative totals.
-5. Calculate win/loss totals if needed.
-6. Update or create career stat records.
-7. Create/publish a ScoreFightJob.
+1. Receive `fight_id` from Pub/Sub.
+2. Claim/create `CareerStatsJob` (skip if `RUNNING`; reuse `RETRYING`; new row after `COMPLETED`/`FAILED`).
+3. Load source rows via CareerStatsSource.
+4. Pure counters recalculate win/loss/draw, method buckets, additive sums, and `total_fight_time`.
+5. Upsert both fighters’ career stats via SetFighterCareerStats.
+6. Mark job `COMPLETED`, then publish to `score-fight-jobs`.
+7. On failure: `RETRYING` + nack, or `FAILED` + ack after max retries; do **not** publish.
 
 ### Boundary
 
-Only completed fight stats should be used for career stat calculations.
+- Assume fight-stats rows already exist (no readiness poll).
+- Exclude NC (`Could Not Continue` / similar + null result) from tallies.
+- Score Fight Worker consumes `score-fight-jobs` but is out of scope for this stage.
+
+See `backend/ufc_data_pipeline/fighters/career_stats/docs/career-stats.md`.
 
 ## 9. ScoreFight Job
 
