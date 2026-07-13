@@ -49,6 +49,7 @@ from .serializers import (
     FightStatsTotalsUpdateSerializer,
     RoundStatsUpdateSerializer,
     CareerStatsSourceSerializer,
+    FighterCareerStatsUpdateSerializer,
 )
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
                             FightStats, RoundStats, FightScore, League, LeagueMember, 
@@ -1391,4 +1392,48 @@ class CareerStatsSource(generics.GenericAPIView):
         serializer = self.serializer_class(data=payload)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=200)
+
+
+class SetFighterCareerStats(generics.GenericAPIView):
+    """
+    API view to allow the UFC data pipeline to upsert FighterCareerStats.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = FighterCareerStatsUpdateSerializer
+
+    def patch(self, request, fighter_id: int):
+        """
+        Full-replace upsert of cumulative career stats for the given fighter.
+        """
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Lock the fighter row so concurrent upserts for the same fighter serialize.
+        with transaction.atomic():
+            fighter = get_object_or_404(
+                Fighters.objects.select_for_update(),
+                fighter_id=fighter_id,
+            )
+            # Lock existing career-stats row when present; create if missing.
+            career_stats = (
+                FighterCareerStats.objects.select_for_update()
+                .filter(fighter=fighter)
+                .first()
+            )
+            if career_stats is None:
+                career_stats = FighterCareerStats(fighter=fighter)
+
+            for field, value in serializer.validated_data.items():
+                setattr(career_stats, field, value)
+            career_stats.save()
+
+        return Response(
+            {
+                "detail": "Fighter career stats upserted successfully.",
+                "fighter_career_stats_id": career_stats.pk,
+            },
+            status=200,
+        )
+
 

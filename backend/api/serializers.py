@@ -777,3 +777,59 @@ class CareerStatsSourceSerializer(serializers.Serializer):
     """Career-stats source payload: both fighters' completed FightStats histories."""
 
     fighters = CareerStatsSourceFighterSerializer(many=True)
+
+
+class FighterCareerStatsUpdateSerializer(serializers.ModelSerializer):
+    """Full-replace payload for SetFighterCareerStats cumulative fields."""
+
+    class Meta:
+        model = FighterCareerStats
+        fields = [
+            "total_fights",
+            "wins",
+            "losses",
+            "draws",
+            "ko_tko_wins",
+            "tko_doctor_stoppage_wins",
+            "submission_wins",
+            "unanimous_decision_wins",
+            "split_decision_wins",
+            "majority_decision_wins",
+            "dq_wins",
+            "ko_tko_losses",
+            "tko_doctor_stoppage_losses",
+            "submission_losses",
+            "unanimous_decision_losses",
+            "split_decision_losses",
+            "majority_decision_losses",
+            "dq_losses",
+            "sig_str_landed",
+            "sig_str_attempted",
+            "total_str_landed",
+            "total_str_attempted",
+            "td_landed",
+            "td_attempted",
+            "sub_att",
+            "ctrl_time",
+            "reversals",
+            "total_fight_time",
+            "head_str_landed",
+            "head_str_attempted",
+            "body_str_landed",
+            "body_str_attempted",
+            "leg_str_landed",
+            "leg_str_attempted",
+            "distance_str_landed",
+            "distance_str_attempted",
+            "clinch_str_landed",
+            "clinch_str_attempted",
+            "ground_str_landed",
+            "ground_str_attempted",
+            "sig_str_landed_opp",
+            "sig_str_attempted_opp",
+            "td_landed_opp",
+            "td_attempted_opp",
+            "ctrl_time_opp",
+        ]
+        extra_kwargs = {field: {"required": True} for field in fields}
+
