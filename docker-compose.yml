@@ -155,5 +155,7 @@ services:
       (gcloud pubsub topics create fight-stats-jobs --project=local-project || true) &&
       (gcloud pubsub subscriptions create fight-stats-jobs-sub --topic=fight-stats-jobs --project=local-project || true) &&
       (gcloud pubsub topics create career-stats-jobs --project=local-project || true) &&
-      (gcloud pubsub subscriptions create career-stats-jobs-sub --topic=career-stats-jobs --project=local-project || true)
+      (gcloud pubsub subscriptions create career-stats-jobs-sub --topic=career-stats-jobs --project=local-project || true) &&
+      (gcloud pubsub topics create score-fight-jobs --project=local-project || true) &&
+      (gcloud pubsub subscriptions create score-fight-jobs-sub --topic=score-fight-jobs --project=local-project || true)
       "
