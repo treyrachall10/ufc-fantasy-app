@@ -779,6 +779,43 @@ class CareerStatsSourceSerializer(serializers.Serializer):
     fighters = CareerStatsSourceFighterSerializer(many=True)
 
 
+class ScoringSourceRoundSerializer(serializers.Serializer):
+    """One round of stats required by the pure round scorer."""
+
+    round_number = serializers.IntegerField()
+    kd = serializers.IntegerField()
+    sig_str_landed = serializers.IntegerField()
+    td_landed = serializers.IntegerField()
+    sub_att = serializers.IntegerField()
+    ctrl_time = serializers.IntegerField()
+    reversals = serializers.IntegerField()
+
+
+class ScoringSourceFighterSerializer(serializers.Serializer):
+    """One fighter and their per-round scoring inputs."""
+
+    fighter_id = serializers.IntegerField()
+    rounds = ScoringSourceRoundSerializer(many=True)
+
+
+class ScoringSourceFightSerializer(serializers.Serializer):
+    """Fight metadata required to score fight-level bonuses."""
+
+    fight_id = serializers.IntegerField()
+    fight_status = serializers.CharField()
+    method = serializers.CharField(allow_null=True)
+    round = serializers.IntegerField(allow_null=True)
+    time = serializers.IntegerField(allow_null=True)
+    winner_id = serializers.IntegerField(allow_null=True)
+
+
+class ScoringSourceSerializer(serializers.Serializer):
+    """Complete scoreable snapshot for the score-fight worker."""
+
+    fight = ScoringSourceFightSerializer()
+    fighters = ScoringSourceFighterSerializer(many=True)
+
+
 class FighterCareerStatsUpdateSerializer(serializers.ModelSerializer):
     """Full-replace payload for SetFighterCareerStats cumulative fields."""
 

@@ -49,6 +49,7 @@ from .serializers import (
     FightStatsTotalsUpdateSerializer,
     RoundStatsUpdateSerializer,
     CareerStatsSourceSerializer,
+    ScoringSourceSerializer,
     FighterCareerStatsUpdateSerializer,
 )
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
@@ -1389,6 +1390,162 @@ class CareerStatsSource(generics.GenericAPIView):
             )
 
         payload = {"fighters": fighters_payload}
+        serializer = self.serializer_class(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=200)
+
+
+class ScoringSource(generics.GenericAPIView):
+    """
+    API view to return one complete scoreable snapshot for a fight.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = ScoringSourceSerializer
+
+    # Preserve batch scorer allowlist for no-winner scoreable draws.
+    _DRAW_METHODS = frozenset({"Decision - Split", "Decision - Majority", "Draw"})
+    _ROUND_FIELDS = (
+        "kd",
+        "sig_str_landed",
+        "td_landed",
+        "sub_att",
+        "ctrl_time",
+        "reversals",
+    )
+
+    def get(self, request, fight_id: int):
+        """
+        Return fight metadata plus both fighters' round stats when scoreable.
+        """
+        fight = get_object_or_404(Fights, fight_id=fight_id)
+
+        # Incomplete: fight must be completed before scoring can run.
+        if fight.fight_status != Fights.FightStatus.COMPLETED:
+            return Response(
+                {
+                    "error_code": "SCORING_SOURCE_INCOMPLETE",
+                    "detail": (
+                        f"Fight {fight_id} is not completed "
+                        f"(status={fight.fight_status})."
+                    ),
+                },
+                status=409,
+            )
+
+        # Unscoreable: NC and other no-winner outcomes outside the draw allowlist.
+        if fight.winner_id is None and fight.method not in self._DRAW_METHODS:
+            return Response(
+                {
+                    "error_code": "SCORING_SOURCE_UNSCOREABLE",
+                    "detail": (
+                        f"Fight {fight_id} outcome is unscoreable "
+                        f"(method={fight.method!r}, winner_id=null)."
+                    ),
+                },
+                status=422,
+            )
+
+        # Incomplete: decisive winners need round/time for finish bonuses.
+        if fight.winner_id is not None and (fight.round is None or fight.time is None):
+            return Response(
+                {
+                    "error_code": "SCORING_SOURCE_INCOMPLETE",
+                    "detail": (
+                        f"Fight {fight_id} is missing finish round/time required "
+                        "to score the winner."
+                    ),
+                },
+                status=409,
+            )
+
+        fight_stats_rows = list(
+            FightStats.objects.filter(fight=fight)
+            .select_related("fighter")
+            .prefetch_related(
+                Prefetch(
+                    "roundstats_set",
+                    queryset=RoundStats.objects.order_by("round_number", "pk"),
+                )
+            )
+            .order_by("pk")
+        )
+
+        # Incomplete: scoring requires exactly two fighter FightStats rows.
+        if len(fight_stats_rows) != 2 or any(
+            row.fighter_id is None for row in fight_stats_rows
+        ):
+            return Response(
+                {
+                    "error_code": "SCORING_SOURCE_INCOMPLETE",
+                    "detail": (
+                        f"Fight {fight_id} does not have FightStats for both fighters."
+                    ),
+                },
+                status=409,
+            )
+
+        fighters_payload: list[dict] = []
+        for fight_stats in fight_stats_rows:
+            rounds_payload: list[dict] = []
+            for round_stats in fight_stats.roundstats_set.all():
+                # Incomplete: every round needs the fields used by round scoring.
+                if round_stats.round_number is None or any(
+                    getattr(round_stats, field) is None for field in self._ROUND_FIELDS
+                ):
+                    return Response(
+                        {
+                            "error_code": "SCORING_SOURCE_INCOMPLETE",
+                            "detail": (
+                                f"Fight {fight_id} has incomplete RoundStats "
+                                f"for fighter_id={fight_stats.fighter_id}."
+                            ),
+                        },
+                        status=409,
+                    )
+                rounds_payload.append(
+                    {
+                        "round_number": round_stats.round_number,
+                        "kd": round_stats.kd,
+                        "sig_str_landed": round_stats.sig_str_landed,
+                        "td_landed": round_stats.td_landed,
+                        "sub_att": round_stats.sub_att,
+                        "ctrl_time": round_stats.ctrl_time,
+                        "reversals": round_stats.reversals,
+                    }
+                )
+
+            # Incomplete: each fighter must have at least one round to score.
+            if not rounds_payload:
+                return Response(
+                    {
+                        "error_code": "SCORING_SOURCE_INCOMPLETE",
+                        "detail": (
+                            f"Fight {fight_id} is missing RoundStats "
+                            f"for fighter_id={fight_stats.fighter_id}."
+                        ),
+                    },
+                    status=409,
+                )
+
+            fighters_payload.append(
+                {
+                    "fighter_id": fight_stats.fighter_id,
+                    "rounds": rounds_payload,
+                }
+            )
+
+        payload = {
+            "fight": {
+                "fight_id": fight.fight_id,
+                "fight_status": fight.fight_status,
+                "method": fight.method,
+                "round": fight.round,
+                "time": fight.time,
+                "winner_id": fight.winner_id,
+            },
+            "fighters": fighters_payload,
+        }
         serializer = self.serializer_class(data=payload)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=200)

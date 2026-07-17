@@ -43,4 +43,5 @@ urlpatterns = [
     path('api/fights/<int:fight_id>/SetFightStatsTotals', views.SetFightStatsTotals.as_view()),
     path('api/fights/<int:fight_id>/SetRoundStats', views.SetRoundStats.as_view()),
     path('api/fights/<int:fight_id>/CareerStatsSource', views.CareerStatsSource.as_view()),
+    path('api/fights/<int:fight_id>/ScoringSource', views.ScoringSource.as_view()),
 ]
