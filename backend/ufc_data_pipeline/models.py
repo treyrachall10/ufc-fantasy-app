@@ -89,3 +89,15 @@ class CareerStatsJob(BaseJobModel):
         indexes = [
             models.Index(fields=["fight_id", "status"]),
         ]
+
+
+class ScoreFightJob(BaseJobModel):
+    """Tracks one fantasy scoring run for a fight."""
+
+    fight_id = models.PositiveIntegerField()
+
+    class Meta:
+        db_table = "score_fight_job"
+        indexes = [
+            models.Index(fields=["fight_id", "status"]),
+        ]
