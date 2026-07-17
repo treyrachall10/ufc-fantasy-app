@@ -1,0 +1,1 @@
+"""Score-fight pipeline stage."""

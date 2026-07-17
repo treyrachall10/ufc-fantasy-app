@@ -9,7 +9,14 @@ from django.utils import timezone
 from fantasy.models import Fighters, Events, Fights, FightStats, RoundStats, RoundScore, FightScore, FighterCareerStats, League, Team, TeamAppliedFightScore, Roster, Draft, ScoringRun
 from config import DATACLEANPATH, MODEL_MAP
 from backend.shared.utils import normalize_name
-from scripts.scoring import score_knockdowns, score_td_landed, score_sub_att, score_ctrl_time, score_round_finish, score_time
+from ufc_data_pipeline.fantasy.score_fight.scoring import (
+    score_ctrl_time,
+    score_knockdowns,
+    score_round_finish,
+    score_sub_att,
+    score_td_landed,
+    score_time,
+)
 
 
 def resolve_lookup_value(field_name, value):
