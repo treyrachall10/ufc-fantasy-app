@@ -1709,6 +1709,10 @@ class SetFightScoring(generics.GenericAPIView):
                 ],
                 unique_fields=["fight", "fighter"],
             )
+            # This request is the complete fight-score state, not an additive patch.
+            FightScore.objects.filter(fight=fight).exclude(
+                fighter_id__in=fighter_ids
+            ).delete()
 
             round_score_rows = [
                 RoundScore(
