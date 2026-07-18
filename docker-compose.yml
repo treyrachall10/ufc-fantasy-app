@@ -119,6 +119,25 @@ services:
       web:
         condition: service_started
 
+  score-fight-worker:
+    build: ./backend
+    command: python -m ufc_data_pipeline.fantasy.score_fight.score_fight_worker
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+      GOOGLE_CLOUD_PROJECT: local-project
+      PIPELINE_API_BASE_URL: http://web:8000
+      WORKER_IDLE_SHUTDOWN_ENABLED: "false"
+      WORKER_MAX_MESSAGES: "3"
+    depends_on:
+      pubsub-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
+
   pubsub:
     image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
     command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8085
