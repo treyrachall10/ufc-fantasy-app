@@ -1,6 +1,6 @@
 # Fights in event (`fights_in_event`)
 
-This feature consumes **Pub/Sub** messages that point at a UFC Stats **event detail** page, downloads the HTML, parses fight rows and fighter links, upserts **`Fighters`** rows (by normalized name), bulk-inserts **`Fights`** rows for that event, and records each delivery in **`FightCreationJob`**. It is the downstream step after **`event_page_sync`** publishes new events (see related doc below).
+This feature consumes **Pub/Sub** messages that point at a UFC Stats **event detail** page, downloads the HTML, parses fight rows and fighter links, upserts **`Fighters`** rows (by normalized name), bulk-inserts **`Fights`** rows for that event, and records each delivery in **`FightCreationJob`**. It is the downstream step after the **Event Watcher** publishes new events (see related doc below).
 
 When new fighters are created or an existing fighter receives a backfilled `profile_url`, it publishes `{fighter_id, fighter_url}` to the **`fighter-profile-jobs`** topic for the fighter profile worker. It does **not** create or update `FighterProfileScrapeJob` rows (see `backend/ufc_data_pipeline/fighters/fighter_profile/docs/fighter-profile.md`).
 
@@ -13,8 +13,8 @@ When new fighters are created or an existing fighter receives a backfilled `prof
 
 - Feature root: `backend/ufc_data_pipeline/fights/fights_in_event/`
 - Job model: `backend/ufc_data_pipeline/models.py` (`FightCreationJob`)
-- Upstream publisher: `backend/ufc_data_pipeline/events/event_page_sync/service.py`
-- Related developer doc: `backend/ufc_data_pipeline/events/event_page_sync/docs/event-page-sync.md`
+- Upstream publisher: `backend/ufc_data_pipeline/events/event_watcher/publisher.py`
+- Related developer doc: `backend/ufc_data_pipeline/events/event_watcher/docs/event-watcher.md`
 
 ## Main Files
 
@@ -37,7 +37,7 @@ When new fighters are created or an existing fighter receives a backfilled `prof
 
 ## Data Flow
 
-- **Input:** Pub/Sub message bytes: JSON `{"url": "<event page>", "event_id": <int>}` (same shape produced by `event_page_sync` when publishing).
+- **Input:** Pub/Sub message bytes: JSON `{"url": "<event page>", "event_id": <int>}` (same shape produced by the Event Watcher when publishing).
 - **Processing:** HTTP GET → BeautifulSoup → table rows → `Fighters` upsert logic → list of `Fights` → optional bulk insert.
 - **Output (database):** `fight_creation_job` row updates; new/updated `fantasy_fighters`; new `fantasy_fights` rows when parse returns fights.
 - **Output (messaging):** Publishes `{"fighter_id": <int>, "fighter_url": "<profile URL>"}` to `PUBSUB_FIGHTER_PROFILE_TOPIC` when:
@@ -48,7 +48,7 @@ When new fighters are created or an existing fighter receives a backfilled `prof
 ```mermaid
 flowchart TB
   subgraph in_msg [Inbound messaging]
-    T["Pub/Sub topic\nPUBSUB_FIGHTS_IN_EVENT_TOPIC\n(publisher: event_page_sync)"]
+    T["Pub/Sub topic\nPUBSUB_FIGHTS_IN_EVENT_TOPIC\n(publisher: event_watcher)"]
     Sub["Subscription\nPUBSUB_FIGHTS_IN_EVENT_SUBSCRIPTION"]
     CB["consumer.callback"]
   end
@@ -132,5 +132,5 @@ Requires Django settings, database, valid GCP credentials for the subscriber cli
 ## Notes for Future Developers
 
 - Acking/Nacking **must** be called in the callback function or it may not be respected according to PubSub's official docs.
-- Align **URL** publishing in `event_page_sync` with what `requests.get` needs (absolute vs relative) if you see fetch failures in `fetch_soup`.
-- Consider tests for `parse_message_payload`, `ensure_fighters_exist`, and `scrape_fights_in_event` similar to `events/tests/test_parser.py` for `event_page_sync`.
+- Align **URL** publishing in the Event Watcher with what `requests.get` needs (absolute vs relative) if you see fetch failures in `fetch_soup`. The watcher normalizes listing hrefs to absolute UFC Stats URLs before publish.
+- Consider tests for `parse_message_payload`, `ensure_fighters_exist`, and `scrape_fights_in_event` similar to `events/shared/tests/test_parser.py`.

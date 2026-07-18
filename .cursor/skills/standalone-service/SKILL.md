@@ -11,7 +11,7 @@ Each service owns **one clear job** (discover events, scrape fights in an event,
 
 **Reference implementations:**
 - Entry + consumer worker: `fighters/fighter_profile/` (`fighter_profile_worker.py` → `consumer.py` → `service.py`)
-- Publisher + orchestration: `events/event_page_sync/service.py` (persists, then publishes downstream)
+- Scheduled one-shot + API upsert + publish: `events/event_watcher/` (`watch_events` → `service.py` → `api_client` / `publisher`)
 - Consumer + downstream publish: `fights/fights_in_event/` (consumes event jobs, publishes fighter-profile messages)
 
 For Pub/Sub ack/nack, retries, and callback rules, also read [pubsub-processing.md](../pubsub/pubsub-processing.md). For scraping, read [scraper-implementation.md](../web-scraping/scraper-implementation.md).
@@ -68,7 +68,7 @@ def main() -> None:
 
 Register in `docker-compose.yml` as `python -m ufc_data_pipeline.<domain>.<feature>.<feature>_worker`.
 
-Scheduled or one-shot jobs (no long-running subscriber) may expose a `service.py` function instead of a worker — see `event_page_sync/sync_event_page()`.
+Scheduled or one-shot jobs (no long-running subscriber) may expose a `service.py` function instead of a worker — see `event_watcher/watch_events()` and `python manage.py watch_events`.
 
 ---
 
@@ -109,11 +109,11 @@ def process_fighter_profile(fighter_id: int, fighter_url: str) -> None:
     api_client.update_fighter_profile(fighter_id, payload)  # not direct ORM on main app tables
 ```
 
-Publisher-side orchestration (no consumer) follows the same split: fetch + parse in service, persist, then publish:
+Publisher-side orchestration (no consumer) follows the same split: fetch + parse in service, persist via API, then publish:
 
 ```python
-# event_page_sync/service.py — after bulk_create Events:
-publisher.publish(topic_path, json.dumps({"url": obj.url, "event_id": obj.event_id}).encode())
+# event_watcher/service.py — after successful SetEvent upsert:
+publish_fights_in_event(event_id, event_url)  # {"url", "event_id"} → fights-in-event
 ```
 
 ---
