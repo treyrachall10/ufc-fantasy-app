@@ -33,6 +33,7 @@ from ufc_data_pipeline.fights.fight_stats.service import (
     publish_career_stats_job,
 )
 from ufc_data_pipeline.models import FightStatsScrapeJob
+from ufc_data_pipeline.shared.ufcstats_urls import normalize_ufcstats_url
 from ufc_data_pipeline.worker_settings import (
     idle_check_interval_seconds,
     should_shutdown_for_idle,
@@ -72,7 +73,7 @@ def ensure_django() -> None:
 def parse_message_payload(raw: bytes) -> tuple[int, str]:
     data = json.loads(raw.decode("utf-8"))
     fight_id = int(data["fight_id"])
-    fight_url = str(data["fight_url"]).strip()
+    fight_url = normalize_ufcstats_url(str(data["fight_url"]))
     if not fight_url:
         raise ValueError("fight_url is empty")
     return fight_id, fight_url
