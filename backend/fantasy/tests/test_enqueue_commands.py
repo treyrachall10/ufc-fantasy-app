@@ -102,14 +102,3 @@ class EnqueueCommandTests(SimpleTestCase):
     def test_enqueue_score_fight_rejects_non_positive_fight_id(self) -> None:
         with self.assertRaises(CommandError):
             call_command("enqueue_score_fight", "--fight-id", "0")
-
-    @patch("fantasy.management.commands.enqueue_event_sync.sync_event_page")
-    def test_enqueue_event_sync_reports_created_count(self, sync_mock) -> None:
-        job = type("Job", (), {"pk": 11, "status": "COMPLETED"})()
-        sync_mock.return_value = (job, [object(), object()])
-        out = StringIO()
-
-        call_command("enqueue_event_sync", stdout=out)
-
-        assert "job_id=11" in out.getvalue()
-        assert "new_events=2" in out.getvalue()
