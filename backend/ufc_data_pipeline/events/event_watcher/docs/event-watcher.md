@@ -28,10 +28,19 @@ Discovers new completed UFC events from the UFC Stats listing, upserts missing `
 - **Entry point:** `python manage.py watch_events` → `watch_events()` in `service.py`.
 - **Run tracking:** Creates `EventSyncJob` with status `RUNNING`; marks `COMPLETED` (including no work) or `FAILED` with `error_msg`.
 - **Discovery:** `GET DiscoverySource` returns stored event identities; listing scrape uses shared `parse_completed_events`.
-- **Identity compare:** Unknown if URL and `(name, date)` are both absent from the discovery snapshot; duplicate listing rows collapse before upsert.
-- **Persist:** Each unknown event is upserted via `PATCH SetEvent` (URL match first, then name+date on the API side).
+- **Identity compare (normal mode):** Unknown if URL and `(name, date)` are both absent from the discovery snapshot; duplicate listing rows collapse before upsert.
+- **Persist:** Each selected event is upserted via `PATCH SetEvent` (URL match first, then name+date on the API side), which reuses the canonical `event_id` and fills a missing stored URL.
 - **Publish:** After each successful upsert, `publish_fights_in_event(event_id, url)` sends one Pub/Sub message.
-- **Failures:** Upsert or publish errors fail the job/command immediately. Partial progress is recorded in `error_msg` (`completing X of Y event(s); failed on url=...`). Retries rely on idempotent SetEvent + identity comparison (no outbox).
+- **Failures:** Upsert or publish errors fail the job/command immediately. Partial progress is recorded in `error_msg` (`completing X of Y event(s); failed on url=...`). Retries rely on idempotent SetEvent + replay-safe downstream processing (no outbox).
+
+## Backfill Mode
+
+`python manage.py watch_events --backfill-from YYYY-MM-DD` replays historical events instead of processing unknown events only.
+
+- **Strict date:** `--backfill-from` is parsed as a strict ISO `YYYY-MM-DD` value before any scraping, upserting, or publishing; invalid values fail the command immediately.
+- **Inclusive cutoff:** `select_backfill_events` selects every unique listing event whose date is **on or after** the cutoff, ignoring the discovery identity snapshot so both known and unknown events are replayed.
+- **Same pipeline:** Selected events flow through the identical `SetEvent` upsert and the unchanged `{"url", "event_id"}` fights-in-event contract — no backfill marker, new topic, or separate orchestrator. Canonical `event_id` values are preserved and completion status stays HTML-derived downstream.
+- **Bounds:** Events before the cutoff are neither selected nor deleted. There is no batching, maximum-event limit, or resumable checkpoint; replay safety comes from idempotent downstream processing (issue 031).
 
 ## Data Flow
 

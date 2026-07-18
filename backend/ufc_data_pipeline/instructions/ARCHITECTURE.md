@@ -52,12 +52,17 @@ The Event Watcher discovers new completed UFC events from the listing page, pers
 7. Mark `EventSyncJob` `COMPLETED` on success (including no work) or fail the job/command on persistence or publish errors.
 8. Exit.
 
+### Backfill mode
+
+`watch_events --backfill-from YYYY-MM-DD` replays every unique listing event on or after an inclusive, strictly-parsed source-date cutoff (known and unknown alike) through the same `SetEvent` upsert and unchanged `{"url", "event_id"}` contract. It reuses canonical `event_id` values, fills missing stored URLs, and never deletes events outside the range. There is no backfill Pub/Sub marker, new topic, or separate orchestrator; replay safety is provided by idempotent downstream processing (issue 031). Completion status is never forced — it stays HTML-derived in the Fights In Event Scraper.
+
 ### Boundary
 
 - Must not write `fantasy.Events` through Django ORM.
 - Must not create `EventScrapeJob` rows or publish to an event-scrape topic.
 - Must not scrape individual event detail pages solely to persist Events.
 - Downstream fight discovery remains the Fights In Event Scraper’s job.
+- Backfill must not force fight completion or introduce a backfill-specific contract.
 
 ### Output
 
