@@ -9,7 +9,6 @@ The system should be designed so each worker can be run independently, retried s
 ## Current Pipeline Flow
 
 Event Watcher
-→ Event Scraper
 → Fights In Event Scraper
 → Fighter Profile Scraper
 → DB Event Watcher
@@ -36,50 +35,37 @@ Event Watcher
 
 ### Role
 
-Scheduled job.
+Scheduled job (one-shot command; no internal sleep loop).
 
 ### Responsibility
 
-The Event Watcher checks whether new UFC events exist on the UFC website compared to the newest event stored in the database.
+The Event Watcher discovers new completed UFC events from the listing page, persists missing `Events` through the main API, and publishes fights-in-event work. Listing fields (name, date, location, URL) are sufficient to persist an Event; there is no separate Event Scraper stage and no event-detail scrape for Event persistence.
 
 ### Flow
 
-1. Get the most recent event from the database.
-2. Check the UFC website for available events.
-3. Compare website events against the latest stored event.
-4. If new events exist, create EventScrapeJob records.
-5. Do not scrape full event details directly.
+1. Create/update an `EventSyncJob` for this run (`RUNNING`).
+2. Load stored event identities through the pipeline-authenticated discovery API.
+3. Scrape the completed-events listing (`http://ufcstats.com/statistics/events/completed?page=all`).
+4. Compare scraped rows against stored URLs and `(name, date)` pairs (identity-set comparison; not date-only cutoff alone).
+5. For each unknown event, upsert through the pipeline-authenticated event API (URL match first, then name+date).
+6. After each successful upsert, publish `{"url": <event_url>, "event_id": <int>}` to `fights-in-event`.
+7. Mark `EventSyncJob` `COMPLETED` on success (including no work) or fail the job/command on persistence or publish errors.
+8. Exit.
+
+### Boundary
+
+- Must not write `fantasy.Events` through Django ORM.
+- Must not create `EventScrapeJob` rows or publish to an event-scrape topic.
+- Must not scrape individual event detail pages solely to persist Events.
+- Downstream fight discovery remains the Fights In Event Scraper’s job.
 
 ### Output
 
-Creates EventScrapeJob records.
+- Upserted `Events` rows (via API)
+- Pub/Sub messages on `fights-in-event` with `event_id` and `url`
+- One `EventSyncJob` row per watcher execution
 
-## 2. Event Scraper
-
-### Role
-
-One-and-done job worker.
-
-### Responsibility
-
-The Event Scraper processes one EventScrapeJob and creates the event record.
-
-### Flow
-
-1. Receive an EventScrapeJob.
-2. Scrape the UFC event page.
-3. Add or update the Event record.
-4. Save the event URL and event ID.
-5. Create/publish a FightsInEventScrapeJob.
-
-### Output
-
-Creates a FightsInEventScrapeJob containing:
-
-- event_id
-- event_url
-
-## 3. Fights In Event Scraper
+## 2. Fights In Event Scraper
 
 ### Role
 
@@ -110,7 +96,7 @@ Creates:
 
 This worker must not scrape individual fight detail pages or deep per-round fight stats. Event-page result summaries are in scope here; detailed stats and round-level data remain downstream (Fight Results Watcher / Fight Stats Scraper). For live events, the Fight Results Watcher may still poll until fights complete.
 
-## 4. Fighter Profile Scraper
+## 3. Fighter Profile Scraper
 
 ### Role
 
@@ -142,7 +128,7 @@ This worker should support:
 - Chromium must be installed in the Docker image (`playwright install --with-deps chromium` in `backend/Dockerfile`).
 - Worker idle shutdown is controlled by `WORKER_IDLE_SHUTDOWN_ENABLED` (Compose disables it for local development).
 
-## 5. DB Event Watcher
+## 4. DB Event Watcher
 
 ### Role
 
@@ -163,7 +149,7 @@ The DB Event Watcher checks whether the newest event in the database is happenin
 
 This job should only check the database. It should not scrape UFC.com.
 
-## 6. Fight Results Watcher
+## 5. Fight Results Watcher
 
 ### Role
 
@@ -189,7 +175,7 @@ Publishes Pub/Sub messages to `fight-stats-jobs`. It does **not** create `FightS
 
 This watcher should not scrape full fight stats directly. It must not write fantasy fight-stats tables or pipeline job rows.
 
-## 7. Fight Stats Scraper
+## 6. Fight Stats Scraper
 
 ### Role
 
@@ -238,7 +224,7 @@ docker compose exec web python manage.py enqueue_fight_stats \
 
 See `backend/ufc_data_pipeline/fights/fight_stats/docs/fight-stats.md`.
 
-## 8. Career Stats Worker
+## 7. Career Stats Worker
 
 ### Role
 
@@ -276,11 +262,11 @@ The worker owns only pipeline job state (`CareerStatsJob`). It does not query fa
 
 - Assume fight-stats rows already exist (no readiness poll).
 - Exclude NC (`Could Not Continue` / similar + null result) from tallies.
-- The Score Fight Worker (section 9) consumes `score-fight-jobs` downstream.
+- The Score Fight Worker (section 8) consumes `score-fight-jobs` downstream.
 
 See `backend/ufc_data_pipeline/fighters/career_stats/docs/career-stats.md`.
 
-## 9. Score Fight Worker
+## 8. Score Fight Worker
 
 ### Role
 
