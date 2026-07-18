@@ -77,6 +77,40 @@ def find_unknown_events(
     return unknown
 
 
+def select_backfill_events(
+    scraped: list[Event],
+    cutoff: Date,
+) -> list[Event]:
+    """
+    Return every unique listing event on or after ``cutoff`` (inclusive).
+
+    Backfill replays both known and unknown events, relying on idempotent
+    ``SetEvent`` upserts to reuse canonical ``event_id`` values. Receives scraped
+    events and an inclusive source-date cutoff; returns deduped events with
+    normalized URLs in document order.
+    """
+    selected: list[Event] = []
+    seen_publish_keys: set[tuple[str, str, Date]] = set()
+
+    for row in scraped:
+        if row.event_date < cutoff:
+            continue
+        normalized_url = normalize_event_url(row.url)
+        dedupe_key = (normalized_url, row.name, row.event_date)
+        if dedupe_key in seen_publish_keys:
+            continue
+        seen_publish_keys.add(dedupe_key)
+        selected.append(
+            Event(
+                name=row.name,
+                url=normalized_url,
+                location=row.location,
+                event_date=row.event_date,
+            )
+        )
+    return selected
+
+
 def _upsert_and_publish(event: Event) -> dict:
     """
     Persist one unknown listing event via API, then publish fights-in-event.
@@ -94,19 +128,30 @@ def _upsert_and_publish(event: Event) -> dict:
     return upserted
 
 
-def watch_events() -> tuple[EventSyncJob, list[Event]]:
+def watch_events(
+    backfill_from: Date | None = None,
+) -> tuple[EventSyncJob, list[Event]]:
     """
-    Run one Event Watcher discovery pass and finalize ``EventSyncJob`` status.
+    Run one Event Watcher pass and finalize ``EventSyncJob`` status.
 
-    Loads DiscoverySource via API, scrapes the completed-events listing, compares
-    identities, upserts each unknown event through the API, and publishes
-    fights-in-event after each successful upsert. On success (including no
-    unknown events), marks the job COMPLETED.
+    Loads DiscoverySource via API, scrapes the completed-events listing, and then
+    selects work depending on mode:
+
+    - Normal mode (``backfill_from is None``): process only events not already
+      stored by URL or (name, date).
+    - Backfill mode: process every unique listing event on or after the inclusive
+      ``backfill_from`` cutoff, replaying both known and unknown events through
+      idempotent ``SetEvent`` upserts and the unchanged fights-in-event contract.
+
+    Each selected event is upserted through the API and published to
+    fights-in-event after a successful upsert. On success (including no work),
+    marks the job COMPLETED.
 
     Returns
     -------
     tuple[EventSyncJob, list[Event]]
-        The job row and unknown scraped events (empty when there is no work).
+        The job row and the events selected for processing (empty when there is
+        no work).
     """
     job = EventSyncJob.objects.create(
         ran_at=timezone.now(),
@@ -115,31 +160,42 @@ def watch_events() -> tuple[EventSyncJob, list[Event]]:
         error_msg="",
     )
 
+    mode = "backfill" if backfill_from is not None else "normal"
+
     try:
         discovery = api_client.get_discovery_source()
         soup = fetch_listing_soup()
         scraped = parse_completed_events(soup)
-        unknown = find_unknown_events(scraped, discovery)
+        # determines behavior of the process we are triggering
+        if backfill_from is not None:
+            selected = select_backfill_events(scraped, backfill_from)
+        else:
+            selected = find_unknown_events(scraped, discovery)
 
-        if not unknown:
-            logger.info("Event watcher found no new events; nothing to upsert/publish")
+        if not selected:
+            logger.info(
+                "Event watcher (%s) found no events to process; nothing to "
+                "upsert/publish",
+                mode,
+            )
         else:
             logger.info(
-                "Event watcher discovered %s unknown event(s); upserting and publishing",
-                len(unknown),
+                "Event watcher (%s) selected %s event(s); upserting and publishing",
+                mode,
+                len(selected),
             )
             # Track completed handoffs so partial-run failures are auditable.
             # Earlier successes may have upserted/published; retries rely on
-            # identity comparison + idempotent SetEvent.
+            # idempotent SetEvent and replay-safe downstream processing.
             completed = 0
-            for event in unknown:
+            for event in selected:
                 try:
                     _upsert_and_publish(event)
                     completed += 1
                 except Exception as exc:
                     raise RuntimeError(
                         "Event watcher failed after completing "
-                        f"{completed} of {len(unknown)} event(s); "
+                        f"{completed} of {len(selected)} event(s); "
                         f"failed on url={event.url}: {exc}"
                     ) from exc
 
@@ -147,7 +203,7 @@ def watch_events() -> tuple[EventSyncJob, list[Event]]:
         job.completed_at = timezone.now()
         job.error_msg = ""
         job.save(update_fields=["status", "completed_at", "error_msg"])
-        return job, unknown
+        return job, selected
     except Exception as exc:
         job.status = EventSyncJob.Status.FAILED
         job.error_msg = str(exc)
