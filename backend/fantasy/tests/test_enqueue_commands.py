@@ -86,6 +86,23 @@ class EnqueueCommandTests(SimpleTestCase):
             },
         )
 
+    @patch("fantasy.management.commands.enqueue_score_fight.publish_json")
+    def test_enqueue_score_fight_publishes_payload(self, publish_mock) -> None:
+        publish_mock.return_value = "msg-4"
+        out = StringIO()
+
+        call_command("enqueue_score_fight", "--fight-id", "12", stdout=out)
+
+        publish_mock.assert_called_once_with(
+            "score-fight-jobs",
+            {"fight_id": 12},
+        )
+        assert "msg-4" in out.getvalue()
+
+    def test_enqueue_score_fight_rejects_non_positive_fight_id(self) -> None:
+        with self.assertRaises(CommandError):
+            call_command("enqueue_score_fight", "--fight-id", "0")
+
     @patch("fantasy.management.commands.enqueue_event_sync.sync_event_page")
     def test_enqueue_event_sync_reports_created_count(self, sync_mock) -> None:
         job = type("Job", (), {"pk": 11, "status": "COMPLETED"})()
