@@ -74,6 +74,15 @@ class Fights(models.Model):
     time = models.IntegerField(default=0, null=True, blank=True)
     winner = models.ForeignKey(Fighters, on_delete=models.SET_NULL, null=True, blank=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event", "url"],
+                condition=models.Q(url__isnull=False) & ~models.Q(url=""),
+                name="unique_fight_event_url",
+            )
+        ]
+
 class FightStats(models.Model):
     fight = models.ForeignKey(Fights, on_delete=models.CASCADE, null=True, blank=True)
     fighter = models.ForeignKey(Fighters, on_delete=models.CASCADE, null=True, blank=True)
@@ -108,6 +117,14 @@ class FightStats(models.Model):
     td_attempted_opp = models.IntegerField(default=0, null=True, blank=True)
     ctrl_time_opp = models.IntegerField(default=0, null=True, blank=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["fight", "fighter"],
+                name="unique_fight_stats_fight_fighter",
+            )
+        ]
+
 class RoundStats(models.Model):
     fight_stats = models.ForeignKey(FightStats, on_delete=models.CASCADE, null=True, blank=True)
     round_number = models.IntegerField(null=True, blank=True)
@@ -133,6 +150,14 @@ class RoundStats(models.Model):
     clinch_str_attempted = models.IntegerField(default=0, null=True, blank=True)
     ground_str_landed = models.IntegerField(default=0, null=True, blank=True)
     ground_str_attempted = models.IntegerField(default=0, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["fight_stats", "round_number"],
+                name="unique_round_stats_fight_round",
+            )
+        ]
 
 class FighterCareerStats(models.Model):
     fighter = models.OneToOneField(Fighters, on_delete=models.CASCADE, null=True, blank=True)
