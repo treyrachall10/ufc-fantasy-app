@@ -158,6 +158,44 @@ docker compose exec web python manage.py enqueue_score_fight --fight-id 1
 - Job row `score_fight_job` status `COMPLETED` for that `fight_id`
 - `FightScore` / `RoundScore` updated via API (check `web` access logs for the GET + PATCH pair)
 
+## End-to-End Verification
+
+Use a completed fight that already has two `FightStats` rows and complete
+`RoundStats` rows. Replace `1` in both commands with that fight id.
+
+```bash
+docker compose up --build -d web pubsub pubsub-init score-fight-worker
+docker compose exec web python manage.py enqueue_score_fight --fight-id 1
+```
+
+Wait for the worker's `Completed score-fight job` log, then run this assertion.
+It verifies the terminal job state and that both fighters have fight and round
+scores:
+
+```bash
+docker compose exec web python manage.py shell -c "from fantasy.models import FightScore, RoundScore; from ufc_data_pipeline.models import ScoreFightJob; fid=1; job=ScoreFightJob.objects.filter(fight_id=fid).latest('ran_at'); fight_fighters=set(FightScore.objects.filter(fight_id=fid).values_list('fighter_id', flat=True)); round_fighters=set(RoundScore.objects.filter(round_stats__fight_stats__fight_id=fid).values_list('round_stats__fight_stats__fighter_id', flat=True)); assert job.status == 'COMPLETED', job.status; assert len(fight_fighters) == 2, fight_fighters; assert len(round_fighters) == 2, round_fighters; print('PASS', job.status, fight_fighters, round_fighters)"
+```
+
+To verify the permanent-failure path, choose a completed No Contest /
+`Could Not Continue` fight with a null winner and no existing scores. Replace
+`2` below with that fight id:
+
+```bash
+docker compose exec web python manage.py enqueue_score_fight --fight-id 2
+docker compose exec web python manage.py shell -c "from fantasy.models import FightScore, RoundScore; from ufc_data_pipeline.models import ScoreFightJob; fid=2; job=ScoreFightJob.objects.filter(fight_id=fid).latest('ran_at'); assert job.status == 'FAILED', job.status; assert not FightScore.objects.filter(fight_id=fid).exists(); assert not RoundScore.objects.filter(round_stats__fight_stats__fight_id=fid).exists(); print('PASS', job.status, job.error_msg)"
+```
+
+The worker should log the 422 `SCORING_SOURCE_UNSCOREABLE` response, mark the
+job `FAILED`, ack the message, and never call `SetFightScoring`.
+
+The automated integration coverage exercises the same contracts in-process:
+enqueue payload → consumer → ScoringSource view → pure scorer →
+SetFightScoring view → database rows → terminal job state.
+
+```bash
+docker compose exec web python manage.py test ufc_data_pipeline.fantasy.score_fight.tests.test_integration
+```
+
 ## Common Errors / Gotchas
 
 - **Wrong `PUBSUB_EMULATOR_HOST` in Docker:** Inside a container, `localhost:8085` does not reach the emulator. Use `pubsub:8085` (Compose override).
