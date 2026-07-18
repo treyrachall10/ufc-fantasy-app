@@ -105,14 +105,53 @@ class FindUnknownEventsTests(SimpleTestCase):
         assert len(unknown) == 1
         assert unknown[0].url == "http://ufcstats.com/event-details/abc"
 
+    def test_same_date_different_name_unknown_url_is_unknown(self) -> None:
+        scraped = [
+            Event(
+                name="UFC Fight Night B",
+                url="/event-details/b",
+                location="Miami, FL",
+                event_date=date(2026, 3, 10),
+            )
+        ]
+        discovery = {
+            "latest_event": None,
+            "events": [
+                {
+                    "event_id": 1,
+                    "event": "UFC Fight Night A",
+                    "date": "2026-03-10",
+                    "url": "http://ufcstats.com/event-details/a",
+                }
+            ],
+        }
+
+        unknown = find_unknown_events(scraped, discovery)
+        assert len(unknown) == 1
+        assert unknown[0].name == "UFC Fight Night B"
+
+    def test_duplicate_listing_rows_collapse(self) -> None:
+        row = Event(
+            name="UFC 300",
+            url="/event-details/abc",
+            location="Las Vegas, NV",
+            event_date=date(2026, 3, 10),
+        )
+        unknown = find_unknown_events([row, row], {"latest_event": None, "events": []})
+        assert len(unknown) == 1
+
 
 class WatchEventsServiceTests(TestCase):
+    @patch("ufc_data_pipeline.events.event_watcher.service.publish_fights_in_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.upsert_event")
     @patch("ufc_data_pipeline.events.event_watcher.service.fetch_listing_soup")
     @patch("ufc_data_pipeline.events.event_watcher.service.api_client.get_discovery_source")
-    def test_no_newly_discovered_events_completes_job(
+    def test_no_newly_discovered_events_completes_job_without_upsert_or_publish(
         self,
         discovery_mock,
         soup_mock,
+        upsert_mock,
+        publish_mock,
     ) -> None:
         discovery_mock.return_value = {
             "latest_event": {
@@ -138,6 +177,115 @@ class WatchEventsServiceTests(TestCase):
         assert job.status == EventSyncJob.Status.COMPLETED
         assert job.completed_at is not None
         assert EventSyncJob.objects.filter(pk=job.pk).exists()
+        upsert_mock.assert_not_called()
+        publish_mock.assert_not_called()
+
+    @patch("ufc_data_pipeline.events.event_watcher.service.publish_fights_in_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.upsert_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.fetch_listing_soup")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.get_discovery_source")
+    def test_one_new_event_upserts_and_publishes(
+        self,
+        discovery_mock,
+        soup_mock,
+        upsert_mock,
+        publish_mock,
+    ) -> None:
+        discovery_mock.return_value = {"latest_event": None, "events": []}
+        soup_mock.return_value = BeautifulSoup(LISTING_HTML, "html.parser")
+        upsert_mock.return_value = {
+            "event_id": 99,
+            "url": "http://ufcstats.com/event-details/abc",
+        }
+        publish_mock.return_value = "msg-1"
+
+        job, unknown = watch_events()
+
+        assert len(unknown) == 1
+        assert job.status == EventSyncJob.Status.COMPLETED
+        upsert_mock.assert_called_once_with(
+            {
+                "event": "UFC 300",
+                "date": "2026-03-10",
+                "location": "Las Vegas, NV",
+                "url": "http://ufcstats.com/event-details/abc",
+            }
+        )
+        publish_mock.assert_called_once_with(
+            99,
+            "http://ufcstats.com/event-details/abc",
+        )
+
+    @patch("ufc_data_pipeline.events.event_watcher.service.publish_fights_in_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.upsert_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.fetch_listing_soup")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.get_discovery_source")
+    def test_multiple_same_date_events_each_upsert_and_publish(
+        self,
+        discovery_mock,
+        soup_mock,
+        upsert_mock,
+        publish_mock,
+    ) -> None:
+        html = """
+        <table>
+          <tr class="b-statistics__table-row_type_first">
+            <span class="b-statistics__date">March 10, 2026</span>
+            <a class="b-link b-link_style_black" href="/event-details/a">UFC Night A</a>
+            <td class="b-statistics__table-col b-statistics__table-col_style_big-top-padding">
+              Miami, FL
+            </td>
+          </tr>
+          <tr class="b-statistics__table-row">
+            <span class="b-statistics__date">March 10, 2026</span>
+            <a class="b-link b-link_style_black" href="/event-details/b">UFC Night B</a>
+            <td class="b-statistics__table-col b-statistics__table-col_style_big-top-padding">
+              Austin, TX
+            </td>
+          </tr>
+        </table>
+        """
+        discovery_mock.return_value = {"latest_event": None, "events": []}
+        soup_mock.return_value = BeautifulSoup(html, "html.parser")
+        upsert_mock.side_effect = [
+            {"event_id": 1, "url": "http://ufcstats.com/event-details/a"},
+            {"event_id": 2, "url": "http://ufcstats.com/event-details/b"},
+        ]
+
+        job, unknown = watch_events()
+
+        assert len(unknown) == 2
+        assert job.status == EventSyncJob.Status.COMPLETED
+        assert upsert_mock.call_count == 2
+        assert publish_mock.call_count == 2
+        publish_mock.assert_any_call(1, "http://ufcstats.com/event-details/a")
+        publish_mock.assert_any_call(2, "http://ufcstats.com/event-details/b")
+
+    @patch("ufc_data_pipeline.events.event_watcher.service.publish_fights_in_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.upsert_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.fetch_listing_soup")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.get_discovery_source")
+    def test_duplicate_listing_rows_upsert_once(
+        self,
+        discovery_mock,
+        soup_mock,
+        upsert_mock,
+        publish_mock,
+    ) -> None:
+        html = LISTING_HTML + LISTING_HTML
+        discovery_mock.return_value = {"latest_event": None, "events": []}
+        soup_mock.return_value = BeautifulSoup(html, "html.parser")
+        upsert_mock.return_value = {
+            "event_id": 7,
+            "url": "http://ufcstats.com/event-details/abc",
+        }
+
+        job, unknown = watch_events()
+
+        assert len(unknown) == 1
+        assert job.status == EventSyncJob.Status.COMPLETED
+        assert upsert_mock.call_count == 1
+        assert publish_mock.call_count == 1
 
     @patch("ufc_data_pipeline.events.event_watcher.service.fetch_listing_soup")
     @patch("ufc_data_pipeline.events.event_watcher.service.api_client.get_discovery_source")
