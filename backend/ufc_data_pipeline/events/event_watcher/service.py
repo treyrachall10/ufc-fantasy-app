@@ -128,8 +128,20 @@ def watch_events() -> tuple[EventSyncJob, list[Event]]:
                 "Event watcher discovered %s unknown event(s); upserting and publishing",
                 len(unknown),
             )
+            # Track completed handoffs so partial-run failures are auditable.
+            # Earlier successes may have upserted/published; retries rely on
+            # identity comparison + idempotent SetEvent.
+            completed = 0
             for event in unknown:
-                _upsert_and_publish(event)
+                try:
+                    _upsert_and_publish(event)
+                    completed += 1
+                except Exception as exc:
+                    raise RuntimeError(
+                        "Event watcher failed after completing "
+                        f"{completed} of {len(unknown)} event(s); "
+                        f"failed on url={event.url}: {exc}"
+                    ) from exc
 
         job.status = EventSyncJob.Status.COMPLETED
         job.completed_at = timezone.now()

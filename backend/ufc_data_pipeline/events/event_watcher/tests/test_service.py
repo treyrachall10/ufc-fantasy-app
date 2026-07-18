@@ -341,6 +341,109 @@ class WatchEventsServiceTests(TestCase):
         assert job.status == EventSyncJob.Status.FAILED
         assert "parser failure" in job.error_msg
 
+    @patch("ufc_data_pipeline.events.event_watcher.service.publish_fights_in_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.upsert_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.fetch_listing_soup")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.get_discovery_source")
+    def test_upsert_failure_marks_job_failed(
+        self,
+        discovery_mock,
+        soup_mock,
+        upsert_mock,
+        publish_mock,
+    ) -> None:
+        discovery_mock.return_value = {"latest_event": None, "events": []}
+        soup_mock.return_value = BeautifulSoup(LISTING_HTML, "html.parser")
+        upsert_mock.side_effect = RuntimeError("SetEvent unavailable")
+
+        with self.assertRaises(RuntimeError) as raised:
+            watch_events()
+
+        assert "SetEvent unavailable" in str(raised.exception)
+        job = EventSyncJob.objects.latest("ran_at")
+        assert job.status == EventSyncJob.Status.FAILED
+        assert "SetEvent unavailable" in job.error_msg
+        publish_mock.assert_not_called()
+
+    @patch("ufc_data_pipeline.events.event_watcher.service.publish_fights_in_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.upsert_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.fetch_listing_soup")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.get_discovery_source")
+    def test_publish_failure_after_upsert_marks_job_failed(
+        self,
+        discovery_mock,
+        soup_mock,
+        upsert_mock,
+        publish_mock,
+    ) -> None:
+        discovery_mock.return_value = {"latest_event": None, "events": []}
+        soup_mock.return_value = BeautifulSoup(LISTING_HTML, "html.parser")
+        upsert_mock.return_value = {
+            "event_id": 99,
+            "url": "http://ufcstats.com/event-details/abc",
+        }
+        publish_mock.side_effect = RuntimeError("Pub/Sub publish failed")
+
+        with self.assertRaises(RuntimeError) as raised:
+            watch_events()
+
+        assert "Pub/Sub publish failed" in str(raised.exception)
+        job = EventSyncJob.objects.latest("ran_at")
+        assert job.status == EventSyncJob.Status.FAILED
+        assert "Pub/Sub publish failed" in job.error_msg
+        upsert_mock.assert_called_once()
+
+    @patch("ufc_data_pipeline.events.event_watcher.service.publish_fights_in_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.upsert_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.fetch_listing_soup")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.get_discovery_source")
+    def test_partial_progress_then_upsert_failure_records_completed_count(
+        self,
+        discovery_mock,
+        soup_mock,
+        upsert_mock,
+        publish_mock,
+    ) -> None:
+        html = """
+        <table>
+          <tr class="b-statistics__table-row_type_first">
+            <span class="b-statistics__date">March 10, 2026</span>
+            <a class="b-link b-link_style_black" href="/event-details/a">UFC Night A</a>
+            <td class="b-statistics__table-col b-statistics__table-col_style_big-top-padding">
+              Miami, FL
+            </td>
+          </tr>
+          <tr class="b-statistics__table-row">
+            <span class="b-statistics__date">March 10, 2026</span>
+            <a class="b-link b-link_style_black" href="/event-details/b">UFC Night B</a>
+            <td class="b-statistics__table-col b-statistics__table-col_style_big-top-padding">
+              Austin, TX
+            </td>
+          </tr>
+        </table>
+        """
+        discovery_mock.return_value = {"latest_event": None, "events": []}
+        soup_mock.return_value = BeautifulSoup(html, "html.parser")
+        upsert_mock.side_effect = [
+            {"event_id": 1, "url": "http://ufcstats.com/event-details/a"},
+            RuntimeError("SetEvent unavailable"),
+        ]
+
+        with self.assertRaises(RuntimeError) as raised:
+            watch_events()
+
+        message = str(raised.exception)
+        assert "completing 1 of 2" in message
+        assert "event-details/b" in message
+        assert "SetEvent unavailable" in message
+        job = EventSyncJob.objects.latest("ran_at")
+        assert job.status == EventSyncJob.Status.FAILED
+        assert "completing 1 of 2" in job.error_msg
+        publish_mock.assert_called_once_with(
+            1,
+            "http://ufcstats.com/event-details/a",
+        )
+
 
 class WatchEventsCommandTests(TestCase):
     @patch("ufc_data_pipeline.management.commands.watch_events.watch_events")
@@ -359,5 +462,17 @@ class WatchEventsCommandTests(TestCase):
     @patch("ufc_data_pipeline.management.commands.watch_events.watch_events")
     def test_command_raises_on_service_failure(self, watch_mock) -> None:
         watch_mock.side_effect = RuntimeError("boom")
-        with self.assertRaises(CommandError):
+        with self.assertRaises(CommandError) as raised:
             call_command("watch_events")
+        assert "Event watcher failed: boom" in str(raised.exception)
+
+    @patch("ufc_data_pipeline.management.commands.watch_events.watch_events")
+    def test_command_surfaces_upsert_failure_message(self, watch_mock) -> None:
+        watch_mock.side_effect = RuntimeError(
+            "Event watcher failed after completing 0 of 1 event(s); "
+            "failed on url=http://ufcstats.com/event-details/abc: SetEvent unavailable"
+        )
+        with self.assertRaises(CommandError) as raised:
+            call_command("watch_events")
+        assert "Event watcher failed:" in str(raised.exception)
+        assert "SetEvent unavailable" in str(raised.exception)
