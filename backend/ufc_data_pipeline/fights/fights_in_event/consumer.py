@@ -24,7 +24,6 @@ from bs4 import BeautifulSoup
 from django.db import transaction
 from django.utils import timezone
 from google.cloud import pubsub_v1
-from fantasy.models import Fights
 
 from ufc_data_pipeline.models import FightCreationJob
 from ufc_data_pipeline.worker_settings import (
@@ -32,7 +31,7 @@ from ufc_data_pipeline.worker_settings import (
     should_shutdown_for_idle,
 )
 
-from .parser import scrape_fights_in_event
+from .service import process_fights_in_event
 
 logger = logging.getLogger(__name__)
 
@@ -145,13 +144,11 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
             finally:
                 browser.close()
 
-        fights = scrape_fights_in_event(soup, job.event_id) # scrape the fights in the event
-                
+        # Reconciliation commits before required downstream publications. Any
+        # publication failure propagates so this delivery can be retried safely.
+        process_fights_in_event(soup, job.event_id)
 
-        # If there are fights, bulk create them
         with transaction.atomic():
-            if fights:
-                Fights.objects.bulk_create(fights) # bulk create the fights
             job.status = FightCreationJob.Status.COMPLETED # set the job status to completed
             job.completed_at = timezone.now() # set the completed at to current time
             job.error_msg = "" # set the error message to empty
