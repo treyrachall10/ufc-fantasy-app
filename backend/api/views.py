@@ -49,6 +49,7 @@ from .serializers import (
     FightStatsTotalsUpdateSerializer,
     RoundStatsUpdateSerializer,
     CareerStatsSourceSerializer,
+    EventDiscoverySourceSerializer,
     ScoringSourceSerializer,
     FightScoringUpdateSerializer,
     FighterCareerStatsUpdateSerializer,
@@ -1341,6 +1342,37 @@ class SetRoundStats(generics.GenericAPIView):
             },
             status=200,
         )
+
+
+class EventDiscoverySource(generics.GenericAPIView):
+    """
+    API view to return the Event Watcher discovery snapshot.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = EventDiscoverySourceSerializer
+
+    def get(self, request):
+        """
+        Return latest_event plus every stored event identity for comparison.
+        """
+        # Order by date then id so latest_event is deterministic when dates tie.
+        events = list(
+            Events.objects.order_by("-date", "-event_id").values(
+                "event_id",
+                "event",
+                "date",
+                "url",
+            )
+        )
+        latest_event = events[0] if events else None
+        payload = {
+            "latest_event": latest_event,
+            "events": events,
+        }
+        serializer = self.serializer_class(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=200)
 
 
 class CareerStatsSource(generics.GenericAPIView):

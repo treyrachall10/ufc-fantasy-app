@@ -779,6 +779,22 @@ class CareerStatsSourceSerializer(serializers.Serializer):
     fighters = CareerStatsSourceFighterSerializer(many=True)
 
 
+class EventDiscoveryIdentitySerializer(serializers.Serializer):
+    """One stored event identity used by the Event Watcher for comparison."""
+
+    event_id = serializers.IntegerField()
+    event = serializers.CharField(allow_null=True)
+    date = serializers.DateField(allow_null=True)
+    url = serializers.CharField(allow_null=True, allow_blank=True)
+
+
+class EventDiscoverySourceSerializer(serializers.Serializer):
+    """Discovery snapshot: latest event plus full stored identity set."""
+
+    latest_event = EventDiscoveryIdentitySerializer(allow_null=True)
+    events = EventDiscoveryIdentitySerializer(many=True)
+
+
 class ScoringSourceRoundSerializer(serializers.Serializer):
     """One round of stats required by the pure round scorer."""
 
