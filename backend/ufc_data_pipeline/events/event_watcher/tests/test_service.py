@@ -195,7 +195,7 @@ class WatchEventsServiceTests(TestCase):
 
 
 class WatchEventsCommandTests(TestCase):
-    @patch("fantasy.management.commands.watch_events.watch_events")
+    @patch("ufc_data_pipeline.management.commands.watch_events.watch_events")
     def test_command_exits_successfully_when_no_work(self, watch_mock) -> None:
         job = MagicMock()
         job.pk = 42
@@ -208,7 +208,7 @@ class WatchEventsCommandTests(TestCase):
         assert "unknown_events=0" in out.getvalue()
         assert "status=COMPLETED" in out.getvalue()
 
-    @patch("fantasy.management.commands.watch_events.watch_events")
+    @patch("ufc_data_pipeline.management.commands.watch_events.watch_events")
     def test_command_raises_on_service_failure(self, watch_mock) -> None:
         watch_mock.side_effect = RuntimeError("boom")
         with self.assertRaises(CommandError):
