@@ -65,6 +65,10 @@ The Event Watcher discovers new completed UFC events from the listing page, pers
 - Pub/Sub messages on `fights-in-event` with `event_id` and `url`
 - One `EventSyncJob` row per watcher execution
 
+### Production scheduling
+
+Package as Cloud Scheduler → Cloud Run Job → existing backend image → `python manage.py watch_events` → exit (one-shot; empty work exits successfully). Operator checklist (command override, env vars, IAM, Chromium, timeouts, URL normalization, live listing selector verification) lives in `events/event_watcher/docs/event-watcher.md`. Deployment Terraform is out of scope until a later issue expands it.
+
 ## 2. Fights In Event Scraper
 
 ### Role

@@ -66,11 +66,23 @@ flowchart TB
 
 ## Environment Variables
 
+Watcher / Pub/Sub:
+
 ```text
 PIPELINE_API_BASE_URL
 PIPELINE_SERVICE_API_KEY
 GOOGLE_CLOUD_PROJECT
 PUBSUB_FIGHTS_IN_EVENT_TOPIC
+```
+
+Django DB (required for `EventSyncJob` and process boot):
+
+```text
+DB_NAME
+DB_USER
+DB_PASSWORD
+DB_HOST
+DB_PORT
 ```
 
 Local Compose examples commonly use:
@@ -82,7 +94,7 @@ PUBSUB_FIGHTS_IN_EVENT_TOPIC=fights-in-event
 PUBSUB_EMULATOR_HOST=pubsub:8085
 ```
 
-There is no `PUBSUB_EVENT_SCRAPE_*` or `event-scraper-worker` for this stage.
+There is no `PUBSUB_EVENT_SCRAPE_*` or `event-scraper-worker` for this stage. Do **not** set `PUBSUB_EMULATOR_HOST` in production.
 
 ## How to Run Locally
 
@@ -99,16 +111,76 @@ cd backend
 python manage.py test ufc_data_pipeline.events.event_watcher.tests --keepdb
 ```
 
+## Production scheduling (Cloud Scheduler → Cloud Run Job)
+
+Packaging model (no in-repo Terraform for this slice):
+
+```text
+Cloud Scheduler
+  → Cloud Run Job (existing backend image)
+  → python manage.py watch_events
+  → exit
+```
+
+### Command override
+
+- Use the same backend image built from `backend/Dockerfile` (includes `playwright install --with-deps chromium`).
+- Override the container command to one-shot discovery (do **not** leave the Compose/dev `runserver` default):
+
+```bash
+python manage.py watch_events
+```
+
+### Required runtime
+
+| Concern | Expectation |
+|---------|-------------|
+| API auth | `PIPELINE_SERVICE_API_KEY` as `Authorization: Api-Key …`; `PIPELINE_API_BASE_URL` must reach the real API (not `http://web:8000`) |
+| Pub/Sub | Job SA can **publish** to `PUBSUB_FIGHTS_IN_EVENT_TOPIC` (`fights-in-event` by default); payload `{"url", "event_id"}` |
+| Scheduler | Scheduler SA can invoke/run the Cloud Run Job |
+| Network | Outbound HTTPS/HTTP to UFC Stats listing + API; DB reachability for job rows |
+| Chromium | Already baked in the image; rebuild if Playwright browsers are missing at runtime |
+| Timeouts | Playwright listing load: 60s goto + 60s ready selector, up to 3 attempts; API HTTP: 60s. Set Cloud Run Job timeout ≥ listing scrape + N×(upsert + publish) for worst-case unknown-event bursts |
+| Exit model | Exit **0** when `EventSyncJob` is `COMPLETED`, including **no unknown events**. Exit **non-zero** (`CommandError`) when the run fails so Cloud Run/Scheduler can retry |
+| Retries | Each execution creates a **new** `EventSyncJob` (`retry_count=0`). Cloud Run/Scheduler owns retries; SetEvent is idempotent and identity comparison skips already-stored events |
+| One-shot | No internal sleep loop; the command runs once and exits |
+
+### URL normalization
+
+- Listing hrefs may be relative or absolute. `normalize_event_url()` in `service.py` joins against `http://ufcstats.com` before identity comparison, upsert payload, and Pub/Sub publish.
+- Live UFC Stats (verified 2026-07-18 via Playwright) currently emits absolute `http://ufcstats.com/event-details/...` hrefs; normalization remains required so fixtures and future relative hrefs stay safe.
+
+### Listing selector contract (manual live check)
+
+Verified against live `http://ufcstats.com/statistics/events/completed?page=all` with Playwright (plain HTTP returns a JS shell without table markup):
+
+| Contract | Live result (2026-07-18) |
+|----------|--------------------------|
+| Row classes `b-statistics__table-row_type_first` / `b-statistics__table-row` | Present |
+| Ready selector `.b-statistics__table-row` | Present |
+| `span.b-statistics__date` (`%B %d, %Y`) | Present / parseable |
+| `a.b-link.b-link_style_black` (fallback white) | Present |
+| Location `td.b-statistics__table-col.b-statistics__table-col_style_big-top-padding` | Present |
+| Shared `parse_completed_events` | Parsed **781** events |
+
+Event-detail page selectors are **not** required for Event persistence (listing fields are enough). No selector drift blocking cutover as of this check.
+
+### Out of scope for this packaging slice
+
+- Checking in Cloud Scheduler / Cloud Run Terraform (follow-up if product expands scope).
+- Rename-repair, outbox, fights-in-event consumer idempotency hardening (called out as later follow-ups, not accidental omissions).
+
 ## Common Errors / Gotchas
 
 - Missing `PIPELINE_API_BASE_URL` / `PIPELINE_SERVICE_API_KEY` → `RuntimeError` from `api_client`.
 - Listing/API/parser failures mark `EventSyncJob` `FAILED` and raise `CommandError` from the management command.
 - Publish failure after a successful upsert still fails the run; retry is safe because SetEvent is idempotent.
 - Must not write `fantasy.Events` through Django ORM from this package.
+- Fetching the listing with plain `requests`/`urllib` without a browser may return a shell page with no row markup; production uses Playwright.
 
 ## Notes for Future Developers
 
 - Listing fields (name, date, location, URL) are enough to persist an Event; do not add an Event Scraper or detail-page scrape for Event persistence.
 - Shared listing code stays under `events/shared/`; do not reintroduce `events/event_page_sync/`.
 - Downstream fight discovery remains `fights_in_event` (see its feature doc).
-- Cloud Scheduler → Cloud Run Job packaging is covered by production scheduling readiness issues, not this package’s runtime.
+- Re-run the live selector check if UFC Stats markup drifts; update `events/shared/` fixtures/parser, not event-detail scrapers.
