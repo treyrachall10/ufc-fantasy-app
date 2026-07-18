@@ -119,7 +119,7 @@ docker compose exec web python manage.py enqueue_fighter_profile \
   --fighter-id 1 \
   --fighter-url 'http://ufcstats.com/fighter-details/...'
 
-docker compose exec web python manage.py enqueue_event_sync
+docker compose exec web python manage.py watch_events
 
 docker compose exec web python manage.py init_pubsub_emulator
 ```
