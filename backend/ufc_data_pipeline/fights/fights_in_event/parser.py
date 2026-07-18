@@ -6,14 +6,13 @@ Parse fight rows from a UFC Stats *event detail* page (completed card).
 from __future__ import annotations
 
 import logging
-import os
 from dataclasses import dataclass, field
 
 from bs4 import BeautifulSoup, Tag
 
 from fantasy.models import Fighters, Fights
 from shared.utils import normalize_name
-from ufc_data_pipeline.pubsub_publish import publish_json
+from ufc_data_pipeline.shared.ufcstats_urls import normalize_ufcstats_url
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +65,8 @@ def parse_fighter_pair_from_row(row: Tag) -> tuple[str, str, str, str] | None:
 
     fighter_a = name_els[0].get_text(strip=True)
     fighter_b = name_els[1].get_text(strip=True)
-    url_a = (name_els[0].get("href") or "").strip()
-    url_b = (name_els[1].get("href") or "").strip()
+    url_a = normalize_ufcstats_url(name_els[0].get("href"))
+    url_b = normalize_ufcstats_url(name_els[1].get("href"))
     if not fighter_a or not fighter_b:
         return None
 
@@ -227,38 +226,16 @@ def resolve_winner_fighter(
     return None
 
 
-def _publish_fighter_profile_message(fighter_id: int, fighter_url: str) -> None:
-    """
-    Publish a fighter profile scrape request to Pub/Sub.
-    Receives fighter_id and fighter_url; returns nothing.
-    """
-    profile_url = (fighter_url or "").strip()
-    if not profile_url:
-        return
-
-    project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
-    topic_id = os.getenv("PUBSUB_FIGHTER_PROFILE_TOPIC")
-    if not project_id or not topic_id:
-        logger.warning(
-            "Skipping fighter profile publish; Pub/Sub env is not configured fighter_id=%s",
-            fighter_id,
-        )
-        return
-
-    try:
-        publish_json(
-            topic_id,
-            {"fighter_id": fighter_id, "fighter_url": profile_url},
-            project_id=project_id,
-        )
-    except Exception:
-        logger.exception(
-            "Failed to publish fighter profile message fighter_id=%s",
-            fighter_id,
-        )
+def _profile_is_missing(fighter: Fighters) -> bool:
+    """Return whether a fighter still needs the profile worker."""
+    return not (fighter.first_name or "").strip() or not (
+        fighter.last_name or ""
+    ).strip()
 
 
-def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None:
+def ensure_fighters_exist(
+    fighter_name_url_pairs: list[tuple[str, str]],
+) -> list[tuple[int, str]]:
     """
     Ensure each fighter exists by ``normalized_name`` (bulk-insert missing rows).
 
@@ -266,7 +243,7 @@ def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None
     table; the URL is stored on ``Fighters.profile_url`` and sent to the profile sync
     topic when a row is new or had an empty profile URL.
 
-    RETURNS: Nothing; it just ensures that the fighters exist
+    Returns fighter-profile handoffs required after the caller commits.
     """
     first_raw_by_norm: dict[str, str] = {} # dictionary of first raw (display name) by normalized name
     profile_url_by_norm: dict[str, str] = {} # dictionary of profile url by normalized name
@@ -280,14 +257,14 @@ def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None
         if not norm:
             continue
         first_raw_by_norm.setdefault(norm, raw) # set default first raw for normalized name
-        pu = (profile_url or "").strip() # get profile url
+        pu = normalize_ufcstats_url(profile_url)
         # if profile url is not empty, set default profile url for normalized name
         if pu:
             profile_url_by_norm.setdefault(norm, pu)
 
     # if there are no first raw by normalized name, return
     if not first_raw_by_norm:
-        return
+        return []
 
     norms = list(first_raw_by_norm.keys()) # get list of normalized names
     # get existing fighters by normalized name
@@ -319,9 +296,6 @@ def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None
                 f"Failed to bulk create missing fighters: {e}"
             ) from e
 
-        for fighter in created:
-            _publish_fighter_profile_message(fighter.fighter_id, fighter.profile_url)
-
     to_update: list[Fighters] = []
     # loop through all normalized names, update profile url if it is not empty and fighter profile url is empty
     for n in norms:
@@ -343,8 +317,16 @@ def ensure_fighters_exist(fighter_name_url_pairs: list[tuple[str, str]]) -> None
                 f"Failed to bulk update fighters: {e}"
             ) from e
 
-        for fighter in to_update:
-            _publish_fighter_profile_message(fighter.fighter_id, fighter.profile_url)
+    refreshed = {
+        fighter.normalized_name: fighter
+        for fighter in Fighters.objects.filter(normalized_name__in=norms)
+        if fighter.normalized_name
+    }
+    return [
+        (fighter.fighter_id, normalize_ufcstats_url(fighter.profile_url))
+        for fighter in refreshed.values()
+        if fighter.profile_url and _profile_is_missing(fighter)
+    ]
 
 
 @dataclass
@@ -361,7 +343,11 @@ class _ParsedFightRow:
     result_fields: dict[str, str | int] = field(default_factory=dict)
 
 
-def scrape_fights_in_event(soup: BeautifulSoup, event_id: int) -> list[Fights]:
+def scrape_fights_in_event(
+    soup: BeautifulSoup,
+    event_id: int,
+    profile_handoffs: list[tuple[int, str]] | None = None,
+) -> list[Fights]:
     """
     Extract fight rows, resolve fighters, and return unsaved ``Fights`` rows for ``event``.
 
@@ -378,6 +364,14 @@ def scrape_fights_in_event(soup: BeautifulSoup, event_id: int) -> list[Fights]:
             continue
 
         fighter_a, url_a, fighter_b, url_b = pair
+        fight_url = normalize_ufcstats_url(row.get("data-link"))
+        if not fight_url:
+            logger.warning(
+                "Skipping fight row without source URL event_id=%s bout=%s",
+                event_id,
+                bout_name_from_pair(fighter_a, fighter_b),
+            )
+            continue
         weight_class = weight_class_from_row(row)
         is_completed = is_fight_row_completed(row)
         result_fields: dict[str, str | int] = {}
@@ -389,7 +383,7 @@ def scrape_fights_in_event(soup: BeautifulSoup, event_id: int) -> list[Fights]:
         parsed_rows.append(
             _ParsedFightRow(
                 event_id=event_id,
-                fight_url=(row.get("data-link") or "").strip(),
+                fight_url=fight_url,
                 bout=bout_name_from_pair(fighter_a, fighter_b),
                 weight_class=weight_class,
                 fighter_a=fighter_a,
@@ -401,7 +395,9 @@ def scrape_fights_in_event(soup: BeautifulSoup, event_id: int) -> list[Fights]:
             )
         )
 
-    ensure_fighters_exist(fighter_name_url_pairs)
+    required_profile_handoffs = ensure_fighters_exist(fighter_name_url_pairs)
+    if profile_handoffs is not None:
+        profile_handoffs.extend(required_profile_handoffs)
 
     norms: list[str] = []
     urls: list[str] = []
@@ -409,7 +405,7 @@ def scrape_fights_in_event(soup: BeautifulSoup, event_id: int) -> list[Fights]:
         norm = normalize_name(raw)
         if norm:
             norms.append(norm)
-        pu = (profile_url or "").strip()
+        pu = normalize_ufcstats_url(profile_url)
         if pu:
             urls.append(pu)
 
