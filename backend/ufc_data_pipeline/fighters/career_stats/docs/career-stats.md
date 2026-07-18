@@ -9,7 +9,7 @@ Upstream is the Fight Stats Scraper (`publish_career_stats_job`). Local testing 
 - Recalculate career totals for both fighters on a triggering fight (full replace, not incremental).
 - Persist via pipeline-authenticated API endpoints (no fantasy ORM from the worker).
 - Track job status in `career_stats_job` (`RUNNING`, `COMPLETED`, `RETRYING`, `FAILED`).
-- Hand off to the future Score Fight Worker via Pub/Sub after success.
+- Hand off to the Score Fight Worker via Pub/Sub after success.
 
 ## Where This Lives
 
@@ -170,5 +170,5 @@ docker compose exec web python manage.py enqueue_career_stats --fight-id 1
 
 - Ack/nack must be called from the subscriber `callback` thread.
 - Persistence is API-only for fantasy tables; do not add direct ORM writes to `FighterCareerStats` / `FightStats` from this worker.
-- Score Fight Worker is out of scope; this stage only publishes `{"fight_id": ...}` to `score-fight-jobs`.
+- This stage only publishes `{"fight_id": ...}` to `score-fight-jobs`; scoring itself is handled by the Score Fight Worker (`backend/ufc_data_pipeline/fantasy/score_fight/docs/score-fight.md`).
 - Upstream Fight Stats Scraper should **publish** to `career-stats-jobs` only — it must not create `CareerStatsJob` rows.

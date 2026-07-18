@@ -276,33 +276,54 @@ The worker owns only pipeline job state (`CareerStatsJob`). It does not query fa
 
 - Assume fight-stats rows already exist (no readiness poll).
 - Exclude NC (`Could Not Continue` / similar + null result) from tallies.
-- Score Fight Worker consumes `score-fight-jobs` but is out of scope for this stage.
+- The Score Fight Worker (section 9) consumes `score-fight-jobs` downstream.
 
 See `backend/ufc_data_pipeline/fighters/career_stats/docs/career-stats.md`.
 
-## 9. ScoreFight Job
+## 9. Score Fight Worker
 
 ### Role
 
-Final scoring worker.
+Scale-to-zero Pub/Sub worker (`score-fight-worker` in Compose). Final pipeline stage.
 
 ### Responsibility
 
-The ScoreFight Job scores individual rounds and the full fight after stats and career data are finalized.
+After career stats are updated, score every round and the full fight for both fighters and atomically persist the complete `FightScore` / `RoundScore` state.
+
+### Entry / messaging
+
+- **Inbound:** `score-fight-jobs` / `score-fight-jobs-sub` with payload `{"fight_id": <int>}` only (published by the Career Stats Worker after COMPLETED, or via `enqueue_score_fight`).
+- **Outbound:** none — this is the terminal stage.
+
+### Persistence
+
+Fantasy writes go through the main API only (pipeline auth), one GET and one PATCH per fight:
+
+1. `GET /api/fights/<fight_id>/ScoringSource` — fight metadata plus both fighters' complete round stats. Returns 409 `SCORING_SOURCE_INCOMPLETE` (retryable) when inputs are missing and 422 `SCORING_SOURCE_UNSCOREABLE` (permanent, e.g. No Contest) when the outcome cannot be scored.
+2. `PATCH /api/fights/<fight_id>/SetFightScoring` — atomic full replace: resolve all `RoundStats` in one query, bulk upsert `FightScore` + `RoundScore`, delete stale `RoundScore` rows.
+
+The worker owns only pipeline job state (`ScoreFightJob`). It does not query fantasy tables via ORM.
 
 ### Flow
 
-1. Query finalized FightStats.
-2. Query finalized RoundStats.
-3. Score each round.
-4. Score the overall fight.
-5. Store final score results.
+1. Receive `fight_id` from Pub/Sub.
+2. Claim/create `ScoreFightJob` (skip if `RUNNING`; reuse `RETRYING`; new row after `COMPLETED`/`FAILED`; advisory lock guards cross-instance races).
+3. Load the scoreable snapshot via ScoringSource.
+4. Pure scoring module (`scoring.py`) calculates per-round category points and fight totals (win/round/time bonuses; draws score without winner bonuses).
+5. Persist everything via SetFightScoring.
+6. Mark job `COMPLETED` and ack.
+7. On unscoreable outcome: `FAILED` + ack immediately (no retry). On other failures: `RETRYING` + nack, or `FAILED` + ack after max retries (3).
+
+### Boundary
+
+- Assume fight stats and round stats already exist (no readiness poll); missing inputs surface as retryable 409s.
+- Scoring math lives in the pure module only; the legacy batch scripts import the same per-category functions.
 
 ### Language Decision
 
-Do not use Go yet. Keep the scoring job in the same language/framework as the rest of the pipeline until the full pipeline works end-to-end.
+Implemented in Python/Django like the rest of the pipeline. Go can be considered later if scoring becomes performance-heavy or if this becomes a separate service.
 
-Go can be considered later if scoring becomes performance-heavy or if this becomes a separate service.
+See `backend/ufc_data_pipeline/fantasy/score_fight/docs/score-fight.md`.
 
 ## End-to-End Success Criteria
 
