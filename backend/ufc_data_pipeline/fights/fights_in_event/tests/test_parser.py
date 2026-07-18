@@ -9,7 +9,6 @@ from django.test import SimpleTestCase, TestCase
 
 from fantasy.models import Events, Fighters, Fights
 from ufc_data_pipeline.fights.fights_in_event.parser import (
-    _publish_fighter_profile_message,
     is_fight_row_completed,
     parse_event_page_result_fields,
     parse_fighter_pair_from_row,
@@ -145,9 +144,6 @@ class FightRowParsingTests(SimpleTestCase):
         assert time_to_seconds("--") is None
 
 
-@patch(
-    "ufc_data_pipeline.fights.fights_in_event.parser._publish_fighter_profile_message",
-)
 class ScrapeFightsInEventTests(TestCase):
     def setUp(self) -> None:
         self.event = Events.objects.create(
@@ -156,9 +152,7 @@ class ScrapeFightsInEventTests(TestCase):
             location="Test",
         )
 
-    def test_scrape_fights_in_event_sets_upcoming_status_without_results(
-        self, _mock_enqueue
-    ) -> None:
+    def test_scrape_fights_in_event_sets_upcoming_status_without_results(self) -> None:
         soup = BeautifulSoup(f"<table>{_UPCOMING_ROW_HTML}</table>", "html.parser")
 
         fights = scrape_fights_in_event(soup, self.event.event_id)
@@ -171,9 +165,7 @@ class ScrapeFightsInEventTests(TestCase):
         assert fight.method is None
         assert fight.round is None
 
-    def test_scrape_fights_in_event_sets_completed_status_and_results(
-        self, _mock_enqueue
-    ) -> None:
+    def test_scrape_fights_in_event_sets_completed_status_and_results(self) -> None:
         soup = BeautifulSoup(
             f"<table>{_completed_row_html()}</table>", "html.parser"
         )
@@ -189,9 +181,7 @@ class ScrapeFightsInEventTests(TestCase):
         assert fight.winner is not None
         assert fight.winner.full_name == "Winner Guy"
 
-    def test_winner_resolved_by_profile_url_when_available(
-        self, _mock_enqueue
-    ) -> None:
+    def test_winner_resolved_by_profile_url_when_available(self) -> None:
         winner = Fighters.objects.create(
             full_name="Winner Guy",
             normalized_name="winner guy",
@@ -210,9 +200,7 @@ class ScrapeFightsInEventTests(TestCase):
 
         assert fights[0].winner_id == winner.fighter_id
 
-    def test_winner_resolved_by_name_when_profile_url_missing(
-        self, _mock_enqueue
-    ) -> None:
+    def test_winner_resolved_by_name_when_profile_url_missing(self) -> None:
         winner = Fighters.objects.create(
             full_name="Winner Guy",
             normalized_name="winner guy",
@@ -229,39 +217,3 @@ class ScrapeFightsInEventTests(TestCase):
         fights = scrape_fights_in_event(soup, self.event.event_id)
 
         assert fights[0].winner_id == winner.fighter_id
-
-
-class PublishFighterProfileMessageTests(TestCase):
-    @patch("ufc_data_pipeline.fights.fights_in_event.parser.publish_json")
-    @patch.dict(
-        "os.environ",
-        {
-            "GOOGLE_CLOUD_PROJECT": "local-project",
-            "PUBSUB_FIGHTER_PROFILE_TOPIC": "fighter-profile-jobs",
-        },
-    )
-    def test_publish_fighter_profile_message_publishes_payload(
-        self, publish_mock
-    ) -> None:
-        publish_mock.return_value = "msg-1"
-
-        _publish_fighter_profile_message(
-            99, "http://ufcstats.com/fighter-details/test"
-        )
-
-        publish_mock.assert_called_once_with(
-            "fighter-profile-jobs",
-            {
-                "fighter_id": 99,
-                "fighter_url": "http://ufcstats.com/fighter-details/test",
-            },
-            project_id="local-project",
-        )
-
-    @patch("ufc_data_pipeline.fights.fights_in_event.parser.publish_json")
-    def test_publish_fighter_profile_message_skips_empty_url(
-        self, publish_mock
-    ) -> None:
-        _publish_fighter_profile_message(99, "")
-
-        publish_mock.assert_not_called()
