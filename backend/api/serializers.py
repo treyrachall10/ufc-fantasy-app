@@ -795,6 +795,15 @@ class EventDiscoverySourceSerializer(serializers.Serializer):
     events = EventDiscoveryIdentitySerializer(many=True)
 
 
+class EventUpsertSerializer(serializers.Serializer):
+    """Payload for creating or updating one Events row from the pipeline."""
+
+    event = serializers.CharField(max_length=100)
+    date = serializers.DateField()
+    location = serializers.CharField(max_length=50, allow_blank=True, required=False, default="")
+    url = serializers.CharField(max_length=256)
+
+
 class ScoringSourceRoundSerializer(serializers.Serializer):
     """One round of stats required by the pure round scorer."""
 

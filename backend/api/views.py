@@ -50,6 +50,7 @@ from .serializers import (
     RoundStatsUpdateSerializer,
     CareerStatsSourceSerializer,
     EventDiscoverySourceSerializer,
+    EventUpsertSerializer,
     ScoringSourceSerializer,
     FightScoringUpdateSerializer,
     FighterCareerStatsUpdateSerializer,
@@ -1373,6 +1374,58 @@ class EventDiscoverySource(generics.GenericAPIView):
         serializer = self.serializer_class(data=payload)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=200)
+
+
+class SetEvent(generics.GenericAPIView):
+    """
+    API view to create or update one Events row for the UFC data pipeline.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = EventUpsertSerializer
+
+    def patch(self, request):
+        """
+        Upsert by URL first, then (event, date). Returns event_id and url.
+        """
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        event_name = data["event"]
+        event_date = data["date"]
+        location = (data.get("location") or "")[:50]
+        event_url = data["url"].strip()
+
+        with transaction.atomic():
+            matched = None
+            if event_url:
+                matched = Events.objects.filter(url=event_url).first()
+            if matched is None:
+                matched = Events.objects.filter(event=event_name, date=event_date).first()
+
+            if matched is None:
+                matched = Events.objects.create(
+                    event=event_name,
+                    date=event_date,
+                    location=location,
+                    url=event_url,
+                )
+            else:
+                matched.event = event_name
+                matched.date = event_date
+                matched.location = location
+                matched.url = event_url
+                matched.save(update_fields=["event", "date", "location", "url"])
+
+        return Response(
+            {
+                "event_id": matched.event_id,
+                "url": matched.url,
+                "detail": "Event upserted successfully.",
+            },
+            status=200,
+        )
 
 
 class CareerStatsSource(generics.GenericAPIView):
