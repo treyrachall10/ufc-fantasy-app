@@ -16,6 +16,7 @@ from django.test import SimpleTestCase, TestCase
 from ufc_data_pipeline.events.event_watcher.service import (
     find_unknown_events,
     normalize_event_url,
+    select_backfill_events,
     watch_events,
 )
 from ufc_data_pipeline.events.shared.parser import Event
@@ -139,6 +140,47 @@ class FindUnknownEventsTests(SimpleTestCase):
         )
         unknown = find_unknown_events([row, row], {"latest_event": None, "events": []})
         assert len(unknown) == 1
+
+
+class SelectBackfillEventsTests(SimpleTestCase):
+    def _event(self, url: str, name: str, event_date: date) -> Event:
+        return Event(
+            name=name,
+            url=url,
+            location="Las Vegas, NV",
+            event_date=event_date,
+        )
+
+    def test_cutoff_is_inclusive_and_excludes_earlier(self) -> None:
+        scraped = [
+            self._event("/event-details/on", "UFC On", date(2026, 3, 10)),
+            self._event("/event-details/after", "UFC After", date(2026, 3, 11)),
+            self._event("/event-details/before", "UFC Before", date(2026, 3, 9)),
+        ]
+
+        selected = select_backfill_events(scraped, date(2026, 3, 10))
+
+        names = {event.name for event in selected}
+        assert names == {"UFC On", "UFC After"}
+
+    def test_selects_regardless_of_known_identity(self) -> None:
+        scraped = [self._event("/event-details/abc", "UFC 300", date(2026, 3, 10))]
+
+        selected = select_backfill_events(scraped, date(2026, 3, 1))
+
+        assert len(selected) == 1
+        assert selected[0].url == "http://ufcstats.com/event-details/abc"
+
+    def test_normalizes_urls_and_dedupes(self) -> None:
+        scraped = [
+            self._event("/event-details/abc", "UFC 300", date(2026, 3, 10)),
+            self._event("/event-details/abc", "UFC 300", date(2026, 3, 10)),
+        ]
+
+        selected = select_backfill_events(scraped, date(2026, 1, 1))
+
+        assert len(selected) == 1
+        assert selected[0].url == "http://ufcstats.com/event-details/abc"
 
 
 class WatchEventsServiceTests(TestCase):
@@ -444,6 +486,98 @@ class WatchEventsServiceTests(TestCase):
             "http://ufcstats.com/event-details/a",
         )
 
+    @patch("ufc_data_pipeline.events.event_watcher.service.publish_fights_in_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.upsert_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.fetch_listing_soup")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.get_discovery_source")
+    def test_backfill_replays_known_and_unknown_events(
+        self,
+        discovery_mock,
+        soup_mock,
+        upsert_mock,
+        publish_mock,
+    ) -> None:
+        html = """
+        <table>
+          <tr class="b-statistics__table-row_type_first">
+            <span class="b-statistics__date">March 10, 2026</span>
+            <a class="b-link b-link_style_black" href="/event-details/known">UFC Known</a>
+            <td class="b-statistics__table-col b-statistics__table-col_style_big-top-padding">
+              Miami, FL
+            </td>
+          </tr>
+          <tr class="b-statistics__table-row">
+            <span class="b-statistics__date">March 12, 2026</span>
+            <a class="b-link b-link_style_black" href="/event-details/new">UFC New</a>
+            <td class="b-statistics__table-col b-statistics__table-col_style_big-top-padding">
+              Austin, TX
+            </td>
+          </tr>
+          <tr class="b-statistics__table-row">
+            <span class="b-statistics__date">March 1, 2026</span>
+            <a class="b-link b-link_style_black" href="/event-details/old">UFC Old</a>
+            <td class="b-statistics__table-col b-statistics__table-col_style_big-top-padding">
+              Reno, NV
+            </td>
+          </tr>
+        </table>
+        """
+        # The known event is already stored; backfill must replay it anyway.
+        discovery_mock.return_value = {
+            "latest_event": None,
+            "events": [
+                {
+                    "event_id": 5,
+                    "event": "UFC Known",
+                    "date": "2026-03-10",
+                    "url": "http://ufcstats.com/event-details/known",
+                }
+            ],
+        }
+        soup_mock.return_value = BeautifulSoup(html, "html.parser")
+        upsert_mock.side_effect = [
+            {"event_id": 5, "url": "http://ufcstats.com/event-details/known"},
+            {"event_id": 6, "url": "http://ufcstats.com/event-details/new"},
+        ]
+
+        job, processed = watch_events(backfill_from=date(2026, 3, 10))
+
+        assert job.status == EventSyncJob.Status.COMPLETED
+        # The March 1 event is before the cutoff and must be excluded.
+        assert {event.name for event in processed} == {"UFC Known", "UFC New"}
+        assert upsert_mock.call_count == 2
+        publish_mock.assert_any_call(5, "http://ufcstats.com/event-details/known")
+        publish_mock.assert_any_call(6, "http://ufcstats.com/event-details/new")
+
+    @patch("ufc_data_pipeline.events.event_watcher.service.publish_fights_in_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.upsert_event")
+    @patch("ufc_data_pipeline.events.event_watcher.service.fetch_listing_soup")
+    @patch("ufc_data_pipeline.events.event_watcher.service.api_client.get_discovery_source")
+    def test_backfill_and_normal_publish_identical_payload(
+        self,
+        discovery_mock,
+        soup_mock,
+        upsert_mock,
+        publish_mock,
+    ) -> None:
+        discovery_mock.return_value = {"latest_event": None, "events": []}
+        soup_mock.return_value = BeautifulSoup(LISTING_HTML, "html.parser")
+        upsert_mock.return_value = {
+            "event_id": 99,
+            "url": "http://ufcstats.com/event-details/abc",
+        }
+
+        watch_events()
+        normal_upsert = upsert_mock.call_args
+        normal_publish = publish_mock.call_args
+
+        watch_events(backfill_from=date(2026, 3, 10))
+        backfill_upsert = upsert_mock.call_args
+        backfill_publish = publish_mock.call_args
+
+        assert backfill_upsert == normal_upsert
+        assert backfill_publish == normal_publish
+
 
 class WatchEventsCommandTests(TestCase):
     @patch("ufc_data_pipeline.management.commands.watch_events.watch_events")
@@ -456,8 +590,11 @@ class WatchEventsCommandTests(TestCase):
 
         call_command("watch_events", stdout=out)
 
-        assert "unknown_events=0" in out.getvalue()
+        assert "processed_events=0" in out.getvalue()
+        assert "mode=normal" in out.getvalue()
         assert "status=COMPLETED" in out.getvalue()
+        _, kwargs = watch_mock.call_args
+        assert kwargs.get("backfill_from") is None
 
     @patch("ufc_data_pipeline.management.commands.watch_events.watch_events")
     def test_command_raises_on_service_failure(self, watch_mock) -> None:
@@ -476,3 +613,26 @@ class WatchEventsCommandTests(TestCase):
             call_command("watch_events")
         assert "Event watcher failed:" in str(raised.exception)
         assert "SetEvent unavailable" in str(raised.exception)
+
+    @patch("ufc_data_pipeline.management.commands.watch_events.watch_events")
+    def test_command_passes_inclusive_backfill_cutoff(self, watch_mock) -> None:
+        job = MagicMock()
+        job.pk = 7
+        job.status = EventSyncJob.Status.COMPLETED
+        watch_mock.return_value = (job, [])
+        out = StringIO()
+
+        call_command("watch_events", "--backfill-from", "2026-03-10", stdout=out)
+
+        _, kwargs = watch_mock.call_args
+        assert kwargs.get("backfill_from") == date(2026, 3, 10)
+        assert "mode=backfill" in out.getvalue()
+
+    @patch("ufc_data_pipeline.management.commands.watch_events.watch_events")
+    def test_command_rejects_invalid_backfill_date_before_running(
+        self, watch_mock
+    ) -> None:
+        with self.assertRaises(CommandError):
+            call_command("watch_events", "--backfill-from", "03-10-2026")
+
+        watch_mock.assert_not_called()
