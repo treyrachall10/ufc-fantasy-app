@@ -1,5 +1,5 @@
 """
-Orchestrate Event Watcher discovery: API snapshot, listing scrape, identity compare.
+Orchestrate Event Watcher discovery: API snapshot, listing scrape, upsert, publish.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from ufc_data_pipeline.events.event_watcher import api_client
 from ufc_data_pipeline.events.event_watcher.config import UFCSTATS_BASE_URL
+from ufc_data_pipeline.events.event_watcher.publisher import publish_fights_in_event
 from ufc_data_pipeline.events.event_watcher.scraper import fetch_listing_soup
 from ufc_data_pipeline.events.shared.parser import Event, parse_completed_events
 from ufc_data_pipeline.models import EventSyncJob
@@ -76,12 +77,30 @@ def find_unknown_events(
     return unknown
 
 
+def _upsert_and_publish(event: Event) -> dict:
+    """
+    Persist one unknown listing event via API, then publish fights-in-event.
+    Receives a listing Event; returns the SetEvent response body.
+    """
+    upserted = api_client.upsert_event(
+        {
+            "event": event.name,
+            "date": event.event_date.isoformat(),
+            "location": (event.location or "")[:50],
+            "url": event.url,
+        }
+    )
+    publish_fights_in_event(int(upserted["event_id"]), str(upserted["url"]))
+    return upserted
+
+
 def watch_events() -> tuple[EventSyncJob, list[Event]]:
     """
     Run one Event Watcher discovery pass and finalize ``EventSyncJob`` status.
 
     Loads DiscoverySource via API, scrapes the completed-events listing, compares
-    identities, and leaves publishing to a later slice. On success (including no
+    identities, upserts each unknown event through the API, and publishes
+    fights-in-event after each successful upsert. On success (including no
     unknown events), marks the job COMPLETED.
 
     Returns
@@ -103,13 +122,14 @@ def watch_events() -> tuple[EventSyncJob, list[Event]]:
         unknown = find_unknown_events(scraped, discovery)
 
         if not unknown:
-            logger.info("Event watcher found no new events; nothing to publish")
+            logger.info("Event watcher found no new events; nothing to upsert/publish")
         else:
-            # Publishing to event-scrape-jobs lands in a later issue.
             logger.info(
-                "Event watcher discovered %s unknown event(s); publish deferred",
+                "Event watcher discovered %s unknown event(s); upserting and publishing",
                 len(unknown),
             )
+            for event in unknown:
+                _upsert_and_publish(event)
 
         job.status = EventSyncJob.Status.COMPLETED
         job.completed_at = timezone.now()
