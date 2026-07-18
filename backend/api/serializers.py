@@ -816,6 +816,64 @@ class ScoringSourceSerializer(serializers.Serializer):
     fighters = ScoringSourceFighterSerializer(many=True)
 
 
+class FightScoringResultSerializer(serializers.Serializer):
+    """One fighter's calculated FightScore values."""
+
+    fighter_id = serializers.IntegerField(min_value=1)
+    points_win = serializers.FloatField()
+    points_round = serializers.FloatField()
+    points_time = serializers.FloatField()
+    fight_total_points = serializers.FloatField()
+
+
+class RoundScoringResultSerializer(serializers.Serializer):
+    """One calculated RoundScore identified by fighter and round."""
+
+    fighter_id = serializers.IntegerField(min_value=1)
+    round_number = serializers.IntegerField(min_value=1)
+    points_knockdowns = serializers.FloatField()
+    points_sig_str_landed = serializers.FloatField()
+    points_td_landed = serializers.FloatField()
+    points_sub_att = serializers.FloatField()
+    points_ctrl_time = serializers.FloatField()
+    points_reversals = serializers.FloatField()
+    round_total_points = serializers.FloatField()
+
+
+class FightScoringUpdateSerializer(serializers.Serializer):
+    """Complete calculated score state for one fight."""
+
+    fight_scores = FightScoringResultSerializer(many=True)
+    round_scores = RoundScoringResultSerializer(many=True)
+
+    def validate(self, attrs):
+        fight_scores = attrs["fight_scores"]
+        round_scores = attrs["round_scores"]
+        fighter_ids = [row["fighter_id"] for row in fight_scores]
+
+        if len(fight_scores) != 2 or len(set(fighter_ids)) != 2:
+            raise serializers.ValidationError(
+                "Exactly two unique fight_scores are required."
+            )
+        if not round_scores:
+            raise serializers.ValidationError(
+                "At least one round_score is required for each fighter."
+            )
+
+        round_keys = [
+            (row["fighter_id"], row["round_number"]) for row in round_scores
+        ]
+        if len(round_keys) != len(set(round_keys)):
+            raise serializers.ValidationError(
+                "Duplicate fighter_id and round_number score rows are not allowed."
+            )
+        if {fighter_id for fighter_id, _round in round_keys} != set(fighter_ids):
+            raise serializers.ValidationError(
+                "round_scores must contain the same fighters as fight_scores."
+            )
+        return attrs
+
+
 class FighterCareerStatsUpdateSerializer(serializers.ModelSerializer):
     """Full-replace payload for SetFighterCareerStats cumulative fields."""
 

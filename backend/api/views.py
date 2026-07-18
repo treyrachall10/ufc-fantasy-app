@@ -50,10 +50,11 @@ from .serializers import (
     RoundStatsUpdateSerializer,
     CareerStatsSourceSerializer,
     ScoringSourceSerializer,
+    FightScoringUpdateSerializer,
     FighterCareerStatsUpdateSerializer,
 )
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
-                            FightStats, RoundStats, FightScore, League, LeagueMember, 
+                            FightStats, RoundStats, RoundScore, FightScore, League, LeagueMember,
                             Team, Roster, Draft, DraftPick, DraftOrder)
 from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftable_fighters, get_or_create_user_from_token, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
@@ -1549,6 +1550,129 @@ class ScoringSource(generics.GenericAPIView):
         serializer = self.serializer_class(data=payload)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=200)
+
+
+class SetFightScoring(generics.GenericAPIView):
+    """Atomically replace one fight's complete calculated score state."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = FightScoringUpdateSerializer
+
+    def patch(self, request, fight_id: int):
+        fight = get_object_or_404(Fights, fight_id=fight_id)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        fight_scores_payload = serializer.validated_data["fight_scores"]
+        round_scores_payload = serializer.validated_data["round_scores"]
+        requested_round_keys = {
+            (row["fighter_id"], row["round_number"])
+            for row in round_scores_payload
+        }
+        fighter_ids = {row["fighter_id"] for row in fight_scores_payload}
+        round_numbers = {row["round_number"] for row in round_scores_payload}
+
+        with transaction.atomic():
+            # Resolve every submitted fighter/round through this fight in one query.
+            resolved_rows = list(
+                RoundStats.objects.filter(
+                    fight_stats__fight=fight,
+                    fight_stats__fighter_id__in=fighter_ids,
+                    round_number__in=round_numbers,
+                ).values("id", "fight_stats__fighter_id", "round_number")
+            )
+            resolved_by_key = {
+                (row["fight_stats__fighter_id"], row["round_number"]): row["id"]
+                for row in resolved_rows
+            }
+            missing_keys = requested_round_keys - resolved_by_key.keys()
+            if missing_keys:
+                missing_text = ", ".join(
+                    f"fighter_id={fighter_id} round_number={round_number}"
+                    for fighter_id, round_number in sorted(missing_keys)
+                )
+                return Response(
+                    {
+                        "detail": (
+                            f"RoundStats not found for fight_id={fight_id}: "
+                            f"{missing_text}."
+                        )
+                    },
+                    status=400,
+                )
+
+            # Bulk upsert both score tables; no database work occurs inside loops.
+            fight_score_rows = [
+                FightScore(
+                    fight=fight,
+                    fighter_id=row["fighter_id"],
+                    points_win=row["points_win"],
+                    points_round=row["points_round"],
+                    points_time=row["points_time"],
+                    fight_total_points=row["fight_total_points"],
+                )
+                for row in fight_scores_payload
+            ]
+            FightScore.objects.bulk_create(
+                fight_score_rows,
+                update_conflicts=True,
+                update_fields=[
+                    "points_win",
+                    "points_round",
+                    "points_time",
+                    "fight_total_points",
+                ],
+                unique_fields=["fight", "fighter"],
+            )
+
+            round_score_rows = [
+                RoundScore(
+                    round_stats_id=resolved_by_key[
+                        (row["fighter_id"], row["round_number"])
+                    ],
+                    points_knockdowns=row["points_knockdowns"],
+                    points_sig_str_landed=row["points_sig_str_landed"],
+                    points_td_landed=row["points_td_landed"],
+                    points_sub_att=row["points_sub_att"],
+                    points_ctrl_time=row["points_ctrl_time"],
+                    points_reversals=row["points_reversals"],
+                    round_total_points=row["round_total_points"],
+                )
+                for row in round_scores_payload
+            ]
+            RoundScore.objects.bulk_create(
+                round_score_rows,
+                update_conflicts=True,
+                update_fields=[
+                    "points_knockdowns",
+                    "points_sig_str_landed",
+                    "points_td_landed",
+                    "points_sub_att",
+                    "points_ctrl_time",
+                    "points_reversals",
+                    "round_total_points",
+                ],
+                unique_fields=["round_stats"],
+            )
+
+            # Delete obsolete round scores so this request is the complete state.
+            submitted_round_stats_ids = {
+                resolved_by_key[key] for key in requested_round_keys
+            }
+            RoundScore.objects.filter(
+                round_stats__fight_stats__fight=fight,
+            ).exclude(
+                round_stats_id__in=submitted_round_stats_ids,
+            ).delete()
+
+        return Response(
+            {
+                "detail": "Fight scoring upserted successfully.",
+                "fight_score_count": len(fight_score_rows),
+                "round_score_count": len(round_score_rows),
+            },
+            status=200,
+        )
 
 
 class SetFighterCareerStats(generics.GenericAPIView):
