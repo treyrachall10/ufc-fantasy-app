@@ -58,6 +58,8 @@ from .serializers import (
     LiveResultsLeaseFailSerializer,
     LiveResultsLeaseCompleteSerializer,
     CompleteLiveFightTransitionSerializer,
+    CancelLiveFightTransitionSerializer,
+    RestoreLiveFightUpcomingSerializer,
     FightStatsHandoffAttemptSerializer,
     LiveFightStatsHandoffSerializer,
     ScoringSourceSerializer,
@@ -2246,7 +2248,10 @@ class CompleteLiveFightTransition(generics.GenericAPIView):
                     },
                     status=409,
                 )
-            if expected_status != Fights.FightStatus.UPCOMING:
+            if expected_status not in (
+                Fights.FightStatus.UPCOMING,
+                Fights.FightStatus.CANCELLED,
+            ):
                 return Response(
                     {"detail": f"Unsupported transition from {expected_status}."},
                     status=409,
@@ -2279,6 +2284,184 @@ class CompleteLiveFightTransition(generics.GenericAPIView):
                 "fight_id": fight.fight_id,
                 "fight_status": fight.fight_status,
                 "handoff": LiveFightStatsHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+
+
+class CancelLiveFightTransition(generics.GenericAPIView):
+    """Atomically mark an UPCOMING fight CANCELLED without Fight Stats handoff."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = CancelLiveFightTransitionSerializer
+
+    def post(self, request, fight_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        event_id = int(data["event_id"])
+        fight_url = normalize_ufcstats_url(data["fight_url"])
+        expected_status = data["expected_status"]
+        if not fight_url:
+            return Response(
+                {"detail": "fight_url is empty after normalization."},
+                status=400,
+            )
+
+        with transaction.atomic():
+            fight = get_object_or_404(
+                Fights.objects.select_for_update(),
+                fight_id=fight_id,
+            )
+            if fight.event_id != event_id:
+                return Response(
+                    {"detail": "Fight does not belong to event."},
+                    status=409,
+                )
+            stored_url = normalize_ufcstats_url(fight.url)
+            if stored_url != fight_url:
+                return Response(
+                    {"detail": "Fight URL does not match stored identity."},
+                    status=409,
+                )
+
+            if fight.fight_status == Fights.FightStatus.CANCELLED:
+                return Response(
+                    {
+                        "outcome": "idempotent",
+                        "fight_id": fight.fight_id,
+                        "fight_status": fight.fight_status,
+                    },
+                    status=200,
+                )
+
+            if fight.fight_status == Fights.FightStatus.COMPLETED:
+                return Response(
+                    {"detail": "Completed fights cannot transition to cancelled."},
+                    status=409,
+                )
+
+            if fight.fight_status != expected_status:
+                return Response(
+                    {
+                        "detail": (
+                            f"Expected status {expected_status} but fight is "
+                            f"{fight.fight_status}."
+                        )
+                    },
+                    status=409,
+                )
+            if expected_status != Fights.FightStatus.UPCOMING:
+                return Response(
+                    {"detail": f"Unsupported transition from {expected_status}."},
+                    status=409,
+                )
+
+            fight.fight_status = Fights.FightStatus.CANCELLED
+            fight.save(update_fields=["fight_status"])
+
+        return Response(
+            {
+                "outcome": "cancelled",
+                "fight_id": fight.fight_id,
+                "fight_status": fight.fight_status,
+            },
+            status=200,
+        )
+
+
+class RestoreLiveFightUpcoming(generics.GenericAPIView):
+    """Atomically restore a CANCELLED fight to UPCOMING; clear result fields only."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = RestoreLiveFightUpcomingSerializer
+
+    def post(self, request, fight_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        event_id = int(data["event_id"])
+        fight_url = normalize_ufcstats_url(data["fight_url"])
+        expected_status = data["expected_status"]
+        if not fight_url:
+            return Response(
+                {"detail": "fight_url is empty after normalization."},
+                status=400,
+            )
+
+        with transaction.atomic():
+            fight = get_object_or_404(
+                Fights.objects.select_for_update(),
+                fight_id=fight_id,
+            )
+            if fight.event_id != event_id:
+                return Response(
+                    {"detail": "Fight does not belong to event."},
+                    status=409,
+                )
+            stored_url = normalize_ufcstats_url(fight.url)
+            if stored_url != fight_url:
+                return Response(
+                    {"detail": "Fight URL does not match stored identity."},
+                    status=409,
+                )
+
+            if fight.fight_status == Fights.FightStatus.UPCOMING:
+                return Response(
+                    {
+                        "outcome": "idempotent",
+                        "fight_id": fight.fight_id,
+                        "fight_status": fight.fight_status,
+                    },
+                    status=200,
+                )
+
+            if fight.fight_status == Fights.FightStatus.COMPLETED:
+                return Response(
+                    {"detail": "Completed fights cannot transition to upcoming."},
+                    status=409,
+                )
+
+            if fight.fight_status != expected_status:
+                return Response(
+                    {
+                        "detail": (
+                            f"Expected status {expected_status} but fight is "
+                            f"{fight.fight_status}."
+                        )
+                    },
+                    status=409,
+                )
+            if expected_status != Fights.FightStatus.CANCELLED:
+                return Response(
+                    {"detail": f"Unsupported transition from {expected_status}."},
+                    status=409,
+                )
+
+            fight.fight_status = Fights.FightStatus.UPCOMING
+            fight.winner = None
+            fight.method = None
+            fight.round = None
+            fight.time = None
+            fight.round_format = None
+            fight.save(
+                update_fields=[
+                    "fight_status",
+                    "winner",
+                    "method",
+                    "round",
+                    "time",
+                    "round_format",
+                ]
+            )
+
+        return Response(
+            {
+                "outcome": "restored",
+                "fight_id": fight.fight_id,
+                "fight_status": fight.fight_status,
             },
             status=200,
         )

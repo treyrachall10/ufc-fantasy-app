@@ -64,6 +64,14 @@ urlpatterns = [
         views.CompleteLiveFightTransition.as_view(),
     ),
     path(
+        'api/fights/<int:fight_id>/CancelLiveFightTransition',
+        views.CancelLiveFightTransition.as_view(),
+    ),
+    path(
+        'api/fights/<int:fight_id>/RestoreLiveFightUpcoming',
+        views.RestoreLiveFightUpcoming.as_view(),
+    ),
+    path(
         'api/fights/<int:fight_id>/MarkFightStatsHandoffPublished',
         views.MarkFightStatsHandoffPublished.as_view(),
     ),

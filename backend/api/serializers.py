@@ -892,7 +892,7 @@ class LiveFightStatsHandoffSerializer(serializers.Serializer):
 
 
 class CompleteLiveFightTransitionSerializer(serializers.Serializer):
-    """Payload for atomic UPCOMING→COMPLETED live-result transition."""
+    """Payload for atomic UPCOMING/CANCELLED→COMPLETED live-result transition."""
 
     event_id = serializers.IntegerField()
     fight_url = serializers.CharField(max_length=512)
@@ -914,6 +914,22 @@ class CompleteLiveFightTransitionSerializer(serializers.Serializer):
     weight_class = serializers.CharField(
         max_length=100, required=False, allow_null=True, allow_blank=True
     )
+
+
+class CancelLiveFightTransitionSerializer(serializers.Serializer):
+    """Payload for atomic UPCOMING→CANCELLED live-result transition."""
+
+    event_id = serializers.IntegerField()
+    fight_url = serializers.CharField(max_length=512)
+    expected_status = serializers.ChoiceField(choices=Fights.FightStatus.choices)
+
+
+class RestoreLiveFightUpcomingSerializer(serializers.Serializer):
+    """Payload for atomic CANCELLED→UPCOMING live-result restoration."""
+
+    event_id = serializers.IntegerField()
+    fight_url = serializers.CharField(max_length=512)
+    expected_status = serializers.ChoiceField(choices=Fights.FightStatus.choices)
 
 
 class FightStatsHandoffAttemptSerializer(serializers.Serializer):
