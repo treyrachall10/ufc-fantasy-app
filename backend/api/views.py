@@ -62,6 +62,10 @@ from .serializers import (
     RestoreLiveFightUpcomingSerializer,
     FightStatsHandoffAttemptSerializer,
     LiveFightStatsHandoffSerializer,
+    LiveEventRescrapeHandoffSerializer,
+    EnsureLiveEventRescrapeHandoffSerializer,
+    LiveEventRescrapeAttemptSerializer,
+    LiveEventRescrapeFailSerializer,
     ScoringSourceSerializer,
     FightScoringUpdateSerializer,
     FighterCareerStatsUpdateSerializer,
@@ -81,7 +85,11 @@ from accounts.models import User
 from .permissions import IsAthleteImageService, IsUploaderService, IsPipelineService
 
 from shared.utils import normalize_name
-from ufc_data_pipeline.models import LiveEventResultsState, LiveFightStatsHandoff
+from ufc_data_pipeline.models import (
+    LiveEventResultsState,
+    LiveEventRescrapeHandoff,
+    LiveFightStatsHandoff,
+)
 from ufc_data_pipeline.shared.ufcstats_urls import normalize_ufcstats_url
 
 from authlib.integrations.django_oauth2 import ResourceProtector
@@ -1833,6 +1841,22 @@ def _live_results_lease_seconds() -> int:
     return seconds
 
 
+def _live_results_rescrape_cooldown_seconds() -> int:
+    raw = os.getenv("LIVE_EVENT_RESULTS_RESCRAPE_COOLDOWN_SECONDS", "1800")
+    try:
+        seconds = int(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"LIVE_EVENT_RESULTS_RESCRAPE_COOLDOWN_SECONDS must be an integer; "
+            f"got {raw!r}"
+        ) from exc
+    if seconds <= 0:
+        raise ValueError(
+            "LIVE_EVENT_RESULTS_RESCRAPE_COOLDOWN_SECONDS must be positive"
+        )
+    return seconds
+
+
 def _serialize_watcher_state(state: LiveEventResultsState | None) -> dict | None:
     if state is None:
         return None
@@ -1959,6 +1983,12 @@ class LiveResultsSource(generics.GenericAPIView):
                 "fight_id"
             )
         ]
+        rescrape_handoffs = [
+            LiveEventRescrapeHandoffSerializer.from_instance(row)
+            for row in LiveEventRescrapeHandoff.objects.filter(event_id=event_id).order_by(
+                "id"
+            )
+        ]
         payload = {
             "event": {
                 "event_id": event.event_id,
@@ -1969,7 +1999,7 @@ class LiveResultsSource(generics.GenericAPIView):
             "fights": fights,
             "watcher_state": _serialize_watcher_state(watcher_state),
             "fight_stats_handoffs": handoffs,
-            "rescrape_handoffs": [],
+            "rescrape_handoffs": rescrape_handoffs,
         }
         serializer = self.serializer_class(data=payload)
         serializer.is_valid(raise_exception=True)
@@ -2549,6 +2579,239 @@ class RecordFightStatsHandoffAttempt(generics.GenericAPIView):
             {
                 "outcome": "recorded",
                 "handoff": LiveFightStatsHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+
+
+class EnsureLiveEventRescrapeHandoff(generics.GenericAPIView):
+    """Create or reuse a durable rescrape handoff for one event card fingerprint."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = EnsureLiveEventRescrapeHandoffSerializer
+
+    def post(self, request, event_id: int):
+        get_object_or_404(Events, event_id=event_id)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        fingerprint = serializer.validated_data["card_fingerprint"]
+        reason = serializer.validated_data["reason"]
+
+        with transaction.atomic():
+            handoff = (
+                LiveEventRescrapeHandoff.objects.select_for_update()
+                .filter(event_id=event_id, card_fingerprint=fingerprint)
+                .first()
+            )
+            if handoff is None:
+                handoff = LiveEventRescrapeHandoff.objects.create(
+                    event_id=event_id,
+                    card_fingerprint=fingerprint,
+                    reason=reason,
+                    status=LiveEventRescrapeHandoff.Status.PENDING,
+                )
+                outcome = "created"
+            else:
+                handoff.reason = reason
+                if handoff.status == LiveEventRescrapeHandoff.Status.RESOLVED:
+                    handoff.status = LiveEventRescrapeHandoff.Status.PENDING
+                    handoff.publication_count = 0
+                    handoff.last_published_at = None
+                    handoff.next_eligible_at = None
+                    handoff.last_error = ""
+                elif handoff.status != LiveEventRescrapeHandoff.Status.FAILED:
+                    if handoff.status == LiveEventRescrapeHandoff.Status.PUBLISHED:
+                        # Keep published cooldown state; only refresh reason.
+                        pass
+                    else:
+                        handoff.status = LiveEventRescrapeHandoff.Status.PENDING
+                handoff.save()
+                outcome = "reused"
+
+        return Response(
+            {
+                "outcome": outcome,
+                "handoff": LiveEventRescrapeHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+
+
+class MarkLiveEventRescrapePublished(generics.GenericAPIView):
+    """Mark a rescrape handoff published and apply the cooldown window."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+
+    def post(self, request, event_id: int, handoff_id: int):
+        now = timezone.now()
+        cooldown = timedelta(seconds=_live_results_rescrape_cooldown_seconds())
+        with transaction.atomic():
+            handoff = (
+                LiveEventRescrapeHandoff.objects.select_for_update()
+                .filter(id=handoff_id, event_id=event_id)
+                .first()
+            )
+            if handoff is None:
+                return Response({"detail": "Handoff not found."}, status=404)
+            if handoff.status == LiveEventRescrapeHandoff.Status.FAILED:
+                return Response(
+                    {
+                        "outcome": "already_failed",
+                        "handoff": LiveEventRescrapeHandoffSerializer.from_instance(
+                            handoff
+                        ),
+                    },
+                    status=200,
+                )
+            if handoff.status == LiveEventRescrapeHandoff.Status.RESOLVED:
+                return Response(
+                    {
+                        "outcome": "already_resolved",
+                        "handoff": LiveEventRescrapeHandoffSerializer.from_instance(
+                            handoff
+                        ),
+                    },
+                    status=200,
+                )
+            handoff.status = LiveEventRescrapeHandoff.Status.PUBLISHED
+            handoff.publication_count = handoff.publication_count + 1
+            handoff.last_published_at = now
+            handoff.next_eligible_at = now + cooldown
+            handoff.last_error = ""
+            handoff.save(
+                update_fields=[
+                    "status",
+                    "publication_count",
+                    "last_published_at",
+                    "next_eligible_at",
+                    "last_error",
+                ]
+            )
+        return Response(
+            {
+                "outcome": "published",
+                "handoff": LiveEventRescrapeHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+
+
+class RecordLiveEventRescrapeAttempt(generics.GenericAPIView):
+    """Record a failed rescrape publication; leave handoff pending."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveEventRescrapeAttemptSerializer
+
+    def post(self, request, event_id: int, handoff_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        last_error = serializer.validated_data.get("last_error") or ""
+        with transaction.atomic():
+            handoff = (
+                LiveEventRescrapeHandoff.objects.select_for_update()
+                .filter(id=handoff_id, event_id=event_id)
+                .first()
+            )
+            if handoff is None:
+                return Response({"detail": "Handoff not found."}, status=404)
+            if handoff.status in (
+                LiveEventRescrapeHandoff.Status.RESOLVED,
+                LiveEventRescrapeHandoff.Status.FAILED,
+            ):
+                return Response(
+                    {
+                        "outcome": "unchanged",
+                        "handoff": LiveEventRescrapeHandoffSerializer.from_instance(
+                            handoff
+                        ),
+                    },
+                    status=200,
+                )
+            handoff.status = LiveEventRescrapeHandoff.Status.PENDING
+            handoff.last_error = last_error
+            handoff.save(update_fields=["status", "last_error"])
+        return Response(
+            {
+                "outcome": "recorded",
+                "handoff": LiveEventRescrapeHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+
+
+class ResolveLiveEventRescrapeHandoff(generics.GenericAPIView):
+    """Mark a rescrape handoff resolved after the card converges."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+
+    def post(self, request, event_id: int, handoff_id: int):
+        with transaction.atomic():
+            handoff = (
+                LiveEventRescrapeHandoff.objects.select_for_update()
+                .filter(id=handoff_id, event_id=event_id)
+                .first()
+            )
+            if handoff is None:
+                return Response({"detail": "Handoff not found."}, status=404)
+            if handoff.status == LiveEventRescrapeHandoff.Status.RESOLVED:
+                return Response(
+                    {
+                        "outcome": "idempotent",
+                        "handoff": LiveEventRescrapeHandoffSerializer.from_instance(
+                            handoff
+                        ),
+                    },
+                    status=200,
+                )
+            handoff.status = LiveEventRescrapeHandoff.Status.RESOLVED
+            handoff.last_error = ""
+            handoff.save(update_fields=["status", "last_error"])
+        return Response(
+            {
+                "outcome": "resolved",
+                "handoff": LiveEventRescrapeHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+
+
+class FailLiveEventRescrapeHandoff(generics.GenericAPIView):
+    """Mark a rescrape handoff failed after three unresolved publications."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveEventRescrapeFailSerializer
+
+    def post(self, request, event_id: int, handoff_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        last_error = serializer.validated_data.get("last_error") or (
+            "Rescrape publications exhausted; operator action required."
+        )
+        with transaction.atomic():
+            handoff = (
+                LiveEventRescrapeHandoff.objects.select_for_update()
+                .filter(id=handoff_id, event_id=event_id)
+                .first()
+            )
+            if handoff is None:
+                return Response({"detail": "Handoff not found."}, status=404)
+            if handoff.status == LiveEventRescrapeHandoff.Status.FAILED:
+                return Response(
+                    {
+                        "outcome": "idempotent",
+                        "handoff": LiveEventRescrapeHandoffSerializer.from_instance(
+                            handoff
+                        ),
+                    },
+                    status=200,
+                )
+            handoff.status = LiveEventRescrapeHandoff.Status.FAILED
+            handoff.last_error = last_error
+            handoff.save(update_fields=["status", "last_error"])
+        return Response(
+            {
+                "outcome": "failed",
+                "handoff": LiveEventRescrapeHandoffSerializer.from_instance(handoff),
             },
             status=200,
         )

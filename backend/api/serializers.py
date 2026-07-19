@@ -891,6 +891,60 @@ class LiveFightStatsHandoffSerializer(serializers.Serializer):
         }
 
 
+class LiveEventRescrapeHandoffSerializer(serializers.Serializer):
+    """One durable event-rescrape handoff row in LiveResultsSource."""
+
+    id = serializers.IntegerField()
+    event_id = serializers.IntegerField()
+    card_fingerprint = serializers.CharField()
+    status = serializers.CharField()
+    reason = serializers.CharField()
+    publication_count = serializers.IntegerField()
+    last_published_at = serializers.DateTimeField(allow_null=True)
+    next_eligible_at = serializers.DateTimeField(allow_null=True)
+    last_error = serializers.CharField(allow_blank=True)
+
+    @classmethod
+    def from_instance(cls, handoff) -> dict:
+        """Serialize a ``LiveEventRescrapeHandoff`` model row to response data."""
+        return {
+            "id": handoff.id,
+            "event_id": handoff.event_id,
+            "card_fingerprint": handoff.card_fingerprint,
+            "status": handoff.status,
+            "reason": handoff.reason,
+            "publication_count": handoff.publication_count,
+            "last_published_at": handoff.last_published_at,
+            "next_eligible_at": handoff.next_eligible_at,
+            "last_error": handoff.last_error,
+        }
+
+
+class EnsureLiveEventRescrapeHandoffSerializer(serializers.Serializer):
+    """Create or reuse a pending rescrape handoff for one card fingerprint."""
+
+    card_fingerprint = serializers.CharField(max_length=64)
+    reason = serializers.ChoiceField(
+        choices=[
+            ("CARD_CHANGED", "CARD_CHANGED"),
+            ("MISSING_FIGHT", "MISSING_FIGHT"),
+            ("MALFORMED_IDENTITY", "MALFORMED_IDENTITY"),
+        ]
+    )
+
+
+class LiveEventRescrapeAttemptSerializer(serializers.Serializer):
+    """Record a failed rescrape publication attempt while leaving handoff pending."""
+
+    last_error = serializers.CharField(allow_blank=True, default="")
+
+
+class LiveEventRescrapeFailSerializer(serializers.Serializer):
+    """Mark a rescrape handoff failed after exhausted publications."""
+
+    last_error = serializers.CharField(allow_blank=True, default="")
+
+
 class CompleteLiveFightTransitionSerializer(serializers.Serializer):
     """Payload for atomic UPCOMING/CANCELLED→COMPLETED live-result transition."""
 

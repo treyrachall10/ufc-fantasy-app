@@ -43,6 +43,26 @@ urlpatterns = [
     path('api/events/SetEvent', views.SetEvent.as_view()),
     path('api/events/<int:event_id>/LiveResultsSource', views.LiveResultsSource.as_view()),
     path(
+        'api/events/<int:event_id>/EnsureLiveEventRescrapeHandoff',
+        views.EnsureLiveEventRescrapeHandoff.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveEventRescrapeHandoffs/<int:handoff_id>/MarkPublished',
+        views.MarkLiveEventRescrapePublished.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveEventRescrapeHandoffs/<int:handoff_id>/RecordAttempt',
+        views.RecordLiveEventRescrapeAttempt.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveEventRescrapeHandoffs/<int:handoff_id>/Resolve',
+        views.ResolveLiveEventRescrapeHandoff.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveEventRescrapeHandoffs/<int:handoff_id>/Fail',
+        views.FailLiveEventRescrapeHandoff.as_view(),
+    ),
+    path(
         'api/events/<int:event_id>/LiveResultsLease/Claim',
         views.LiveResultsLeaseClaim.as_view(),
     ),
