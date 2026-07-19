@@ -864,6 +864,50 @@ class LiveResultsLeaseCompleteSerializer(serializers.Serializer):
     warnings = serializers.CharField(required=False, allow_blank=True, default="")
 
 
+class LiveFightStatsHandoffSerializer(serializers.Serializer):
+    """One durable Fight Stats handoff row in LiveResultsSource."""
+
+    fight_id = serializers.IntegerField()
+    event_id = serializers.IntegerField()
+    fight_url = serializers.CharField()
+    status = serializers.CharField()
+    attempt_count = serializers.IntegerField()
+    last_attempt_at = serializers.DateTimeField(allow_null=True)
+    published_at = serializers.DateTimeField(allow_null=True)
+    last_error = serializers.CharField(allow_blank=True)
+
+
+class CompleteLiveFightTransitionSerializer(serializers.Serializer):
+    """Payload for atomic UPCOMING→COMPLETED live-result transition."""
+
+    event_id = serializers.IntegerField()
+    fight_url = serializers.CharField(max_length=512)
+    expected_status = serializers.ChoiceField(choices=Fights.FightStatus.choices)
+    winner_name = serializers.CharField(
+        max_length=200, required=False, allow_null=True, allow_blank=True
+    )
+    winner_url = serializers.CharField(
+        max_length=512, required=False, allow_null=True, allow_blank=True
+    )
+    method = serializers.CharField(
+        max_length=50, required=False, allow_null=True, allow_blank=True
+    )
+    round = serializers.IntegerField(required=False, allow_null=True)
+    time = serializers.IntegerField(required=False, allow_null=True)
+    round_format = serializers.CharField(
+        max_length=50, required=False, allow_null=True, allow_blank=True
+    )
+    weight_class = serializers.CharField(
+        max_length=100, required=False, allow_null=True, allow_blank=True
+    )
+
+
+class FightStatsHandoffAttemptSerializer(serializers.Serializer):
+    """Record a failed Fight Stats publication attempt while leaving handoff pending."""
+
+    last_error = serializers.CharField(allow_blank=True, default="")
+
+
 class ScoringSourceRoundSerializer(serializers.Serializer):
     """One round of stats required by the pure round scorer."""
 

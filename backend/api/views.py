@@ -57,6 +57,8 @@ from .serializers import (
     LiveResultsLeaseOwnerSerializer,
     LiveResultsLeaseFailSerializer,
     LiveResultsLeaseCompleteSerializer,
+    CompleteLiveFightTransitionSerializer,
+    FightStatsHandoffAttemptSerializer,
     ScoringSourceSerializer,
     FightScoringUpdateSerializer,
     FighterCareerStatsUpdateSerializer,
@@ -76,7 +78,7 @@ from accounts.models import User
 from .permissions import IsAthleteImageService, IsUploaderService, IsPipelineService
 
 from shared.utils import normalize_name
-from ufc_data_pipeline.models import LiveEventResultsState
+from ufc_data_pipeline.models import LiveEventResultsState, LiveFightStatsHandoff
 from ufc_data_pipeline.shared.ufcstats_urls import normalize_ufcstats_url
 
 from authlib.integrations.django_oauth2 import ResourceProtector
@@ -1850,6 +1852,97 @@ def _lease_is_active(state: LiveEventResultsState, now) -> bool:
     )
 
 
+def _serialize_fight_stats_handoff(handoff: LiveFightStatsHandoff) -> dict:
+    return {
+        "fight_id": handoff.fight_id,
+        "event_id": handoff.event_id,
+        "fight_url": handoff.fight_url,
+        "status": handoff.status,
+        "attempt_count": handoff.attempt_count,
+        "last_attempt_at": handoff.last_attempt_at,
+        "published_at": handoff.published_at,
+        "last_error": handoff.last_error,
+    }
+
+
+def _resolve_live_result_winner(
+    *,
+    winner_name: str | None,
+    winner_url: str | None,
+) -> tuple[object | None, Response | None]:
+    """
+    Resolve winner by profile URL first, then unambiguous normalized name.
+
+    Returns ``(fighter_or_None, error_response_or_None)``.
+    """
+    claimed_name = (winner_name or "").strip()
+    claimed_url = normalize_ufcstats_url(winner_url)
+    if not claimed_name and not claimed_url:
+        return None, None
+
+    if claimed_url:
+        by_url = list(Fighters.objects.filter(profile_url=claimed_url))
+        if len(by_url) == 1:
+            return by_url[0], None
+        if len(by_url) > 1:
+            return None, Response(
+                {"detail": f"Ambiguous winner_url: {claimed_url}"},
+                status=400,
+            )
+
+    if claimed_name:
+        normalized = normalize_name(claimed_name)
+        if not normalized:
+            return None, Response(
+                {"detail": f"Invalid winner_name: {claimed_name}"},
+                status=400,
+            )
+        by_name = list(Fighters.objects.filter(normalized_name=normalized))
+        if len(by_name) == 1:
+            return by_name[0], None
+        if len(by_name) > 1:
+            return None, Response(
+                {"detail": f"Ambiguous winner_name: {claimed_name}"},
+                status=400,
+            )
+        return None, Response(
+            {"detail": f"Fighter not found for winner: {claimed_name or claimed_url}"},
+            status=400,
+        )
+
+    return None, Response(
+        {"detail": f"Fighter not found for winner_url: {claimed_url}"},
+        status=400,
+    )
+
+
+def _ensure_pending_fight_stats_handoff(
+    *,
+    fight_id: int,
+    event_id: int,
+    fight_url: str,
+) -> LiveFightStatsHandoff:
+    handoff = (
+        LiveFightStatsHandoff.objects.select_for_update()
+        .filter(fight_id=fight_id)
+        .first()
+    )
+    if handoff is None:
+        return LiveFightStatsHandoff.objects.create(
+            fight_id=fight_id,
+            event_id=event_id,
+            fight_url=fight_url,
+            status=LiveFightStatsHandoff.Status.PENDING,
+        )
+
+    handoff.event_id = event_id
+    handoff.fight_url = fight_url
+    if handoff.status != LiveFightStatsHandoff.Status.PUBLISHED:
+        handoff.status = LiveFightStatsHandoff.Status.PENDING
+    handoff.save(update_fields=["event_id", "fight_url", "status"])
+    return handoff
+
+
 class LiveResultsSource(generics.GenericAPIView):
     """
     Pipeline snapshot of one event's fights and live-results watcher state.
@@ -1870,6 +1963,12 @@ class LiveResultsSource(generics.GenericAPIView):
             for fight in Fights.objects.filter(event=event).order_by("fight_id")
         ]
         watcher_state = LiveEventResultsState.objects.filter(event=event).first()
+        handoffs = [
+            _serialize_fight_stats_handoff(row)
+            for row in LiveFightStatsHandoff.objects.filter(event_id=event_id).order_by(
+                "fight_id"
+            )
+        ]
         payload = {
             "event": {
                 "event_id": event.event_id,
@@ -1879,7 +1978,7 @@ class LiveResultsSource(generics.GenericAPIView):
             },
             "fights": fights,
             "watcher_state": _serialize_watcher_state(watcher_state),
-            "fight_stats_handoffs": [],
+            "fight_stats_handoffs": handoffs,
             "rescrape_handoffs": [],
         }
         serializer = self.serializer_class(data=payload)
@@ -2087,4 +2186,199 @@ class LiveResultsLeaseFail(generics.GenericAPIView):
             status=200,
         )
 
+
+class CompleteLiveFightTransition(generics.GenericAPIView):
+    """
+    Atomically mark a fight COMPLETED and ensure a pending Fight Stats handoff.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = CompleteLiveFightTransitionSerializer
+
+    def post(self, request, fight_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        event_id = int(data["event_id"])
+        fight_url = normalize_ufcstats_url(data["fight_url"])
+        expected_status = data["expected_status"]
+        if not fight_url:
+            return Response({"detail": "fight_url is empty after normalization."}, status=400)
+
+        winner, winner_error = _resolve_live_result_winner(
+            winner_name=data.get("winner_name"),
+            winner_url=data.get("winner_url"),
+        )
+        if winner_error is not None:
+            return winner_error
+
+        with transaction.atomic():
+            fight = get_object_or_404(
+                Fights.objects.select_for_update(),
+                fight_id=fight_id,
+            )
+            if fight.event_id != event_id:
+                return Response(
+                    {"detail": "Fight does not belong to event."},
+                    status=409,
+                )
+            stored_url = normalize_ufcstats_url(fight.url)
+            if stored_url != fight_url:
+                return Response(
+                    {"detail": "Fight URL does not match stored identity."},
+                    status=409,
+                )
+
+            already_completed = fight.fight_status == Fights.FightStatus.COMPLETED
+            if already_completed:
+                # Idempotent retry after a successful transition.
+                handoff = _ensure_pending_fight_stats_handoff(
+                    fight_id=fight.fight_id,
+                    event_id=event_id,
+                    fight_url=fight_url,
+                )
+                return Response(
+                    {
+                        "outcome": "idempotent",
+                        "fight_id": fight.fight_id,
+                        "fight_status": fight.fight_status,
+                        "handoff": _serialize_fight_stats_handoff(handoff),
+                    },
+                    status=200,
+                )
+
+            if fight.fight_status != expected_status:
+                return Response(
+                    {
+                        "detail": (
+                            f"Expected status {expected_status} but fight is "
+                            f"{fight.fight_status}."
+                        )
+                    },
+                    status=409,
+                )
+            if expected_status != Fights.FightStatus.UPCOMING:
+                return Response(
+                    {"detail": f"Unsupported transition from {expected_status}."},
+                    status=409,
+                )
+
+            fight.fight_status = Fights.FightStatus.COMPLETED
+            fight.winner = winner
+            if "method" in data:
+                fight.method = data.get("method") or None
+            if "round" in data:
+                fight.round = data.get("round")
+            if "time" in data:
+                fight.time = data.get("time")
+            if "round_format" in data:
+                fight.round_format = data.get("round_format") or None
+            if "weight_class" in data and data.get("weight_class"):
+                fight.weight_class = data.get("weight_class")
+            fight.url = fight_url
+            fight.save()
+
+            handoff = _ensure_pending_fight_stats_handoff(
+                fight_id=fight.fight_id,
+                event_id=event_id,
+                fight_url=fight_url,
+            )
+
+        return Response(
+            {
+                "outcome": "completed",
+                "fight_id": fight.fight_id,
+                "fight_status": fight.fight_status,
+                "handoff": _serialize_fight_stats_handoff(handoff),
+            },
+            status=200,
+        )
+
+
+class MarkFightStatsHandoffPublished(generics.GenericAPIView):
+    """Mark a Fight Stats handoff published after confirmed Pub/Sub delivery."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+
+    def post(self, request, fight_id: int):
+        now = timezone.now()
+        with transaction.atomic():
+            handoff = (
+                LiveFightStatsHandoff.objects.select_for_update()
+                .filter(fight_id=fight_id)
+                .first()
+            )
+            if handoff is None:
+                return Response({"detail": "Handoff not found."}, status=404)
+            handoff.status = LiveFightStatsHandoff.Status.PUBLISHED
+            handoff.published_at = now
+            handoff.last_attempt_at = now
+            handoff.attempt_count = handoff.attempt_count + 1
+            handoff.last_error = ""
+            handoff.save(
+                update_fields=[
+                    "status",
+                    "published_at",
+                    "last_attempt_at",
+                    "attempt_count",
+                    "last_error",
+                ]
+            )
+        return Response(
+            {
+                "outcome": "published",
+                "handoff": _serialize_fight_stats_handoff(handoff),
+            },
+            status=200,
+        )
+
+
+class RecordFightStatsHandoffAttempt(generics.GenericAPIView):
+    """Record a failed Fight Stats publication attempt; leave handoff pending."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = FightStatsHandoffAttemptSerializer
+
+    def post(self, request, fight_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        last_error = serializer.validated_data.get("last_error") or ""
+        now = timezone.now()
+
+        with transaction.atomic():
+            handoff = (
+                LiveFightStatsHandoff.objects.select_for_update()
+                .filter(fight_id=fight_id)
+                .first()
+            )
+            if handoff is None:
+                return Response({"detail": "Handoff not found."}, status=404)
+            if handoff.status == LiveFightStatsHandoff.Status.PUBLISHED:
+                return Response(
+                    {
+                        "outcome": "already_published",
+                        "handoff": _serialize_fight_stats_handoff(handoff),
+                    },
+                    status=200,
+                )
+            handoff.status = LiveFightStatsHandoff.Status.PENDING
+            handoff.attempt_count = handoff.attempt_count + 1
+            handoff.last_attempt_at = now
+            handoff.last_error = last_error
+            handoff.save(
+                update_fields=[
+                    "status",
+                    "attempt_count",
+                    "last_attempt_at",
+                    "last_error",
+                ]
+            )
+        return Response(
+            {
+                "outcome": "recorded",
+                "handoff": _serialize_fight_stats_handoff(handoff),
+            },
+            status=200,
+        )
 
