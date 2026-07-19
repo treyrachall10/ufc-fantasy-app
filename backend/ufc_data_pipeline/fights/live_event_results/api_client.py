@@ -187,6 +187,16 @@ def complete_live_fight_transition(fight_id: int, payload: dict[str, Any]) -> di
     return _post_fight_action(fight_id, "CompleteLiveFightTransition", payload)
 
 
+def cancel_live_fight_transition(fight_id: int, payload: dict[str, Any]) -> dict:
+    """Atomically cancel an UPCOMING fight; creates no Fight Stats handoff."""
+    return _post_fight_action(fight_id, "CancelLiveFightTransition", payload)
+
+
+def restore_live_fight_upcoming(fight_id: int, payload: dict[str, Any]) -> dict:
+    """Atomically restore a CANCELLED fight to UPCOMING."""
+    return _post_fight_action(fight_id, "RestoreLiveFightUpcoming", payload)
+
+
 def mark_fight_stats_handoff_published(fight_id: int) -> dict:
     """Mark Fight Stats handoff published after confirmed Pub/Sub delivery."""
     return _post_fight_action(fight_id, "MarkFightStatsHandoffPublished", {})
