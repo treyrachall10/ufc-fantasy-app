@@ -166,7 +166,7 @@ def _transition_payload(event_id: int, item: PlanItem) -> dict:
     return {
         "event_id": event_id,
         "fight_url": item.normalized_url or scraped.fight_url,
-        "expected_status": "UPCOMING",
+        "expected_status": item.stored.fight_status,
         "winner_name": scraped.winner_name,
         "winner_url": scraped.winner_url,
         "method": scraped.method,
@@ -177,12 +177,121 @@ def _transition_payload(event_id: int, item: PlanItem) -> dict:
     }
 
 
+def _status_payload(event_id: int, item: PlanItem, *, expected_status: str) -> dict:
+    assert item.stored is not None
+    return {
+        "event_id": event_id,
+        "fight_url": item.normalized_url or item.stored.url,
+        "expected_status": expected_status,
+    }
+
+
+def apply_cancellations(event_id: int, plan: CardComparisonPlan) -> None:
+    """
+    Cancel valid stored UPCOMING fights missing from the current source card.
+
+    Cancellation never fails the run; transient failures leave the fight UPCOMING
+    for a later schedule.
+    """
+    for item in plan.stored_missing:
+        stored = item.stored
+        if stored is None:
+            continue
+        if not item.normalized_url:
+            continue
+        if stored.fight_status != "UPCOMING":
+            continue
+
+        fight_id = stored.fight_id
+        payload = _status_payload(
+            event_id,
+            item,
+            expected_status="UPCOMING",
+        )
+
+        def _call_cancel(
+            fid: int = fight_id,
+            body: dict = payload,
+        ):
+            return api_client.cancel_live_fight_transition(fid, body)
+
+        try:
+            response = _with_retries(
+                f"cancel_transition fight_id={fight_id}",
+                _call_cancel,
+            )
+            logger.info(
+                "live_event_results cancel outcome=%s fight_id=%s",
+                response.get("outcome"),
+                fight_id,
+            )
+        except Exception as exc:
+            logger.warning(
+                "live_event_results cancel_skipped fight_id=%s error=%s",
+                fight_id,
+                exc,
+            )
+
+
+def apply_restorations(
+    event_id: int,
+    plan: CardComparisonPlan,
+) -> list[str]:
+    """
+    Restore CANCELLED fights that reappear on the source without a result.
+
+    Returns failure messages for aggregated run failure.
+    """
+    failures: list[str] = []
+    for item in plan.matches:
+        stored = item.stored
+        scraped = item.scraped
+        if stored is None or scraped is None:
+            continue
+        if stored.fight_status != "CANCELLED" or scraped.is_completed:
+            continue
+
+        fight_id = stored.fight_id
+        payload = _status_payload(
+            event_id,
+            item,
+            expected_status="CANCELLED",
+        )
+
+        def _call_restore(
+            fid: int = fight_id,
+            body: dict = payload,
+        ):
+            return api_client.restore_live_fight_upcoming(fid, body)
+
+        try:
+            response = _with_retries(
+                f"restore_upcoming fight_id={fight_id}",
+                _call_restore,
+            )
+            logger.info(
+                "live_event_results restore outcome=%s fight_id=%s",
+                response.get("outcome"),
+                fight_id,
+            )
+        except ApiClientError as exc:
+            msg = f"fight_id={fight_id} restore failed: {exc}"
+            logger.error("live_event_results %s", msg)
+            failures.append(msg)
+        except Exception as exc:
+            msg = f"fight_id={fight_id} restore failed: {exc}"
+            logger.error("live_event_results %s", msg)
+            failures.append(msg)
+
+    return failures
+
+
 def apply_completed_transitions(
     event_id: int,
     plan: CardComparisonPlan,
 ) -> tuple[list[dict], list[str]]:
     """
-    For matched UPCOMING→source-completed fights, call the atomic transition API.
+    For matched UPCOMING/CANCELLED→source-completed fights, call the atomic API.
 
     Returns ``(pending_handoffs, failure_messages)``. Continues on per-fight errors.
     """
@@ -194,7 +303,9 @@ def apply_completed_transitions(
         scraped = item.scraped
         if stored is None or scraped is None:
             continue
-        if stored.fight_status != "UPCOMING" or not scraped.is_completed:
+        if stored.fight_status not in ("UPCOMING", "CANCELLED"):
+            continue
+        if not scraped.is_completed:
             continue
 
         fight_id = stored.fight_id
@@ -411,6 +522,8 @@ def watch_live_event_results() -> WatchResult:
         plan = compare_card(snapshot.get("fights") or [], scraped)
         _log_comparison_plan(event_id, plan)
 
+        apply_cancellations(event_id, plan)
+        restore_failures = apply_restorations(event_id, plan)
         transition_pending, transition_failures = apply_completed_transitions(
             event_id,
             plan,
@@ -420,7 +533,7 @@ def watch_live_event_results() -> WatchResult:
             transition_pending,
         )
         drain_failures = drain_pending_handoffs(to_drain)
-        _raise_if_failures(transition_failures + drain_failures)
+        _raise_if_failures(restore_failures + transition_failures + drain_failures)
 
         api_client.complete_lease(
             event_id,

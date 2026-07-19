@@ -13,7 +13,9 @@ from django.test import SimpleTestCase
 
 from ufc_data_pipeline.fights.live_event_results.service import (
     WatchOutcome,
+    apply_cancellations,
     apply_completed_transitions,
+    apply_restorations,
     has_unresolved_handoffs,
     has_upcoming_fights,
     is_terminal_snapshot,
@@ -106,6 +108,20 @@ class TerminalHelpersTests(SimpleTestCase):
             ],
         )
         assert not has_unresolved_handoffs(snap)
+        assert is_terminal_snapshot(snap)
+
+    def test_cancelled_only_is_terminal(self) -> None:
+        snap = _snapshot(
+            fights=[
+                {
+                    "fight_id": 1,
+                    "url": "u",
+                    "bout": "a",
+                    "fight_status": "CANCELLED",
+                }
+            ]
+        )
+        assert not has_upcoming_fights(snap)
         assert is_terminal_snapshot(snap)
 
 
@@ -379,6 +395,13 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
         return_value=([], []),
     )
     @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.apply_restorations",
+        return_value=[],
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.apply_cancellations"
+    )
+    @patch(
         "ufc_data_pipeline.fights.live_event_results.service.parse_event_fight_rows"
     )
     @patch(
@@ -401,6 +424,8 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
         snapshot,
         fetch_soup,
         parse_rows,
+        apply_cancel,
+        apply_restore,
         apply_transitions,
         drain,
         claim,
@@ -475,6 +500,8 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
         assert len(result.plan.matches) == 2
         fetch_soup.assert_called_once_with("http://ufcstats.com/event-details/live")
         renew.assert_called_once()
+        apply_cancel.assert_called_once()
+        apply_restore.assert_called_once()
         apply_transitions.assert_called_once()
         drain.assert_called_once()
         complete.assert_called_once()
@@ -602,6 +629,195 @@ class ApplyCompletedTransitionsTests(SimpleTestCase):
         assert payload["expected_status"] == "UPCOMING"
         assert payload["winner_name"] == "A"
         assert payload["method"] == "KO/TKO"
+
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client."
+        "complete_live_fight_transition"
+    )
+    def test_completes_cancelled_when_source_has_result(self, transition) -> None:
+        from ufc_data_pipeline.fights.live_event_results.matcher import (
+            MatchAction,
+            PlanItem,
+            StoredFightRef,
+            CardComparisonPlan,
+        )
+        from ufc_data_pipeline.fights.shared.event_page_fights import ParsedEventFight
+
+        plan = CardComparisonPlan(
+            matches=[
+                PlanItem(
+                    action=MatchAction.MATCH,
+                    stored=StoredFightRef(
+                        fight_id=1,
+                        url="http://ufcstats.com/fight-details/a",
+                        bout="A vs. B",
+                        fight_status="CANCELLED",
+                    ),
+                    scraped=ParsedEventFight(
+                        fight_url="http://ufcstats.com/fight-details/a",
+                        bout="A vs. B",
+                        weight_class="LW",
+                        fighter_a_name="A",
+                        fighter_a_url="",
+                        fighter_b_name="B",
+                        fighter_b_url="",
+                        is_completed=True,
+                        winner_name="A",
+                    ),
+                    normalized_url="http://ufcstats.com/fight-details/a",
+                )
+            ]
+        )
+        transition.return_value = {
+            "outcome": "completed",
+            "handoff": {
+                "fight_id": 1,
+                "event_id": 7,
+                "fight_url": "http://ufcstats.com/fight-details/a",
+                "status": "PENDING",
+            },
+        }
+
+        pending, failures = apply_completed_transitions(7, plan)
+
+        assert failures == []
+        assert len(pending) == 1
+        assert transition.call_args.args[1]["expected_status"] == "CANCELLED"
+
+
+class ApplyCancellationAndRestoreTests(SimpleTestCase):
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client."
+        "cancel_live_fight_transition"
+    )
+    def test_cancels_only_valid_upcoming_missing_from_source(self, cancel) -> None:
+        from ufc_data_pipeline.fights.live_event_results.matcher import (
+            MatchAction,
+            PlanItem,
+            StoredFightRef,
+            CardComparisonPlan,
+        )
+
+        plan = CardComparisonPlan(
+            stored_missing=[
+                PlanItem(
+                    action=MatchAction.STORED_MISSING_FROM_SOURCE,
+                    stored=StoredFightRef(
+                        fight_id=1,
+                        url="http://ufcstats.com/fight-details/a",
+                        bout="A vs. B",
+                        fight_status="UPCOMING",
+                    ),
+                    normalized_url="http://ufcstats.com/fight-details/a",
+                ),
+                PlanItem(
+                    action=MatchAction.STORED_MISSING_FROM_SOURCE,
+                    stored=StoredFightRef(
+                        fight_id=2,
+                        url="http://ufcstats.com/fight-details/b",
+                        bout="C vs. D",
+                        fight_status="COMPLETED",
+                    ),
+                    normalized_url="http://ufcstats.com/fight-details/b",
+                ),
+                PlanItem(
+                    action=MatchAction.STORED_MISSING_FROM_SOURCE,
+                    stored=StoredFightRef(
+                        fight_id=3,
+                        url="",
+                        bout="E vs. F",
+                        fight_status="UPCOMING",
+                    ),
+                    normalized_url="",
+                ),
+            ]
+        )
+        cancel.return_value = {"outcome": "cancelled"}
+
+        apply_cancellations(7, plan)
+
+        cancel.assert_called_once()
+        assert cancel.call_args.args[0] == 1
+        assert cancel.call_args.args[1]["expected_status"] == "UPCOMING"
+
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.HANDOFF_MAX_ATTEMPTS",
+        1,
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client."
+        "cancel_live_fight_transition",
+        side_effect=RuntimeError("api down"),
+    )
+    def test_cancel_failure_does_not_raise(self, _cancel) -> None:
+        from ufc_data_pipeline.fights.live_event_results.matcher import (
+            MatchAction,
+            PlanItem,
+            StoredFightRef,
+            CardComparisonPlan,
+        )
+
+        plan = CardComparisonPlan(
+            stored_missing=[
+                PlanItem(
+                    action=MatchAction.STORED_MISSING_FROM_SOURCE,
+                    stored=StoredFightRef(
+                        fight_id=1,
+                        url="http://ufcstats.com/fight-details/a",
+                        bout="A vs. B",
+                        fight_status="UPCOMING",
+                    ),
+                    normalized_url="http://ufcstats.com/fight-details/a",
+                )
+            ]
+        )
+
+        apply_cancellations(7, plan)
+
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client."
+        "restore_live_fight_upcoming"
+    )
+    def test_restores_cancelled_without_source_result(self, restore) -> None:
+        from ufc_data_pipeline.fights.live_event_results.matcher import (
+            MatchAction,
+            PlanItem,
+            StoredFightRef,
+            CardComparisonPlan,
+        )
+        from ufc_data_pipeline.fights.shared.event_page_fights import ParsedEventFight
+
+        plan = CardComparisonPlan(
+            matches=[
+                PlanItem(
+                    action=MatchAction.MATCH,
+                    stored=StoredFightRef(
+                        fight_id=1,
+                        url="http://ufcstats.com/fight-details/a",
+                        bout="A vs. B",
+                        fight_status="CANCELLED",
+                    ),
+                    scraped=ParsedEventFight(
+                        fight_url="http://ufcstats.com/fight-details/a",
+                        bout="A vs. B",
+                        weight_class="LW",
+                        fighter_a_name="A",
+                        fighter_a_url="",
+                        fighter_b_name="B",
+                        fighter_b_url="",
+                        is_completed=False,
+                    ),
+                    normalized_url="http://ufcstats.com/fight-details/a",
+                )
+            ]
+        )
+        restore.return_value = {"outcome": "restored"}
+
+        failures = apply_restorations(7, plan)
+
+        assert failures == []
+        restore.assert_called_once()
+        assert restore.call_args.args[1]["expected_status"] == "CANCELLED"
 
     @patch(
         "ufc_data_pipeline.fights.live_event_results.service.HANDOFF_MAX_ATTEMPTS",
