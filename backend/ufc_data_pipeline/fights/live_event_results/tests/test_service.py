@@ -250,7 +250,14 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
         "ufc_data_pipeline.fights.live_event_results.service.api_client.complete_lease"
     )
     @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client.renew_lease"
+    )
+    @patch(
         "ufc_data_pipeline.fights.live_event_results.service.api_client.claim_lease"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.fetch_event_soup",
+        side_effect=RuntimeError("page fetch failed"),
     )
     @patch(
         "ufc_data_pipeline.fights.live_event_results.service.api_client.get_live_results_source"
@@ -262,61 +269,16 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
         "ufc_data_pipeline.fights.live_event_results.service.is_event_date_eligible",
         return_value=True,
     )
-    def test_complete_failure_attempts_fail_release(
+    def test_fetch_failure_attempts_fail_release(
         self,
         _eligible,
         discovery,
         snapshot,
         claim,
+        _fetch,
+        renew,
         complete,
         fail,
-    ) -> None:
-        discovery.return_value = {
-            "latest_event": {
-                "event_id": 7,
-                "event": "UFC Live",
-                "date": "2026-07-19",
-                "url": "http://ufcstats.com/event-details/live",
-            },
-            "events": [],
-        }
-        snapshot.return_value = _snapshot(event_id=7)
-        claim.return_value = {"outcome": "claimed", "status": "RUNNING"}
-        complete.side_effect = RuntimeError("complete failed")
-        fail.return_value = {"outcome": "failed"}
-
-        with self.assertRaises(RuntimeError):
-            watch_live_event_results()
-
-        fail.assert_called_once()
-
-    @patch(
-        "ufc_data_pipeline.fights.live_event_results.service.LIVE_EVENT_RESULTS_TIMEZONE",
-        "America/New_York",
-    )
-    @patch(
-        "ufc_data_pipeline.fights.live_event_results.service.api_client.complete_lease"
-    )
-    @patch(
-        "ufc_data_pipeline.fights.live_event_results.service.api_client.claim_lease"
-    )
-    @patch(
-        "ufc_data_pipeline.fights.live_event_results.service.api_client.get_live_results_source"
-    )
-    @patch(
-        "ufc_data_pipeline.fights.live_event_results.service.api_client.get_discovery_source"
-    )
-    @patch(
-        "ufc_data_pipeline.fights.live_event_results.service.is_event_date_eligible",
-        return_value=True,
-    )
-    def test_eligible_upcoming_defers_without_pubsub_or_scrape(
-        self,
-        _eligible,
-        discovery,
-        snapshot,
-        claim,
-        complete,
     ) -> None:
         discovery.return_value = {
             "latest_event": {
@@ -339,13 +301,128 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
             ],
         )
         claim.return_value = {"outcome": "claimed", "status": "RUNNING"}
+        fail.return_value = {"outcome": "failed"}
+
+        with self.assertRaises(RuntimeError):
+            watch_live_event_results()
+
+        fail.assert_called_once()
+        renew.assert_not_called()
+        complete.assert_not_called()
+
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.LIVE_EVENT_RESULTS_TIMEZONE",
+        "America/New_York",
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client.complete_lease"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client.renew_lease"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client.claim_lease"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.parse_event_fight_rows"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.fetch_event_soup"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client.get_live_results_source"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client.get_discovery_source"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.is_event_date_eligible",
+        return_value=True,
+    )
+    def test_eligible_upcoming_fetches_once_renews_and_compares(
+        self,
+        _eligible,
+        discovery,
+        snapshot,
+        fetch_soup,
+        parse_rows,
+        claim,
+        renew,
+        complete,
+    ) -> None:
+        from bs4 import BeautifulSoup
+
+        from ufc_data_pipeline.fights.shared.event_page_fights import ParsedEventFight
+
+        discovery.return_value = {
+            "latest_event": {
+                "event_id": 7,
+                "event": "UFC Live",
+                "date": "2026-07-19",
+                "url": "http://ufcstats.com/event-details/live",
+            },
+            "events": [],
+        }
+        snapshot.return_value = _snapshot(
+            event_id=7,
+            fights=[
+                {
+                    "fight_id": 1,
+                    "url": "http://ufcstats.com/fight-details/a",
+                    "bout": "A vs. B",
+                    "fight_status": "UPCOMING",
+                },
+                {
+                    "fight_id": 2,
+                    "url": "http://ufcstats.com/fight-details/b",
+                    "bout": "C vs. D",
+                    "fight_status": "UPCOMING",
+                },
+            ],
+        )
+        fetch_soup.return_value = BeautifulSoup("<table></table>", "html.parser")
+        parse_rows.return_value = [
+            ParsedEventFight(
+                fight_url="http://ufcstats.com/fight-details/a",
+                bout="A vs. B",
+                weight_class="LW",
+                fighter_a_name="A",
+                fighter_a_url="",
+                fighter_b_name="B",
+                fighter_b_url="",
+                is_completed=True,
+                winner_name="A",
+                method="KO/TKO",
+                round=1,
+                time=30,
+            ),
+            ParsedEventFight(
+                fight_url="http://ufcstats.com/fight-details/b",
+                bout="C vs. D",
+                weight_class="WW",
+                fighter_a_name="C",
+                fighter_a_url="",
+                fighter_b_name="D",
+                fighter_b_url="",
+                is_completed=False,
+            ),
+        ]
+        claim.return_value = {"outcome": "claimed", "status": "RUNNING"}
+        renew.return_value = {"outcome": "renewed"}
         complete.return_value = {"outcome": "completed"}
 
         result = watch_live_event_results()
 
-        assert result.outcome == WatchOutcome.ELIGIBLE_DEFERRED
-        claim.assert_called_once()
+        assert result.outcome == WatchOutcome.CARD_COMPARED
+        assert result.plan is not None
+        assert len(result.plan.matches) == 2
+        fetch_soup.assert_called_once_with("http://ufcstats.com/event-details/live")
+        renew.assert_called_once()
         complete.assert_called_once()
+        _args, kwargs = complete.call_args
+        assert "warnings" in kwargs
+        # Renew happens after fetch; complete after compare.
+        assert fetch_soup.call_count == 1
 
 
 class WatchLiveEventResultsCommandTests(SimpleTestCase):

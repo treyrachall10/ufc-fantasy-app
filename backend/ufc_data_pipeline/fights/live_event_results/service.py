@@ -1,5 +1,5 @@
 """
-Orchestrate one Live Event Results Watcher no-work / lease pass.
+Orchestrate one Live Event Results Watcher pass (lease + card compare).
 """
 
 from __future__ import annotations
@@ -19,6 +19,12 @@ from ufc_data_pipeline.fights.live_event_results.date_gate import (
     is_event_date_eligible,
     require_timezone,
 )
+from ufc_data_pipeline.fights.live_event_results.matcher import (
+    CardComparisonPlan,
+    compare_card,
+)
+from ufc_data_pipeline.fights.live_event_results.scraper import fetch_event_soup
+from ufc_data_pipeline.fights.shared.event_page_fights import parse_event_fight_rows
 
 logger = logging.getLogger(__name__)
 
@@ -28,14 +34,16 @@ class WatchOutcome(str, Enum):
     DATE_INELIGIBLE = "date_ineligible"
     ACTIVE_LEASE_SKIP = "active_lease_skip"
     TERMINAL = "terminal"
-    # Issue 033 shell: eligible upcoming work exists but scrape is not implemented yet.
-    ELIGIBLE_DEFERRED = "eligible_deferred"
+    CARD_COMPARED = "card_compared"
+    # Outside date window with unresolved handoffs; scrape deferred to later issues.
+    PENDING_WITHOUT_SCRAPE = "pending_without_scrape"
 
 
 @dataclass(frozen=True)
 class WatchResult:
     outcome: WatchOutcome
     event_id: int | None = None
+    plan: CardComparisonPlan | None = None
 
 
 _PENDING_HANDOFF_STATES = frozenset({"PENDING", "PUBLISHED"})
@@ -49,7 +57,6 @@ def has_unresolved_handoffs(snapshot: dict) -> bool:
     for row in snapshot.get("rescrape_handoffs") or []:
         status = (row.get("status") or "").upper()
         if status in _PENDING_HANDOFF_STATES or status == "FAILED":
-            # FAILED rescrape is operator-action state that keeps the event non-terminal.
             return True
     return False
 
@@ -75,15 +82,35 @@ def _parse_event_date(raw) -> Date:
     raise ValueError(f"Invalid event date: {raw!r}")
 
 
+def _log_comparison_plan(event_id: int, plan: CardComparisonPlan) -> None:
+    logger.info(
+        "live_event_results card_compared event_id=%s matches=%s "
+        "stored_missing=%s source_missing=%s completed_regression_warnings=%s "
+        "anomalies=%s",
+        event_id,
+        len(plan.matches),
+        len(plan.stored_missing),
+        len(plan.source_missing),
+        len(plan.preserve_completed_warnings),
+        len(plan.anomalies),
+    )
+    warning = plan.warning_summary()
+    if warning:
+        logger.warning(
+            "live_event_results card_warnings event_id=%s warnings=%s",
+            event_id,
+            warning,
+        )
+
+
 def watch_live_event_results() -> WatchResult:
     """
-    Run one Live Event Results Watcher pass without scraping UFC Stats.
+    Run one Live Event Results Watcher pass.
 
-    Selects the newest stored event via DiscoverySource, applies the configured
-    timezone date gate, loads LiveResultsSource, claims the event lease when
-    needed, and exits after terminal/no-work completion. Eligible events that
-    still have upcoming fights complete the lease and return ELIGIBLE_DEFERRED
-    until a later issue adds page scraping.
+    Selects the newest stored event, applies the timezone date gate, loads the
+    fight snapshot, claims the event lease, and for eligible non-terminal events
+    fetches the UFC Stats event page once, renews the lease, builds a card
+    comparison plan, logs it, and completes without mutating fights or publishing.
     """
     try:
         tz = require_timezone(LIVE_EVENT_RESULTS_TIMEZONE)
@@ -139,14 +166,49 @@ def watch_live_event_results() -> WatchResult:
             )
             return WatchResult(outcome=WatchOutcome.TERMINAL, event_id=event_id)
 
-        # Issue 033: no UFC Stats scrape yet; release lease cleanly.
-        api_client.complete_lease(event_id, owner_token)
+        if not eligible:
+            # Pending handoff drain without new source discovery (later issues).
+            api_client.complete_lease(event_id, owner_token)
+            logger.info(
+                "live_event_results outcome=%s event_id=%s",
+                WatchOutcome.PENDING_WITHOUT_SCRAPE.value,
+                event_id,
+            )
+            return WatchResult(
+                outcome=WatchOutcome.PENDING_WITHOUT_SCRAPE,
+                event_id=event_id,
+            )
+
+        event = snapshot.get("event") or {}
+        event_url = (event.get("url") or "").strip()
+        if not event_url:
+            raise RuntimeError(
+                f"LiveResultsSource missing event url event_id={event_id}"
+            )
+
+        soup = fetch_event_soup(event_url)
+        api_client.renew_lease(event_id, owner_token)
+
+        scraped = parse_event_fight_rows(soup)
+        plan = compare_card(snapshot.get("fights") or [], scraped)
+        _log_comparison_plan(event_id, plan)
+
+        # Issue 034: comparison only — no Fight mutation or Pub/Sub publish.
+        api_client.complete_lease(
+            event_id,
+            owner_token,
+            warnings=plan.warning_summary(),
+        )
         logger.info(
             "live_event_results outcome=%s event_id=%s",
-            WatchOutcome.ELIGIBLE_DEFERRED.value,
+            WatchOutcome.CARD_COMPARED.value,
             event_id,
         )
-        return WatchResult(outcome=WatchOutcome.ELIGIBLE_DEFERRED, event_id=event_id)
+        return WatchResult(
+            outcome=WatchOutcome.CARD_COMPARED,
+            event_id=event_id,
+            plan=plan,
+        )
     except Exception as exc:
         logger.exception(
             "live_event_results outcome=failure event_id=%s error=%s",
