@@ -219,6 +219,27 @@ class LiveResultsLeaseAPITests(TestCase):
         assert state.owner_token is None
         assert state.locked_until is None
 
+    def test_complete_persists_optional_warnings(self) -> None:
+        self.client.post(
+            self._url("Claim"),
+            data={"owner_token": self.owner_a},
+            format="json",
+            **self.auth_headers,
+        )
+        response = self.client.post(
+            self._url("Complete"),
+            data={
+                "owner_token": self.owner_a,
+                "warnings": "preserve_completed_warn:http://x",
+            },
+            format="json",
+            **self.auth_headers,
+        )
+        assert response.status_code == 200
+        state = LiveEventResultsState.objects.get(event=self.event)
+        assert state.warnings == "preserve_completed_warn:http://x"
+        assert state.status == LiveEventResultsState.Status.COMPLETED
+
     def test_claim_missing_event_returns_404(self) -> None:
         response = self.client.post(
             self._url("Claim", event_id=999999),
