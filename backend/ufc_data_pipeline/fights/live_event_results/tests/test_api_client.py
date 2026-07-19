@@ -61,3 +61,63 @@ class LiveResultsApiClientTests(SimpleTestCase):
         args, kwargs = post_mock.call_args
         assert args[0] == "http://web:8000/api/events/9/LiveResultsLease/Claim"
         assert kwargs["headers"]["Authorization"] == "Api-Key secret"
+
+    @patch("ufc_data_pipeline.fights.live_event_results.api_client.requests.post")
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.api_client.PIPELINE_SERVICE_API_KEY",
+        "secret",
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.api_client.PIPELINE_API_BASE_URL",
+        "http://web:8000",
+    )
+    def test_complete_live_fight_transition(self, post_mock) -> None:
+        response = MagicMock()
+        response.ok = True
+        response.status_code = 200
+        response.content = b'{"outcome":"completed"}'
+        response.json.return_value = {"outcome": "completed"}
+        post_mock.return_value = response
+
+        body = api_client.complete_live_fight_transition(
+            42,
+            {
+                "event_id": 7,
+                "fight_url": "http://ufcstats.com/fight-details/a",
+                "expected_status": "UPCOMING",
+            },
+        )
+
+        assert body["outcome"] == "completed"
+        args, kwargs = post_mock.call_args
+        assert args[0] == (
+            "http://web:8000/api/fights/42/CompleteLiveFightTransition"
+        )
+
+    @patch("ufc_data_pipeline.fights.live_event_results.api_client.requests.post")
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.api_client.PIPELINE_SERVICE_API_KEY",
+        "secret",
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.api_client.PIPELINE_API_BASE_URL",
+        "http://web:8000",
+    )
+    def test_complete_transition_raises_api_client_error(self, post_mock) -> None:
+        response = MagicMock()
+        response.ok = False
+        response.status_code = 409
+        response.text = '{"detail":"conflict"}'
+        post_mock.return_value = response
+
+        with self.assertRaises(api_client.ApiClientError) as ctx:
+            api_client.complete_live_fight_transition(
+                42,
+                {
+                    "event_id": 7,
+                    "fight_url": "http://ufcstats.com/fight-details/a",
+                    "expected_status": "UPCOMING",
+                },
+            )
+        assert ctx.exception.status_code == 409
+        assert ctx.exception.is_conflict

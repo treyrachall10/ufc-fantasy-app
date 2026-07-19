@@ -21,6 +21,22 @@ logger = logging.getLogger(__name__)
 _REQUEST_TIMEOUT_S = 60
 
 
+class ApiClientError(RuntimeError):
+    """HTTP API failure with optional status code for retry classification."""
+
+    def __init__(self, message: str, *, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+    @property
+    def is_conflict(self) -> bool:
+        return self.status_code == 409
+
+    @property
+    def is_client_error(self) -> bool:
+        return self.status_code is not None and 400 <= self.status_code < 500
+
+
 def _pipeline_headers() -> dict[str, str]:
     if not PIPELINE_API_BASE_URL:
         raise RuntimeError("PIPELINE_API_BASE_URL is not configured")
@@ -140,4 +156,46 @@ def fail_lease(
         event_id,
         "Fail",
         {"owner_token": str(owner_token), "last_error": last_error},
+    )
+
+
+def _post_fight_action(fight_id: int, action: str, payload: dict[str, Any] | None = None) -> dict:
+    url = f"{_base_url()}/api/fights/{fight_id}/{action}"
+    try:
+        response = requests.post(
+            url,
+            data=json.dumps(payload or {}),
+            headers=_pipeline_headers(),
+            timeout=_REQUEST_TIMEOUT_S,
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError(f"API request failed: {exc}") from exc
+
+    if not response.ok:
+        raise ApiClientError(
+            f"API POST {action} failed status={response.status_code} "
+            f"body={response.text}",
+            status_code=response.status_code,
+        )
+    if not response.content:
+        raise RuntimeError(f"{action} returned empty body")
+    return response.json()
+
+
+def complete_live_fight_transition(fight_id: int, payload: dict[str, Any]) -> dict:
+    """Atomically complete a fight and ensure a pending Fight Stats handoff."""
+    return _post_fight_action(fight_id, "CompleteLiveFightTransition", payload)
+
+
+def mark_fight_stats_handoff_published(fight_id: int) -> dict:
+    """Mark Fight Stats handoff published after confirmed Pub/Sub delivery."""
+    return _post_fight_action(fight_id, "MarkFightStatsHandoffPublished", {})
+
+
+def record_fight_stats_handoff_attempt(fight_id: int, *, last_error: str = "") -> dict:
+    """Record a failed Fight Stats publication attempt; leave handoff pending."""
+    return _post_fight_action(
+        fight_id,
+        "RecordFightStatsHandoffAttempt",
+        {"last_error": last_error},
     )
