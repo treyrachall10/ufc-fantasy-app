@@ -59,6 +59,7 @@ from .serializers import (
     LiveResultsLeaseCompleteSerializer,
     CompleteLiveFightTransitionSerializer,
     FightStatsHandoffAttemptSerializer,
+    LiveFightStatsHandoffSerializer,
     ScoringSourceSerializer,
     FightScoringUpdateSerializer,
     FighterCareerStatsUpdateSerializer,
@@ -1852,19 +1853,6 @@ def _lease_is_active(state: LiveEventResultsState, now) -> bool:
     )
 
 
-def _serialize_fight_stats_handoff(handoff: LiveFightStatsHandoff) -> dict:
-    return {
-        "fight_id": handoff.fight_id,
-        "event_id": handoff.event_id,
-        "fight_url": handoff.fight_url,
-        "status": handoff.status,
-        "attempt_count": handoff.attempt_count,
-        "last_attempt_at": handoff.last_attempt_at,
-        "published_at": handoff.published_at,
-        "last_error": handoff.last_error,
-    }
-
-
 def _resolve_live_result_winner(
     *,
     winner_name: str | None,
@@ -1964,7 +1952,7 @@ class LiveResultsSource(generics.GenericAPIView):
         ]
         watcher_state = LiveEventResultsState.objects.filter(event=event).first()
         handoffs = [
-            _serialize_fight_stats_handoff(row)
+            LiveFightStatsHandoffSerializer.from_instance(row)
             for row in LiveFightStatsHandoff.objects.filter(event_id=event_id).order_by(
                 "fight_id"
             )
@@ -2243,7 +2231,7 @@ class CompleteLiveFightTransition(generics.GenericAPIView):
                         "outcome": "idempotent",
                         "fight_id": fight.fight_id,
                         "fight_status": fight.fight_status,
-                        "handoff": _serialize_fight_stats_handoff(handoff),
+                        "handoff": LiveFightStatsHandoffSerializer.from_instance(handoff),
                     },
                     status=200,
                 )
@@ -2290,7 +2278,7 @@ class CompleteLiveFightTransition(generics.GenericAPIView):
                 "outcome": "completed",
                 "fight_id": fight.fight_id,
                 "fight_status": fight.fight_status,
-                "handoff": _serialize_fight_stats_handoff(handoff),
+                "handoff": LiveFightStatsHandoffSerializer.from_instance(handoff),
             },
             status=200,
         )
@@ -2328,7 +2316,7 @@ class MarkFightStatsHandoffPublished(generics.GenericAPIView):
         return Response(
             {
                 "outcome": "published",
-                "handoff": _serialize_fight_stats_handoff(handoff),
+                "handoff": LiveFightStatsHandoffSerializer.from_instance(handoff),
             },
             status=200,
         )
@@ -2358,7 +2346,7 @@ class RecordFightStatsHandoffAttempt(generics.GenericAPIView):
                 return Response(
                     {
                         "outcome": "already_published",
-                        "handoff": _serialize_fight_stats_handoff(handoff),
+                        "handoff": LiveFightStatsHandoffSerializer.from_instance(handoff),
                     },
                     status=200,
                 )
@@ -2377,7 +2365,7 @@ class RecordFightStatsHandoffAttempt(generics.GenericAPIView):
         return Response(
             {
                 "outcome": "recorded",
-                "handoff": _serialize_fight_stats_handoff(handoff),
+                "handoff": LiveFightStatsHandoffSerializer.from_instance(handoff),
             },
             status=200,
         )

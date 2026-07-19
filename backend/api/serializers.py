@@ -876,6 +876,20 @@ class LiveFightStatsHandoffSerializer(serializers.Serializer):
     published_at = serializers.DateTimeField(allow_null=True)
     last_error = serializers.CharField(allow_blank=True)
 
+    @classmethod
+    def from_instance(cls, handoff) -> dict:
+        """Serialize a ``LiveFightStatsHandoff`` model row to response data."""
+        return {
+            "fight_id": handoff.fight_id,
+            "event_id": handoff.event_id,
+            "fight_url": handoff.fight_url,
+            "status": handoff.status,
+            "attempt_count": handoff.attempt_count,
+            "last_attempt_at": handoff.last_attempt_at,
+            "published_at": handoff.published_at,
+            "last_error": handoff.last_error,
+        }
+
 
 class CompleteLiveFightTransitionSerializer(serializers.Serializer):
     """Payload for atomic UPCOMING→COMPLETED live-result transition."""
