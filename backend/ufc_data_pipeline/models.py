@@ -101,3 +101,33 @@ class ScoreFightJob(BaseJobModel):
         indexes = [
             models.Index(fields=["fight_id", "status"]),
         ]
+
+
+class LiveEventResultsState(models.Model):
+    """Pipeline-owned lease and durable run state for one event's live results watcher."""
+
+    class Status(models.TextChoices):
+        IDLE = "IDLE", "Idle"
+        RUNNING = "RUNNING", "Running"
+        COMPLETED = "COMPLETED", "Completed"
+        FAILED = "FAILED", "Failed"
+
+    event = models.OneToOneField(
+        "fantasy.Events",
+        on_delete=models.CASCADE,
+        related_name="live_event_results_state",
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.IDLE,
+    )
+    owner_token = models.UUIDField(null=True, blank=True)
+    locked_until = models.DateTimeField(null=True, blank=True)
+    last_started_at = models.DateTimeField(null=True, blank=True)
+    last_completed_at = models.DateTimeField(null=True, blank=True)
+    warnings = models.TextField(blank=True, default="")
+    last_error = models.TextField(blank=True, default="")
+
+    class Meta:
+        db_table = "live_event_results_state"
