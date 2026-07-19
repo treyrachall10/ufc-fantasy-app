@@ -11,9 +11,9 @@ from fantasy.models import Fights
 from shared.utils import normalize_name
 from ufc_data_pipeline.fights.fights_in_event.parser import scrape_fights_in_event
 from ufc_data_pipeline.fights.fights_in_event.publisher import (
-    publish_fight_stats_job,
     publish_fighter_profile_job,
 )
+from ufc_data_pipeline.shared.publisher import publish_fight_stats_job
 from ufc_data_pipeline.shared.ufcstats_urls import normalize_ufcstats_url
 
 logger = logging.getLogger(__name__)

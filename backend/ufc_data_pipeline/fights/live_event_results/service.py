@@ -28,9 +28,9 @@ from ufc_data_pipeline.fights.live_event_results.matcher import (
     PlanItem,
     compare_card,
 )
-from ufc_data_pipeline.fights.live_event_results.publisher import publish_fight_stats_job
 from ufc_data_pipeline.fights.live_event_results.scraper import fetch_event_soup
 from ufc_data_pipeline.fights.shared.event_page_fights import parse_event_fight_rows
+from ufc_data_pipeline.shared.publisher import publish_fight_stats_job
 
 logger = logging.getLogger(__name__)
 
