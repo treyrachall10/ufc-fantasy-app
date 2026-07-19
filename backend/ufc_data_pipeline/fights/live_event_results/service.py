@@ -1,17 +1,21 @@
 """
-Orchestrate one Live Event Results Watcher pass (lease + card compare).
+Orchestrate one Live Event Results Watcher pass (lease + transitions + handoffs).
 """
 
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 from datetime import date as Date
 from enum import Enum
 from uuid import uuid4
 
 from ufc_data_pipeline.fights.live_event_results import api_client
+from ufc_data_pipeline.fights.live_event_results.api_client import ApiClientError
 from ufc_data_pipeline.fights.live_event_results.config import (
+    HANDOFF_BACKOFF_BASE_S,
+    HANDOFF_MAX_ATTEMPTS,
     LIVE_EVENT_RESULTS_TIMEZONE,
 )
 from ufc_data_pipeline.fights.live_event_results.date_gate import (
@@ -21,8 +25,10 @@ from ufc_data_pipeline.fights.live_event_results.date_gate import (
 )
 from ufc_data_pipeline.fights.live_event_results.matcher import (
     CardComparisonPlan,
+    PlanItem,
     compare_card,
 )
+from ufc_data_pipeline.fights.live_event_results.publisher import publish_fight_stats_job
 from ufc_data_pipeline.fights.live_event_results.scraper import fetch_event_soup
 from ufc_data_pipeline.fights.shared.event_page_fights import parse_event_fight_rows
 
@@ -35,7 +41,6 @@ class WatchOutcome(str, Enum):
     ACTIVE_LEASE_SKIP = "active_lease_skip"
     TERMINAL = "terminal"
     CARD_COMPARED = "card_compared"
-    # Outside date window with unresolved handoffs; scrape deferred to later issues.
     PENDING_WITHOUT_SCRAPE = "pending_without_scrape"
 
 
@@ -46,17 +51,18 @@ class WatchResult:
     plan: CardComparisonPlan | None = None
 
 
-_PENDING_HANDOFF_STATES = frozenset({"PENDING", "PUBLISHED"})
+_PENDING_FIGHT_STATS_STATUS = "PENDING"
+_PENDING_RESCRAPE_STATES = frozenset({"PENDING", "PUBLISHED", "FAILED"})
 
 
 def has_unresolved_handoffs(snapshot: dict) -> bool:
     """True when Fight Stats or rescrape handoffs still need watcher attention."""
     for row in snapshot.get("fight_stats_handoffs") or []:
-        if (row.get("status") or "").upper() in _PENDING_HANDOFF_STATES:
+        if (row.get("status") or "").upper() == _PENDING_FIGHT_STATS_STATUS:
             return True
     for row in snapshot.get("rescrape_handoffs") or []:
         status = (row.get("status") or "").upper()
-        if status in _PENDING_HANDOFF_STATES or status == "FAILED":
+        if status in _PENDING_RESCRAPE_STATES:
             return True
     return False
 
@@ -103,14 +109,223 @@ def _log_comparison_plan(event_id: int, plan: CardComparisonPlan) -> None:
         )
 
 
+def _pending_fight_stats_handoffs(snapshot: dict) -> list[dict]:
+    return [
+        row
+        for row in (snapshot.get("fight_stats_handoffs") or [])
+        if (row.get("status") or "").upper() == _PENDING_FIGHT_STATS_STATUS
+    ]
+
+
+def _merge_pending_handoffs(*groups: list[dict]) -> list[dict]:
+    by_fight_id: dict[int, dict] = {}
+    for group in groups:
+        for row in group:
+            fight_id = int(row["fight_id"])
+            if (row.get("status") or "").upper() != _PENDING_FIGHT_STATS_STATUS:
+                continue
+            by_fight_id[fight_id] = row
+    return [by_fight_id[key] for key in sorted(by_fight_id)]
+
+
+def _sleep_backoff(attempt: int) -> None:
+    delay = HANDOFF_BACKOFF_BASE_S * (2 ** (attempt - 1))
+    if delay > 0:
+        time.sleep(delay)
+
+
+def _with_retries(operation_name: str, fn):
+    """Run ``fn`` with bounded in-command retries and exponential backoff."""
+    last_error: Exception | None = None
+    for attempt in range(1, HANDOFF_MAX_ATTEMPTS + 1):
+        try:
+            return fn()
+        except ApiClientError as exc:
+            if exc.is_client_error:
+                raise
+            last_error = exc
+        except Exception as exc:
+            last_error = exc
+        logger.warning(
+            "live_event_results %s attempt=%s/%s failed error=%s",
+            operation_name,
+            attempt,
+            HANDOFF_MAX_ATTEMPTS,
+            last_error,
+        )
+        if attempt < HANDOFF_MAX_ATTEMPTS:
+            _sleep_backoff(attempt)
+    assert last_error is not None
+    raise last_error
+
+
+def _transition_payload(event_id: int, item: PlanItem) -> dict:
+    assert item.stored is not None
+    assert item.scraped is not None
+    scraped = item.scraped
+    return {
+        "event_id": event_id,
+        "fight_url": item.normalized_url or scraped.fight_url,
+        "expected_status": "UPCOMING",
+        "winner_name": scraped.winner_name,
+        "winner_url": scraped.winner_url,
+        "method": scraped.method,
+        "round": scraped.round,
+        "time": scraped.time,
+        "round_format": scraped.round_format,
+        "weight_class": scraped.weight_class or None,
+    }
+
+
+def apply_completed_transitions(
+    event_id: int,
+    plan: CardComparisonPlan,
+) -> tuple[list[dict], list[str]]:
+    """
+    For matched UPCOMING→source-completed fights, call the atomic transition API.
+
+    Returns ``(pending_handoffs, failure_messages)``. Continues on per-fight errors.
+    """
+    pending: list[dict] = []
+    failures: list[str] = []
+
+    for item in plan.matches:
+        stored = item.stored
+        scraped = item.scraped
+        if stored is None or scraped is None:
+            continue
+        if stored.fight_status != "UPCOMING" or not scraped.is_completed:
+            continue
+
+        fight_id = stored.fight_id
+        payload = _transition_payload(event_id, item)
+
+        def _call_transition(
+            fid: int = fight_id,
+            body: dict = payload,
+        ):
+            return api_client.complete_live_fight_transition(fid, body)
+
+        try:
+            response = _with_retries(
+                f"complete_transition fight_id={fight_id}",
+                _call_transition,
+            )
+        except ApiClientError as exc:
+            msg = f"fight_id={fight_id} transition failed: {exc}"
+            logger.error("live_event_results %s", msg)
+            failures.append(msg)
+            continue
+        except Exception as exc:
+            msg = f"fight_id={fight_id} transition failed: {exc}"
+            logger.error("live_event_results %s", msg)
+            failures.append(msg)
+            continue
+
+        handoff = response.get("handoff") or {}
+        status = (handoff.get("status") or "").upper()
+        logger.info(
+            "live_event_results transition outcome=%s fight_id=%s handoff_status=%s",
+            response.get("outcome"),
+            fight_id,
+            status,
+        )
+        if status == _PENDING_FIGHT_STATS_STATUS:
+            pending.append(handoff)
+
+    return pending, failures
+
+
+def publish_and_mark_handoff(handoff: dict) -> str | None:
+    """
+    Publish Fight Stats after a committed handoff, then mark published.
+
+    Returns an error message when the handoff remains pending, else ``None``.
+    """
+    fight_id = int(handoff["fight_id"])
+    fight_url = handoff.get("fight_url") or ""
+    last_error: Exception | None = None
+
+    for attempt in range(1, HANDOFF_MAX_ATTEMPTS + 1):
+        try:
+            publish_fight_stats_job(fight_id, fight_url)
+        except Exception as exc:
+            last_error = exc
+            logger.warning(
+                "live_event_results publish failed fight_id=%s attempt=%s/%s error=%s",
+                fight_id,
+                attempt,
+                HANDOFF_MAX_ATTEMPTS,
+                exc,
+            )
+            try:
+                api_client.record_fight_stats_handoff_attempt(
+                    fight_id,
+                    last_error=str(exc),
+                )
+            except Exception:
+                logger.exception(
+                    "live_event_results record_attempt_failed fight_id=%s",
+                    fight_id,
+                )
+            if attempt < HANDOFF_MAX_ATTEMPTS:
+                _sleep_backoff(attempt)
+            continue
+
+        try:
+            api_client.mark_fight_stats_handoff_published(fight_id)
+            logger.info(
+                "live_event_results handoff_published fight_id=%s",
+                fight_id,
+            )
+            return None
+        except Exception as exc:
+            # Publish succeeded; leave pending so a later run may republish.
+            last_error = exc
+            logger.warning(
+                "live_event_results mark_published_failed fight_id=%s error=%s",
+                fight_id,
+                exc,
+            )
+            try:
+                api_client.record_fight_stats_handoff_attempt(
+                    fight_id,
+                    last_error=f"mark_published_failed: {exc}",
+                )
+            except Exception:
+                logger.exception(
+                    "live_event_results record_attempt_failed fight_id=%s",
+                    fight_id,
+                )
+            return f"fight_id={fight_id} mark_published failed: {exc}"
+
+    return f"fight_id={fight_id} publish failed: {last_error}"
+
+
+def drain_pending_handoffs(handoffs: list[dict]) -> list[str]:
+    """Publish and mark each pending Fight Stats handoff; return failure messages."""
+    failures: list[str] = []
+    for handoff in handoffs:
+        error = publish_and_mark_handoff(handoff)
+        if error:
+            failures.append(error)
+    return failures
+
+
+def _raise_if_failures(failures: list[str]) -> None:
+    if failures:
+        raise RuntimeError(
+            "Live Event Results Watcher handoff failures: " + "; ".join(failures)
+        )
+
+
 def watch_live_event_results() -> WatchResult:
     """
     Run one Live Event Results Watcher pass.
 
     Selects the newest stored event, applies the timezone date gate, loads the
     fight snapshot, claims the event lease, and for eligible non-terminal events
-    fetches the UFC Stats event page once, renews the lease, builds a card
-    comparison plan, logs it, and completes without mutating fights or publishing.
+    applies completed transitions and drains durable Fight Stats handoffs.
     """
     try:
         tz = require_timezone(LIVE_EVENT_RESULTS_TIMEZONE)
@@ -167,7 +382,10 @@ def watch_live_event_results() -> WatchResult:
             return WatchResult(outcome=WatchOutcome.TERMINAL, event_id=event_id)
 
         if not eligible:
-            # Pending handoff drain without new source discovery (later issues).
+            drain_failures = drain_pending_handoffs(
+                _pending_fight_stats_handoffs(snapshot)
+            )
+            _raise_if_failures(drain_failures)
             api_client.complete_lease(event_id, owner_token)
             logger.info(
                 "live_event_results outcome=%s event_id=%s",
@@ -193,7 +411,17 @@ def watch_live_event_results() -> WatchResult:
         plan = compare_card(snapshot.get("fights") or [], scraped)
         _log_comparison_plan(event_id, plan)
 
-        # Issue 034: comparison only — no Fight mutation or Pub/Sub publish.
+        transition_pending, transition_failures = apply_completed_transitions(
+            event_id,
+            plan,
+        )
+        to_drain = _merge_pending_handoffs(
+            _pending_fight_stats_handoffs(snapshot),
+            transition_pending,
+        )
+        drain_failures = drain_pending_handoffs(to_drain)
+        _raise_if_failures(transition_failures + drain_failures)
+
         api_client.complete_lease(
             event_id,
             owner_token,
