@@ -857,6 +857,13 @@ class LiveResultsLeaseFailSerializer(serializers.Serializer):
     last_error = serializers.CharField(required=False, allow_blank=True, default="")
 
 
+class LiveResultsLeaseCompleteSerializer(serializers.Serializer):
+    """Owner token plus optional durable warning summary for lease complete."""
+
+    owner_token = serializers.UUIDField()
+    warnings = serializers.CharField(required=False, allow_blank=True, default="")
+
+
 class ScoringSourceRoundSerializer(serializers.Serializer):
     """One round of stats required by the pure round scorer."""
 

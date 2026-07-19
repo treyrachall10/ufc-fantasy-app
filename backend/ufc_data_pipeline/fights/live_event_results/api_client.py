@@ -115,9 +115,18 @@ def renew_lease(event_id: int, owner_token: UUID | str) -> dict:
     return _post_lease(event_id, "Renew", {"owner_token": str(owner_token)})
 
 
-def complete_lease(event_id: int, owner_token: UUID | str) -> dict:
+def complete_lease(
+    event_id: int,
+    owner_token: UUID | str,
+    *,
+    warnings: str = "",
+) -> dict:
     """Release the lease after a successful run."""
-    return _post_lease(event_id, "Complete", {"owner_token": str(owner_token)})
+    return _post_lease(
+        event_id,
+        "Complete",
+        {"owner_token": str(owner_token), "warnings": warnings},
+    )
 
 
 def fail_lease(

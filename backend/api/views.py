@@ -56,6 +56,7 @@ from .serializers import (
     LiveResultsSourceSerializer,
     LiveResultsLeaseOwnerSerializer,
     LiveResultsLeaseFailSerializer,
+    LiveResultsLeaseCompleteSerializer,
     ScoringSourceSerializer,
     FightScoringUpdateSerializer,
     FighterCareerStatsUpdateSerializer,
@@ -1985,12 +1986,13 @@ class LiveResultsLeaseComplete(generics.GenericAPIView):
     """Release the live-results lease after a successful run."""
 
     permission_classes = [HasAPIKey, IsPipelineService]
-    serializer_class = LiveResultsLeaseOwnerSerializer
+    serializer_class = LiveResultsLeaseCompleteSerializer
 
     def post(self, request, event_id: int):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         owner_token = serializer.validated_data["owner_token"]
+        warnings = serializer.validated_data.get("warnings") or ""
         now = timezone.now()
 
         with transaction.atomic():
@@ -2011,6 +2013,7 @@ class LiveResultsLeaseComplete(generics.GenericAPIView):
             state.owner_token = None
             state.locked_until = None
             state.last_error = ""
+            state.warnings = warnings
             state.save(
                 update_fields=[
                     "status",
@@ -2018,6 +2021,7 @@ class LiveResultsLeaseComplete(generics.GenericAPIView):
                     "owner_token",
                     "locked_until",
                     "last_error",
+                    "warnings",
                 ]
             )
 
@@ -2026,6 +2030,7 @@ class LiveResultsLeaseComplete(generics.GenericAPIView):
                 "outcome": "completed",
                 "status": state.status,
                 "last_completed_at": state.last_completed_at,
+                "warnings": state.warnings,
             },
             status=200,
         )
