@@ -804,6 +804,59 @@ class EventUpsertSerializer(serializers.Serializer):
     url = serializers.CharField(max_length=256)
 
 
+class LiveResultsEventSerializer(serializers.Serializer):
+    """Event identity returned by LiveResultsSource."""
+
+    event_id = serializers.IntegerField()
+    event = serializers.CharField(allow_null=True)
+    date = serializers.DateField(allow_null=True)
+    url = serializers.CharField(allow_null=True, allow_blank=True)
+
+
+class LiveResultsFightSerializer(serializers.Serializer):
+    """One stored fight identity for live results reconciliation."""
+
+    fight_id = serializers.IntegerField()
+    url = serializers.CharField(allow_null=True, allow_blank=True)
+    bout = serializers.CharField(allow_null=True, allow_blank=True)
+    fight_status = serializers.CharField()
+
+
+class LiveResultsWatcherStateSerializer(serializers.Serializer):
+    """Durable lease/run state for one event."""
+
+    status = serializers.CharField()
+    owner_token = serializers.UUIDField(allow_null=True)
+    locked_until = serializers.DateTimeField(allow_null=True)
+    last_started_at = serializers.DateTimeField(allow_null=True)
+    last_completed_at = serializers.DateTimeField(allow_null=True)
+    warnings = serializers.CharField(allow_blank=True)
+    last_error = serializers.CharField(allow_blank=True)
+
+
+class LiveResultsSourceSerializer(serializers.Serializer):
+    """Event-level snapshot for the Live Event Results Watcher."""
+
+    event = LiveResultsEventSerializer()
+    fights = LiveResultsFightSerializer(many=True)
+    watcher_state = LiveResultsWatcherStateSerializer(allow_null=True)
+    fight_stats_handoffs = serializers.ListField(child=serializers.DictField(), required=False)
+    rescrape_handoffs = serializers.ListField(child=serializers.DictField(), required=False)
+
+
+class LiveResultsLeaseOwnerSerializer(serializers.Serializer):
+    """Owner token payload for lease claim/renew/complete/fail."""
+
+    owner_token = serializers.UUIDField()
+
+
+class LiveResultsLeaseFailSerializer(serializers.Serializer):
+    """Owner token plus optional error text for lease fail/release."""
+
+    owner_token = serializers.UUIDField()
+    last_error = serializers.CharField(required=False, allow_blank=True, default="")
+
+
 class ScoringSourceRoundSerializer(serializers.Serializer):
     """One round of stats required by the pure round scorer."""
 

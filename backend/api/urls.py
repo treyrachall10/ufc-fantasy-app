@@ -41,6 +41,23 @@ urlpatterns = [
     path('api/fighters/<int:fighter_id>/SetFighterCareerStats', views.SetFighterCareerStats.as_view()),
     path('api/events/DiscoverySource', views.EventDiscoverySource.as_view()),
     path('api/events/SetEvent', views.SetEvent.as_view()),
+    path('api/events/<int:event_id>/LiveResultsSource', views.LiveResultsSource.as_view()),
+    path(
+        'api/events/<int:event_id>/LiveResultsLease/Claim',
+        views.LiveResultsLeaseClaim.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveResultsLease/Renew',
+        views.LiveResultsLeaseRenew.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveResultsLease/Complete',
+        views.LiveResultsLeaseComplete.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveResultsLease/Fail',
+        views.LiveResultsLeaseFail.as_view(),
+    ),
     path('api/fights/<int:fight_id>/SetFightResultMetadata', views.SetFightResultMetadata.as_view()),
     path('api/fights/<int:fight_id>/SetFightStatsTotals', views.SetFightStatsTotals.as_view()),
     path('api/fights/<int:fight_id>/SetRoundStats', views.SetRoundStats.as_view()),

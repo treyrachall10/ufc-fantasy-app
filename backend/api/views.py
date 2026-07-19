@@ -21,7 +21,9 @@ from dateutil.parser import ParserError
 from django.shortcuts import get_object_or_404
 from zoneinfo import ZoneInfo
 from datetime import timezone as datetime_timezone
+from datetime import timedelta
 from pathlib import Path
+import os
 
 from services.supabase import supabase
 
@@ -51,6 +53,9 @@ from .serializers import (
     CareerStatsSourceSerializer,
     EventDiscoverySourceSerializer,
     EventUpsertSerializer,
+    LiveResultsSourceSerializer,
+    LiveResultsLeaseOwnerSerializer,
+    LiveResultsLeaseFailSerializer,
     ScoringSourceSerializer,
     FightScoringUpdateSerializer,
     FighterCareerStatsUpdateSerializer,
@@ -70,6 +75,8 @@ from accounts.models import User
 from .permissions import IsAthleteImageService, IsUploaderService, IsPipelineService
 
 from shared.utils import normalize_name
+from ufc_data_pipeline.models import LiveEventResultsState
+from ufc_data_pipeline.shared.ufcstats_urls import normalize_ufcstats_url
 
 from authlib.integrations.django_oauth2 import ResourceProtector
 from .auth0_validator import Auth0JWTBearerTokenValidator
@@ -1802,6 +1809,275 @@ class SetFighterCareerStats(generics.GenericAPIView):
             {
                 "detail": "Fighter career stats upserted successfully.",
                 "fighter_career_stats_id": career_stats.pk,
+            },
+            status=200,
+        )
+
+
+def _live_results_lease_seconds() -> int:
+    raw = os.environ.get("LIVE_EVENT_RESULTS_LEASE_SECONDS", "900")
+    try:
+        seconds = int(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"LIVE_EVENT_RESULTS_LEASE_SECONDS must be an integer; got {raw!r}"
+        ) from exc
+    if seconds <= 0:
+        raise ValueError("LIVE_EVENT_RESULTS_LEASE_SECONDS must be positive")
+    return seconds
+
+
+def _serialize_watcher_state(state: LiveEventResultsState | None) -> dict | None:
+    if state is None:
+        return None
+    return {
+        "status": state.status,
+        "owner_token": state.owner_token,
+        "locked_until": state.locked_until,
+        "last_started_at": state.last_started_at,
+        "last_completed_at": state.last_completed_at,
+        "warnings": state.warnings,
+        "last_error": state.last_error,
+    }
+
+
+def _lease_is_active(state: LiveEventResultsState, now) -> bool:
+    return (
+        state.owner_token is not None
+        and state.locked_until is not None
+        and state.locked_until > now
+    )
+
+
+class LiveResultsSource(generics.GenericAPIView):
+    """
+    Pipeline snapshot of one event's fights and live-results watcher state.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveResultsSourceSerializer
+
+    def get(self, request, event_id: int):
+        event = get_object_or_404(Events, event_id=event_id)
+        fights = [
+            {
+                "fight_id": fight.fight_id,
+                "url": normalize_ufcstats_url(fight.url),
+                "bout": fight.bout or "",
+                "fight_status": fight.fight_status,
+            }
+            for fight in Fights.objects.filter(event=event).order_by("fight_id")
+        ]
+        watcher_state = LiveEventResultsState.objects.filter(event=event).first()
+        payload = {
+            "event": {
+                "event_id": event.event_id,
+                "event": event.event,
+                "date": event.date,
+                "url": event.url or "",
+            },
+            "fights": fights,
+            "watcher_state": _serialize_watcher_state(watcher_state),
+            "fight_stats_handoffs": [],
+            "rescrape_handoffs": [],
+        }
+        serializer = self.serializer_class(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=200)
+
+
+class LiveResultsLeaseClaim(generics.GenericAPIView):
+    """Atomically claim or reclaim the live-results lease for one event."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveResultsLeaseOwnerSerializer
+
+    def post(self, request, event_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        owner_token = serializer.validated_data["owner_token"]
+        now = timezone.now()
+        lease_until = now + timedelta(seconds=_live_results_lease_seconds())
+
+        with transaction.atomic():
+            event = get_object_or_404(
+                Events.objects.select_for_update(),
+                event_id=event_id,
+            )
+            state = (
+                LiveEventResultsState.objects.select_for_update()
+                .filter(event=event)
+                .first()
+            )
+            if state is None:
+                state = LiveEventResultsState(event=event)
+
+            if _lease_is_active(state, now) and state.owner_token != owner_token:
+                return Response(
+                    {
+                        "outcome": "skipped",
+                        "skip_reason": "ACTIVE_LEASE",
+                        "locked_until": state.locked_until,
+                        "status": state.status,
+                    },
+                    status=200,
+                )
+
+            state.owner_token = owner_token
+            state.locked_until = lease_until
+            state.status = LiveEventResultsState.Status.RUNNING
+            state.last_started_at = now
+            state.last_error = ""
+            state.save()
+
+        return Response(
+            {
+                "outcome": "claimed",
+                "owner_token": state.owner_token,
+                "locked_until": state.locked_until,
+                "status": state.status,
+            },
+            status=200,
+        )
+
+
+class LiveResultsLeaseRenew(generics.GenericAPIView):
+    """Extend an active live-results lease for the current owner."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveResultsLeaseOwnerSerializer
+
+    def post(self, request, event_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        owner_token = serializer.validated_data["owner_token"]
+        now = timezone.now()
+        lease_until = now + timedelta(seconds=_live_results_lease_seconds())
+
+        with transaction.atomic():
+            state = (
+                LiveEventResultsState.objects.select_for_update()
+                .filter(event_id=event_id)
+                .first()
+            )
+            if state is None:
+                return Response({"detail": "Lease state not found."}, status=404)
+            if state.owner_token != owner_token or not _lease_is_active(state, now):
+                return Response(
+                    {"detail": "Stale or inactive lease owner."},
+                    status=409,
+                )
+            state.locked_until = lease_until
+            state.save(update_fields=["locked_until"])
+
+        return Response(
+            {
+                "outcome": "renewed",
+                "owner_token": state.owner_token,
+                "locked_until": state.locked_until,
+                "status": state.status,
+            },
+            status=200,
+        )
+
+
+class LiveResultsLeaseComplete(generics.GenericAPIView):
+    """Release the live-results lease after a successful run."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveResultsLeaseOwnerSerializer
+
+    def post(self, request, event_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        owner_token = serializer.validated_data["owner_token"]
+        now = timezone.now()
+
+        with transaction.atomic():
+            state = (
+                LiveEventResultsState.objects.select_for_update()
+                .filter(event_id=event_id)
+                .first()
+            )
+            if state is None:
+                return Response({"detail": "Lease state not found."}, status=404)
+            if state.owner_token != owner_token:
+                return Response(
+                    {"detail": "Stale lease owner."},
+                    status=409,
+                )
+            state.status = LiveEventResultsState.Status.COMPLETED
+            state.last_completed_at = now
+            state.owner_token = None
+            state.locked_until = None
+            state.last_error = ""
+            state.save(
+                update_fields=[
+                    "status",
+                    "last_completed_at",
+                    "owner_token",
+                    "locked_until",
+                    "last_error",
+                ]
+            )
+
+        return Response(
+            {
+                "outcome": "completed",
+                "status": state.status,
+                "last_completed_at": state.last_completed_at,
+            },
+            status=200,
+        )
+
+
+class LiveResultsLeaseFail(generics.GenericAPIView):
+    """Release the live-results lease after a failed run."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveResultsLeaseFailSerializer
+
+    def post(self, request, event_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        owner_token = serializer.validated_data["owner_token"]
+        last_error = serializer.validated_data.get("last_error") or ""
+        now = timezone.now()
+
+        with transaction.atomic():
+            state = (
+                LiveEventResultsState.objects.select_for_update()
+                .filter(event_id=event_id)
+                .first()
+            )
+            if state is None:
+                return Response({"detail": "Lease state not found."}, status=404)
+            if state.owner_token != owner_token:
+                return Response(
+                    {"detail": "Stale lease owner."},
+                    status=409,
+                )
+            state.status = LiveEventResultsState.Status.FAILED
+            state.last_completed_at = now
+            state.owner_token = None
+            state.locked_until = None
+            state.last_error = last_error
+            state.save(
+                update_fields=[
+                    "status",
+                    "last_completed_at",
+                    "owner_token",
+                    "locked_until",
+                    "last_error",
+                ]
+            )
+
+        return Response(
+            {
+                "outcome": "failed",
+                "status": state.status,
+                "last_error": state.last_error,
+                "last_completed_at": state.last_completed_at,
             },
             status=200,
         )
