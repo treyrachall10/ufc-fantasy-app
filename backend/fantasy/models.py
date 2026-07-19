@@ -57,6 +57,7 @@ class Fights(models.Model):
     class FightStatus(models.TextChoices):
         UPCOMING = "UPCOMING", "Upcoming"
         COMPLETED = "COMPLETED", "Completed"
+        CANCELLED = "CANCELLED", "Cancelled"
 
     fight_id = models.AutoField(primary_key=True)
     event = models.ForeignKey(Events, on_delete=models.CASCADE, null=True, blank=True)
