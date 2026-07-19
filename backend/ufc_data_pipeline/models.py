@@ -159,3 +159,47 @@ class LiveFightStatsHandoff(models.Model):
         indexes = [
             models.Index(fields=["event_id", "status"]),
         ]
+
+
+class LiveEventRescrapeHandoff(models.Model):
+    """Durable Fights In Event rescrape handoff for one event card fingerprint."""
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        PUBLISHED = "PUBLISHED", "Published"
+        RESOLVED = "RESOLVED", "Resolved"
+        FAILED = "FAILED", "Failed"
+
+    class Reason(models.TextChoices):
+        CARD_CHANGED = "CARD_CHANGED", "Card changed"
+        MISSING_FIGHT = "MISSING_FIGHT", "Missing fight"
+        MALFORMED_IDENTITY = "MALFORMED_IDENTITY", "Malformed identity"
+
+    event_id = models.PositiveIntegerField()
+    card_fingerprint = models.CharField(max_length=64)
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    reason = models.CharField(
+        max_length=32,
+        choices=Reason.choices,
+        default=Reason.CARD_CHANGED,
+    )
+    publication_count = models.PositiveIntegerField(default=0)
+    last_published_at = models.DateTimeField(null=True, blank=True)
+    next_eligible_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.TextField(blank=True, default="")
+
+    class Meta:
+        db_table = "live_event_rescrape_handoff"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event_id", "card_fingerprint"],
+                name="unique_live_event_rescrape_fingerprint",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["event_id", "status"]),
+        ]
