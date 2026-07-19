@@ -131,3 +131,31 @@ class LiveEventResultsState(models.Model):
 
     class Meta:
         db_table = "live_event_results_state"
+
+
+class LiveFightStatsHandoff(models.Model):
+    """Durable Fight Stats publication handoff for one completed live-result fight."""
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        PUBLISHED = "PUBLISHED", "Published"
+        FAILED = "FAILED", "Failed"
+
+    fight_id = models.PositiveIntegerField(unique=True)
+    event_id = models.PositiveIntegerField()
+    fight_url = models.CharField(max_length=512)
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    attempt_count = models.PositiveIntegerField(default=0)
+    last_attempt_at = models.DateTimeField(null=True, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.TextField(blank=True, default="")
+
+    class Meta:
+        db_table = "live_fight_stats_handoff"
+        indexes = [
+            models.Index(fields=["event_id", "status"]),
+        ]
