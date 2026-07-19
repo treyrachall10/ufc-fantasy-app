@@ -19,3 +19,9 @@ LIVE_EVENT_RESULTS_LEASE_SECONDS = int(
 
 PLAYWRIGHT_TIMEOUT_S = 60
 EVENT_PAGE_READY_SELECTOR = "tr.b-fight-details__table-row"
+
+# In-command retries for transition/publish boundaries (issue 035).
+HANDOFF_MAX_ATTEMPTS = int(os.getenv("LIVE_EVENT_RESULTS_HANDOFF_MAX_ATTEMPTS", "3"))
+HANDOFF_BACKOFF_BASE_S = float(
+    os.getenv("LIVE_EVENT_RESULTS_HANDOFF_BACKOFF_BASE_S", "1")
+)
