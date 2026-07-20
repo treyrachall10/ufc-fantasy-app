@@ -209,3 +209,90 @@ def record_fight_stats_handoff_attempt(fight_id: int, *, last_error: str = "") -
         "RecordFightStatsHandoffAttempt",
         {"last_error": last_error},
     )
+
+
+def _post_event_action(
+    event_id: int,
+    action: str,
+    payload: dict[str, Any] | None = None,
+) -> dict:
+    url = f"{_base_url()}/api/events/{event_id}/{action}"
+    try:
+        response = requests.post(
+            url,
+            data=json.dumps(payload or {}),
+            headers=_pipeline_headers(),
+            timeout=_REQUEST_TIMEOUT_S,
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError(f"API request failed: {exc}") from exc
+
+    if not response.ok:
+        raise ApiClientError(
+            f"API POST {action} failed status={response.status_code} "
+            f"body={response.text}",
+            status_code=response.status_code,
+        )
+    if not response.content:
+        raise RuntimeError(f"{action} returned empty body")
+    return response.json()
+
+
+def ensure_live_event_rescrape_handoff(
+    event_id: int,
+    *,
+    card_fingerprint: str,
+    reason: str,
+) -> dict:
+    """Create or reuse a durable rescrape handoff for one card fingerprint."""
+    return _post_event_action(
+        event_id,
+        "EnsureLiveEventRescrapeHandoff",
+        {"card_fingerprint": card_fingerprint, "reason": reason},
+    )
+
+
+def mark_live_event_rescrape_published(event_id: int, handoff_id: int) -> dict:
+    """Mark a rescrape handoff published after confirmed Pub/Sub delivery."""
+    return _post_event_action(
+        event_id,
+        f"LiveEventRescrapeHandoffs/{handoff_id}/MarkPublished",
+        {},
+    )
+
+
+def record_live_event_rescrape_attempt(
+    event_id: int,
+    handoff_id: int,
+    *,
+    last_error: str = "",
+) -> dict:
+    """Record a failed rescrape publication attempt; leave handoff pending."""
+    return _post_event_action(
+        event_id,
+        f"LiveEventRescrapeHandoffs/{handoff_id}/RecordAttempt",
+        {"last_error": last_error},
+    )
+
+
+def resolve_live_event_rescrape_handoff(event_id: int, handoff_id: int) -> dict:
+    """Mark a rescrape handoff resolved after the card converges."""
+    return _post_event_action(
+        event_id,
+        f"LiveEventRescrapeHandoffs/{handoff_id}/Resolve",
+        {},
+    )
+
+
+def fail_live_event_rescrape_handoff(
+    event_id: int,
+    handoff_id: int,
+    *,
+    last_error: str = "",
+) -> dict:
+    """Mark a rescrape handoff failed after exhausted publications."""
+    return _post_event_action(
+        event_id,
+        f"LiveEventRescrapeHandoffs/{handoff_id}/Fail",
+        {"last_error": last_error},
+    )
