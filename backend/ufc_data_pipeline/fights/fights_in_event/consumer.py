@@ -64,12 +64,24 @@ def ensure_django() -> None:
 def parse_message_payload(raw: bytes) -> tuple[str, int]:
     """
     Parse the message payload into a URL and event ID.
+
+    Optional ``reason`` / ``fingerprint`` metadata is ignored for processing and
+    kept backward compatible with Event Watcher payloads.
     """
     data = json.loads(raw.decode("utf-8"))
     url = str(data["url"]).strip()
     event_id = int(data["event_id"])
     if not url:
         raise ValueError("url is empty")
+    reason = data.get("reason")
+    fingerprint = data.get("fingerprint")
+    if reason or fingerprint:
+        logger.info(
+            "fights_in_event payload metadata event_id=%s reason=%s fingerprint=%s",
+            event_id,
+            reason,
+            fingerprint,
+        )
     return url, event_id
 
 
