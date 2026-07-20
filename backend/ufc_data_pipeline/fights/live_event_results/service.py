@@ -8,6 +8,7 @@ import logging
 import time
 from dataclasses import dataclass
 from datetime import date as Date
+from datetime import datetime, timezone as datetime_timezone
 from enum import Enum
 from uuid import uuid4
 
@@ -17,11 +18,17 @@ from ufc_data_pipeline.fights.live_event_results.config import (
     HANDOFF_BACKOFF_BASE_S,
     HANDOFF_MAX_ATTEMPTS,
     LIVE_EVENT_RESULTS_TIMEZONE,
+    RESCRAPE_MAX_PUBLICATIONS,
 )
 from ufc_data_pipeline.fights.live_event_results.date_gate import (
     TimezoneConfigError,
     is_event_date_eligible,
     require_timezone,
+)
+from ufc_data_pipeline.fights.live_event_results.fingerprint import (
+    build_card_fingerprint,
+    card_needs_rescrape,
+    rescrape_reason,
 )
 from ufc_data_pipeline.fights.live_event_results.matcher import (
     CardComparisonPlan,
@@ -29,8 +36,12 @@ from ufc_data_pipeline.fights.live_event_results.matcher import (
     compare_card,
 )
 from ufc_data_pipeline.fights.live_event_results.scraper import fetch_event_soup
-from ufc_data_pipeline.fights.shared.event_page_fights import parse_event_fight_rows
-from ufc_data_pipeline.shared.publisher import publish_fight_stats_job
+from ufc_data_pipeline.fights.shared.event_page_fights import (
+    ParsedEventFight,
+    parse_event_fight_rows,
+)
+from ufc_data_pipeline.shared.fight_stats_publisher import publish_fight_stats_job
+from ufc_data_pipeline.shared.fights_in_event_publisher import publish_fights_in_event
 
 logger = logging.getLogger(__name__)
 
@@ -423,6 +434,273 @@ def drain_pending_handoffs(handoffs: list[dict]) -> list[str]:
     return failures
 
 
+def _parse_iso_datetime(raw) -> datetime | None:
+    if raw is None:
+        return None
+    if isinstance(raw, datetime):
+        return raw
+    if isinstance(raw, str):
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    return None
+
+
+def _rescrape_is_due(handoff: dict, *, now: datetime) -> bool:
+    status = (handoff.get("status") or "").upper()
+    if status == "PENDING":
+        return True
+    if status != "PUBLISHED":
+        return False
+    next_eligible = _parse_iso_datetime(handoff.get("next_eligible_at"))
+    if next_eligible is None:
+        return True
+    if next_eligible.tzinfo is None:
+        next_eligible = next_eligible.replace(tzinfo=datetime_timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=datetime_timezone.utc)
+    return now >= next_eligible
+
+
+def publish_and_mark_rescrape(
+    event_id: int,
+    event_url: str,
+    handoff: dict,
+) -> str | None:
+    """
+    Publish a Fights In Event rescrape and mark published.
+
+    Returns an error message when publication remains pending, else ``None``.
+    """
+    handoff_id = int(handoff["id"])
+    fingerprint = handoff.get("card_fingerprint") or ""
+    reason = handoff.get("reason") or None
+    last_error: Exception | None = None
+
+    for attempt in range(1, HANDOFF_MAX_ATTEMPTS + 1):
+        try:
+            publish_fights_in_event(
+                event_id,
+                event_url,
+                reason=reason,
+                fingerprint=fingerprint,
+            )
+        except Exception as exc:
+            last_error = exc
+            logger.warning(
+                "live_event_results rescrape_publish failed event_id=%s "
+                "handoff_id=%s attempt=%s/%s error=%s",
+                event_id,
+                handoff_id,
+                attempt,
+                HANDOFF_MAX_ATTEMPTS,
+                exc,
+            )
+            try:
+                api_client.record_live_event_rescrape_attempt(
+                    event_id,
+                    handoff_id,
+                    last_error=str(exc),
+                )
+            except Exception:
+                logger.exception(
+                    "live_event_results rescrape_record_attempt_failed "
+                    "event_id=%s handoff_id=%s",
+                    event_id,
+                    handoff_id,
+                )
+            if attempt < HANDOFF_MAX_ATTEMPTS:
+                _sleep_backoff(attempt)
+            continue
+
+        try:
+            api_client.mark_live_event_rescrape_published(event_id, handoff_id)
+            logger.info(
+                "live_event_results rescrape_published event_id=%s handoff_id=%s",
+                event_id,
+                handoff_id,
+            )
+            return None
+        except Exception as exc:
+            last_error = exc
+            logger.warning(
+                "live_event_results rescrape_mark_published_failed "
+                "event_id=%s handoff_id=%s error=%s",
+                event_id,
+                handoff_id,
+                exc,
+            )
+            try:
+                api_client.record_live_event_rescrape_attempt(
+                    event_id,
+                    handoff_id,
+                    last_error=f"mark_published_failed: {exc}",
+                )
+            except Exception:
+                logger.exception(
+                    "live_event_results rescrape_record_attempt_failed "
+                    "event_id=%s handoff_id=%s",
+                    event_id,
+                    handoff_id,
+                )
+            return (
+                f"event_id={event_id} handoff_id={handoff_id} "
+                f"rescrape mark_published failed: {exc}"
+            )
+
+    return (
+        f"event_id={event_id} handoff_id={handoff_id} "
+        f"rescrape publish failed: {last_error}"
+    )
+
+
+def apply_rescrape_handoffs(
+    event_id: int,
+    event_url: str,
+    plan: CardComparisonPlan,
+    scraped: list[ParsedEventFight],
+    snapshot: dict,
+) -> list[str]:
+    """
+    Ensure/publish/resolve rescrape handoffs for the current card comparison.
+
+    Publication failures contribute to the aggregate failed exit. Exhausted
+    FAILED state is durable operator-action and does not fail the run alone.
+    """
+    failures: list[str] = []
+    now = datetime.now(datetime_timezone.utc)
+
+    if card_needs_rescrape(plan):
+        fingerprint = build_card_fingerprint(scraped, plan)
+        reason = rescrape_reason(plan)
+
+        def _call_ensure(
+            eid: int = event_id,
+            fp: str = fingerprint,
+            why: str = reason,
+        ):
+            return api_client.ensure_live_event_rescrape_handoff(
+                eid,
+                card_fingerprint=fp,
+                reason=why,
+            )
+
+        try:
+            response = _with_retries(
+                f"ensure_rescrape event_id={event_id}",
+                _call_ensure,
+            )
+        except Exception as exc:
+            msg = f"event_id={event_id} ensure_rescrape failed: {exc}"
+            logger.error("live_event_results %s", msg)
+            failures.append(msg)
+            return failures
+
+        handoff = response.get("handoff") or {}
+        status = (handoff.get("status") or "").upper()
+        publication_count = int(handoff.get("publication_count") or 0)
+        handoff_id = int(handoff["id"])
+
+        if status == "FAILED":
+            logger.warning(
+                "live_event_results rescrape_exhausted event_id=%s "
+                "handoff_id=%s fingerprint=%s error=%s",
+                event_id,
+                handoff_id,
+                fingerprint,
+                handoff.get("last_error") or "",
+            )
+            return failures
+
+        if publication_count >= RESCRAPE_MAX_PUBLICATIONS and _rescrape_is_due(
+            handoff, now=now
+        ):
+            try:
+                api_client.fail_live_event_rescrape_handoff(
+                    event_id,
+                    handoff_id,
+                    last_error=(
+                        "Rescrape publications exhausted after "
+                        f"{RESCRAPE_MAX_PUBLICATIONS} cooldown-separated publishes; "
+                        "operator action required."
+                    ),
+                )
+            except Exception as exc:
+                msg = f"event_id={event_id} fail_rescrape failed: {exc}"
+                logger.error("live_event_results %s", msg)
+                failures.append(msg)
+            return failures
+
+        if _rescrape_is_due(handoff, now=now):
+            error = publish_and_mark_rescrape(event_id, event_url, handoff)
+            if error:
+                failures.append(error)
+        else:
+            logger.info(
+                "live_event_results rescrape_cooldown event_id=%s handoff_id=%s",
+                event_id,
+                handoff_id,
+            )
+        return failures
+
+    # Card converged: resolve open rescrape handoffs for this event.
+    for row in snapshot.get("rescrape_handoffs") or []:
+        status = (row.get("status") or "").upper()
+        if status in ("RESOLVED",):
+            continue
+        handoff_id = int(row["id"])
+        try:
+            api_client.resolve_live_event_rescrape_handoff(event_id, handoff_id)
+            logger.info(
+                "live_event_results rescrape_resolved event_id=%s handoff_id=%s",
+                event_id,
+                handoff_id,
+            )
+        except Exception as exc:
+            msg = f"event_id={event_id} resolve_rescrape handoff_id={handoff_id} failed: {exc}"
+            logger.error("live_event_results %s", msg)
+            failures.append(msg)
+    return failures
+
+
+def drain_due_rescrape_handoffs(
+    event_id: int,
+    event_url: str,
+    snapshot: dict,
+) -> list[str]:
+    """Publish due pending/published rescrape handoffs without new card discovery."""
+    failures: list[str] = []
+    now = datetime.now(datetime_timezone.utc)
+    for row in snapshot.get("rescrape_handoffs") or []:
+        status = (row.get("status") or "").upper()
+        if status in ("RESOLVED", "FAILED"):
+            continue
+        publication_count = int(row.get("publication_count") or 0)
+        if publication_count >= RESCRAPE_MAX_PUBLICATIONS and _rescrape_is_due(
+            row, now=now
+        ):
+            try:
+                api_client.fail_live_event_rescrape_handoff(
+                    event_id,
+                    int(row["id"]),
+                    last_error=(
+                        "Rescrape publications exhausted after "
+                        f"{RESCRAPE_MAX_PUBLICATIONS} cooldown-separated publishes; "
+                        "operator action required."
+                    ),
+                )
+            except Exception as exc:
+                failures.append(
+                    f"event_id={event_id} fail_rescrape handoff_id={row['id']} "
+                    f"failed: {exc}"
+                )
+            continue
+        if not _rescrape_is_due(row, now=now):
+            continue
+        error = publish_and_mark_rescrape(event_id, event_url, row)
+        if error:
+            failures.append(error)
+    return failures
+
+
 def _raise_if_failures(failures: list[str]) -> None:
     if failures:
         raise RuntimeError(
@@ -493,10 +771,19 @@ def watch_live_event_results() -> WatchResult:
             return WatchResult(outcome=WatchOutcome.TERMINAL, event_id=event_id)
 
         if not eligible:
+            event = snapshot.get("event") or {}
+            event_url = (event.get("url") or "").strip()
             drain_failures = drain_pending_handoffs(
                 _pending_fight_stats_handoffs(snapshot)
             )
-            _raise_if_failures(drain_failures)
+            rescrape_failures: list[str] = []
+            if event_url:
+                rescrape_failures = drain_due_rescrape_handoffs(
+                    event_id,
+                    event_url,
+                    snapshot,
+                )
+            _raise_if_failures(drain_failures + rescrape_failures)
             api_client.complete_lease(event_id, owner_token)
             logger.info(
                 "live_event_results outcome=%s event_id=%s",
@@ -528,12 +815,24 @@ def watch_live_event_results() -> WatchResult:
             event_id,
             plan,
         )
+        rescrape_failures = apply_rescrape_handoffs(
+            event_id,
+            event_url,
+            plan,
+            scraped,
+            snapshot,
+        )
         to_drain = _merge_pending_handoffs(
             _pending_fight_stats_handoffs(snapshot),
             transition_pending,
         )
         drain_failures = drain_pending_handoffs(to_drain)
-        _raise_if_failures(restore_failures + transition_failures + drain_failures)
+        _raise_if_failures(
+            restore_failures
+            + transition_failures
+            + rescrape_failures
+            + drain_failures
+        )
 
         api_client.complete_lease(
             event_id,

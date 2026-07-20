@@ -391,6 +391,10 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
         return_value=[],
     )
     @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.apply_rescrape_handoffs",
+        return_value=[],
+    )
+    @patch(
         "ufc_data_pipeline.fights.live_event_results.service.apply_completed_transitions",
         return_value=([], []),
     )
@@ -427,6 +431,7 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
         apply_cancel,
         apply_restore,
         apply_transitions,
+        apply_rescrape,
         drain,
         claim,
         renew,
@@ -503,6 +508,7 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
         apply_cancel.assert_called_once()
         apply_restore.assert_called_once()
         apply_transitions.assert_called_once()
+        apply_rescrape.assert_called_once()
         drain.assert_called_once()
         complete.assert_called_once()
         _args, kwargs = complete.call_args
@@ -1007,6 +1013,10 @@ class PendingWithoutScrapeDrainTests(SimpleTestCase):
         "ufc_data_pipeline.fights.live_event_results.service.api_client.claim_lease"
     )
     @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.drain_due_rescrape_handoffs",
+        return_value=[],
+    )
+    @patch(
         "ufc_data_pipeline.fights.live_event_results.service.drain_pending_handoffs",
         return_value=[],
     )
@@ -1030,6 +1040,7 @@ class PendingWithoutScrapeDrainTests(SimpleTestCase):
         snapshot,
         fetch_soup,
         drain,
+        drain_rescrape,
         claim,
         complete,
     ) -> None:
@@ -1069,4 +1080,257 @@ class PendingWithoutScrapeDrainTests(SimpleTestCase):
         assert result.outcome == WatchOutcome.PENDING_WITHOUT_SCRAPE
         fetch_soup.assert_not_called()
         drain.assert_called_once()
+        drain_rescrape.assert_called_once()
         complete.assert_called_once()
+
+
+class ApplyRescrapeHandoffsTests(SimpleTestCase):
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.publish_and_mark_rescrape",
+        return_value=None,
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client."
+        "ensure_live_event_rescrape_handoff"
+    )
+    def test_unmatched_source_fight_ensures_and_publishes(
+        self,
+        ensure,
+        publish,
+    ) -> None:
+        from ufc_data_pipeline.fights.live_event_results.matcher import (
+            MatchAction,
+            PlanItem,
+            CardComparisonPlan,
+        )
+        from ufc_data_pipeline.fights.live_event_results.service import (
+            apply_rescrape_handoffs,
+        )
+        from ufc_data_pipeline.fights.shared.event_page_fights import ParsedEventFight
+
+        scraped = [
+            ParsedEventFight(
+                fight_url="http://ufcstats.com/fight-details/new",
+                bout="New vs. X",
+                weight_class="LW",
+                fighter_a_name="New",
+                fighter_a_url="",
+                fighter_b_name="X",
+                fighter_b_url="",
+                is_completed=False,
+            )
+        ]
+        plan = CardComparisonPlan(
+            source_missing=[
+                PlanItem(
+                    action=MatchAction.SOURCE_MISSING_FROM_STORAGE,
+                    scraped=scraped[0],
+                    normalized_url="http://ufcstats.com/fight-details/new",
+                )
+            ]
+        )
+        ensure.return_value = {
+            "outcome": "created",
+            "handoff": {
+                "id": 11,
+                "event_id": 7,
+                "card_fingerprint": "fp",
+                "status": "PENDING",
+                "reason": "MISSING_FIGHT",
+                "publication_count": 0,
+                "next_eligible_at": None,
+            },
+        }
+
+        failures = apply_rescrape_handoffs(
+            7,
+            "http://ufcstats.com/event-details/live",
+            plan,
+            scraped,
+            {"rescrape_handoffs": []},
+        )
+
+        assert failures == []
+        ensure.assert_called_once()
+        assert ensure.call_args.kwargs["reason"] == "MISSING_FIGHT"
+        publish.assert_called_once()
+
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.publish_and_mark_rescrape"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client."
+        "ensure_live_event_rescrape_handoff"
+    )
+    def test_cooldown_suppresses_republish(self, ensure, publish) -> None:
+        from datetime import datetime, timedelta, timezone
+
+        from ufc_data_pipeline.fights.live_event_results.matcher import (
+            MatchAction,
+            PlanItem,
+            CardComparisonPlan,
+        )
+        from ufc_data_pipeline.fights.live_event_results.service import (
+            apply_rescrape_handoffs,
+        )
+        from ufc_data_pipeline.fights.shared.event_page_fights import ParsedEventFight
+
+        scraped = [
+            ParsedEventFight(
+                fight_url="http://ufcstats.com/fight-details/new",
+                bout="New vs. X",
+                weight_class="LW",
+                fighter_a_name="New",
+                fighter_a_url="",
+                fighter_b_name="X",
+                fighter_b_url="",
+                is_completed=False,
+            )
+        ]
+        plan = CardComparisonPlan(
+            source_missing=[
+                PlanItem(
+                    action=MatchAction.SOURCE_MISSING_FROM_STORAGE,
+                    scraped=scraped[0],
+                    normalized_url="http://ufcstats.com/fight-details/new",
+                )
+            ]
+        )
+        ensure.return_value = {
+            "outcome": "reused",
+            "handoff": {
+                "id": 11,
+                "event_id": 7,
+                "card_fingerprint": "fp",
+                "status": "PUBLISHED",
+                "reason": "MISSING_FIGHT",
+                "publication_count": 1,
+                "next_eligible_at": (
+                    datetime.now(timezone.utc) + timedelta(minutes=20)
+                ).isoformat(),
+            },
+        }
+
+        failures = apply_rescrape_handoffs(
+            7,
+            "http://ufcstats.com/event-details/live",
+            plan,
+            scraped,
+            {"rescrape_handoffs": []},
+        )
+
+        assert failures == []
+        publish.assert_not_called()
+
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.RESCRAPE_MAX_PUBLICATIONS",
+        3,
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client."
+        "fail_live_event_rescrape_handoff"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client."
+        "ensure_live_event_rescrape_handoff"
+    )
+    def test_third_publication_exhaustion_marks_failed(
+        self,
+        ensure,
+        fail,
+    ) -> None:
+        from datetime import datetime, timedelta, timezone
+
+        from ufc_data_pipeline.fights.live_event_results.matcher import (
+            MatchAction,
+            PlanItem,
+            CardComparisonPlan,
+        )
+        from ufc_data_pipeline.fights.live_event_results.service import (
+            apply_rescrape_handoffs,
+        )
+        from ufc_data_pipeline.fights.shared.event_page_fights import ParsedEventFight
+
+        scraped = [
+            ParsedEventFight(
+                fight_url="http://ufcstats.com/fight-details/new",
+                bout="New vs. X",
+                weight_class="LW",
+                fighter_a_name="New",
+                fighter_a_url="",
+                fighter_b_name="X",
+                fighter_b_url="",
+                is_completed=False,
+            )
+        ]
+        plan = CardComparisonPlan(
+            source_missing=[
+                PlanItem(
+                    action=MatchAction.SOURCE_MISSING_FROM_STORAGE,
+                    scraped=scraped[0],
+                    normalized_url="http://ufcstats.com/fight-details/new",
+                )
+            ]
+        )
+        ensure.return_value = {
+            "outcome": "reused",
+            "handoff": {
+                "id": 11,
+                "event_id": 7,
+                "card_fingerprint": "fp",
+                "status": "PUBLISHED",
+                "reason": "MISSING_FIGHT",
+                "publication_count": 3,
+                "next_eligible_at": (
+                    datetime.now(timezone.utc) - timedelta(minutes=1)
+                ).isoformat(),
+            },
+        }
+        fail.return_value = {"outcome": "failed"}
+
+        failures = apply_rescrape_handoffs(
+            7,
+            "http://ufcstats.com/event-details/live",
+            plan,
+            scraped,
+            {"rescrape_handoffs": []},
+        )
+
+        assert failures == []
+        fail.assert_called_once()
+
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client."
+        "resolve_live_event_rescrape_handoff"
+    )
+    def test_clean_card_resolves_open_handoffs(self, resolve) -> None:
+        from ufc_data_pipeline.fights.live_event_results.matcher import (
+            CardComparisonPlan,
+        )
+        from ufc_data_pipeline.fights.live_event_results.service import (
+            apply_rescrape_handoffs,
+        )
+
+        resolve.return_value = {"outcome": "resolved"}
+        failures = apply_rescrape_handoffs(
+            7,
+            "http://ufcstats.com/event-details/live",
+            CardComparisonPlan(),
+            [],
+            {
+                "rescrape_handoffs": [
+                    {
+                        "id": 3,
+                        "status": "PUBLISHED",
+                        "card_fingerprint": "old",
+                    },
+                    {
+                        "id": 4,
+                        "status": "FAILED",
+                        "card_fingerprint": "old2",
+                    },
+                ]
+            },
+        )
+        assert failures == []
+        assert resolve.call_count == 2
