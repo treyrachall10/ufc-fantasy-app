@@ -12,10 +12,10 @@ from django.utils import timezone
 
 from ufc_data_pipeline.events.event_watcher import api_client
 from ufc_data_pipeline.events.event_watcher.config import UFCSTATS_BASE_URL
-from ufc_data_pipeline.events.event_watcher.publisher import publish_fights_in_event
 from ufc_data_pipeline.events.event_watcher.scraper import fetch_listing_soup
 from ufc_data_pipeline.events.shared.parser import Event, parse_completed_events
 from ufc_data_pipeline.models import EventSyncJob
+from ufc_data_pipeline.shared.fights_in_event_publisher import publish_fights_in_event
 
 logger = logging.getLogger(__name__)
 
