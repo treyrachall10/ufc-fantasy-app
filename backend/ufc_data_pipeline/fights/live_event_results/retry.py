@@ -144,17 +144,30 @@ def call_with_retries(
 
     last_error: BaseException | None = None
     for attempt in range(1, attempts + 1):
+        started = time.monotonic()
         try:
             return fn()
         except Exception as exc:
             last_error = exc
+            elapsed_ms = int((time.monotonic() - started) * 1000)
             if not is_retryable_exception(exc):
+                logger.warning(
+                    "live_event_results operation=%s attempt=%s/%s "
+                    "outcome=permanent_error elapsed_ms=%s error=%s",
+                    operation_name,
+                    attempt,
+                    attempts,
+                    elapsed_ms,
+                    exc,
+                )
                 raise
             logger.warning(
-                "live_event_results retry operation=%s attempt=%s/%s error=%s",
+                "live_event_results retry operation=%s attempt=%s/%s "
+                "elapsed_ms=%s error=%s",
                 operation_name,
                 attempt,
                 attempts,
+                elapsed_ms,
                 exc,
             )
             if attempt >= attempts:

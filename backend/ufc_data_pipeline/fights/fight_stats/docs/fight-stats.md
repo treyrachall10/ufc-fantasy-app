@@ -2,7 +2,7 @@
 
 This feature consumes **Pub/Sub** messages for UFC Stats **fight detail** pages, loads each page with Playwright, parses fight metadata plus per-fighter totals and round stats, upserts fantasy data through the main API service, records each run in **`FightStatsScrapeJob`**, and publishes a downstream **`career-stats-jobs`** message after success.
 
-Upstream is expected to **publish only** (Fight Results Watcher, not yet implemented). Local testing uses `enqueue_fight_stats` without that watcher.
+Upstream producers publish only to `fight-stats-jobs` (Live Event Results Watcher for live cards; local testing also uses `enqueue_fight_stats`). Job creation remains owned by this consumer.
 
 ## Purpose
 
@@ -81,7 +81,7 @@ The worker does **not** write fantasy tables via ORM; only `FightStatsScrapeJob`
 ```mermaid
 flowchart TB
   subgraph upstream [Upstream]
-    ENQ["enqueue_fight_stats\nor Fight Results Watcher publish"]
+    ENQ["enqueue_fight_stats\nor Live Event Results Watcher publish"]
   end
   subgraph messaging [Messaging]
     T["Topic fight-stats-jobs"]
@@ -176,4 +176,4 @@ docker compose exec web python manage.py enqueue_fight_stats \
 - Ack/nack must be called from the subscriber `callback` thread.
 - Persistence is API-only for fantasy tables; do not add direct ORM writes to `Fights` / `FightStats` / `RoundStats` from this worker.
 - Career Stats Worker is out of scope; this stage only publishes `{"fight_id": ...}`.
-- Upstream Fight Results Watcher should **publish** to `fight-stats-jobs` only — it must not create `FightStatsScrapeJob` rows.
+- Upstream Live Event Results Watcher (and `enqueue_fight_stats`) should **publish** to `fight-stats-jobs` only — they must not create `FightStatsScrapeJob` rows. The Pub/Sub contract remains `{"fight_id", "fight_url"}`.

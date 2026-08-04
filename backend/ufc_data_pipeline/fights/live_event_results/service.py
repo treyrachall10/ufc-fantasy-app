@@ -5,6 +5,7 @@ Orchestrate one Live Event Results Watcher pass (lease + transitions + handoffs)
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 from datetime import date as Date
 from datetime import datetime, timezone as datetime_timezone
@@ -15,6 +16,8 @@ from ufc_data_pipeline.fights.live_event_results import api_client
 from ufc_data_pipeline.fights.live_event_results.api_client import ApiClientError
 from ufc_data_pipeline.fights.live_event_results.config import (
     LIVE_EVENT_RESULTS_TIMEZONE,
+    PIPELINE_API_BASE_URL,
+    PIPELINE_SERVICE_API_KEY,
     RESCRAPE_MAX_PUBLICATIONS,
 )
 from ufc_data_pipeline.fights.live_event_results.date_gate import (
@@ -236,7 +239,8 @@ def apply_cancellations(event_id: int, plan: CardComparisonPlan) -> None:
                 _call_cancel,
             )
             logger.info(
-                "live_event_results cancel outcome=%s fight_id=%s",
+                "live_event_results cancel outcome=%s fight_id=%s "
+                "transition=UPCOMING_to_CANCELLED",
                 response.get("outcome"),
                 fight_id,
             )
@@ -287,7 +291,8 @@ def apply_restorations(
                 _call_restore,
             )
             logger.info(
-                "live_event_results restore outcome=%s fight_id=%s",
+                "live_event_results restore outcome=%s fight_id=%s "
+                "transition=CANCELLED_to_UPCOMING",
                 response.get("outcome"),
                 fight_id,
             )
@@ -348,10 +353,13 @@ def apply_completed_transitions(
         handoff = response.get("handoff") or {}
         status = (handoff.get("status") or "").upper()
         logger.info(
-            "live_event_results transition outcome=%s fight_id=%s handoff_status=%s",
+            "live_event_results transition outcome=%s fight_id=%s "
+            "transition=%s_to_COMPLETED handoff_status=%s handoff_id=%s",
             response.get("outcome"),
             fight_id,
+            stored.fight_status,
             status,
+            handoff.get("id"),
         )
         if status == _PENDING_FIGHT_STATS_STATUS:
             pending.append(handoff)
@@ -524,9 +532,12 @@ def publish_and_mark_rescrape(
             ),
         )
         logger.info(
-            "live_event_results rescrape_published event_id=%s handoff_id=%s",
+            "live_event_results rescrape_published event_id=%s handoff_id=%s "
+            "fingerprint=%s reason=%s",
             event_id,
             handoff_id,
+            handoff.get("card_fingerprint") or handoff.get("fingerprint") or "",
+            handoff.get("reason") or "",
         )
         return None
     except Exception as exc:
@@ -717,6 +728,14 @@ def _raise_if_failures(failures: list[str]) -> None:
         )
 
 
+def _require_runtime_config() -> None:
+    """Fail before external work when required production config is missing."""
+    if not (PIPELINE_API_BASE_URL or "").strip():
+        raise PermanentError("PIPELINE_API_BASE_URL is not configured")
+    if not (PIPELINE_SERVICE_API_KEY or "").strip():
+        raise PermanentError("PIPELINE_SERVICE_API_KEY is not configured")
+
+
 def watch_live_event_results() -> WatchResult:
     """
     Run one Live Event Results Watcher pass.
@@ -725,11 +744,18 @@ def watch_live_event_results() -> WatchResult:
     fight snapshot, claims the event lease, and for eligible non-terminal events
     applies completed transitions and drains durable Fight Stats handoffs.
     """
+    run_started = time.monotonic()
+
+    def _elapsed_ms() -> int:
+        return int((time.monotonic() - run_started) * 1000)
+
     try:
         tz = require_timezone(LIVE_EVENT_RESULTS_TIMEZONE)
     except TimezoneConfigError:
         logger.exception("live_event_results timezone_config_error")
         raise
+
+    _require_runtime_config()
 
     discovery = call_with_retries(
         "get_discovery_source",
@@ -737,7 +763,11 @@ def watch_live_event_results() -> WatchResult:
     )
     latest = discovery.get("latest_event")
     if not latest:
-        logger.info("live_event_results outcome=%s", WatchOutcome.NO_EVENT.value)
+        logger.info(
+            "live_event_results outcome=%s elapsed_ms=%s",
+            WatchOutcome.NO_EVENT.value,
+            _elapsed_ms(),
+        )
         return WatchResult(outcome=WatchOutcome.NO_EVENT)
 
     event_id = int(latest["event_id"])
@@ -751,10 +781,11 @@ def watch_live_event_results() -> WatchResult:
 
     if not eligible and not pending:
         logger.info(
-            "live_event_results outcome=%s event_id=%s event_date=%s",
+            "live_event_results outcome=%s event_id=%s event_date=%s elapsed_ms=%s",
             WatchOutcome.DATE_INELIGIBLE.value,
             event_id,
             event_date.isoformat(),
+            _elapsed_ms(),
         )
         return WatchResult(outcome=WatchOutcome.DATE_INELIGIBLE, event_id=event_id)
 
@@ -765,10 +796,12 @@ def watch_live_event_results() -> WatchResult:
     )
     if claim.get("outcome") == "skipped":
         logger.info(
-            "live_event_results outcome=%s event_id=%s owner_token_suffix=%s",
+            "live_event_results outcome=%s event_id=%s owner_token_suffix=%s "
+            "elapsed_ms=%s",
             WatchOutcome.ACTIVE_LEASE_SKIP.value,
             event_id,
             str(owner_token)[-8:],
+            _elapsed_ms(),
         )
         return WatchResult(outcome=WatchOutcome.ACTIVE_LEASE_SKIP, event_id=event_id)
 
@@ -782,9 +815,10 @@ def watch_live_event_results() -> WatchResult:
         if is_terminal_snapshot(snapshot):
             _complete_lease(event_id, owner_token)
             logger.info(
-                "live_event_results outcome=%s event_id=%s",
+                "live_event_results outcome=%s event_id=%s elapsed_ms=%s",
                 WatchOutcome.TERMINAL.value,
                 event_id,
+                _elapsed_ms(),
             )
             return WatchResult(outcome=WatchOutcome.TERMINAL, event_id=event_id)
 
@@ -805,9 +839,10 @@ def watch_live_event_results() -> WatchResult:
             _raise_if_failures(drain_failures + rescrape_failures)
             _complete_lease(event_id, owner_token)
             logger.info(
-                "live_event_results outcome=%s event_id=%s",
+                "live_event_results outcome=%s event_id=%s elapsed_ms=%s",
                 WatchOutcome.PENDING_WITHOUT_SCRAPE.value,
                 event_id,
+                _elapsed_ms(),
             )
             return WatchResult(
                 outcome=WatchOutcome.PENDING_WITHOUT_SCRAPE,
@@ -870,9 +905,10 @@ def watch_live_event_results() -> WatchResult:
             warnings=plan.warning_summary(),
         )
         logger.info(
-            "live_event_results outcome=%s event_id=%s",
+            "live_event_results outcome=%s event_id=%s elapsed_ms=%s",
             WatchOutcome.CARD_COMPARED.value,
             event_id,
+            _elapsed_ms(),
         )
         return WatchResult(
             outcome=WatchOutcome.CARD_COMPARED,
@@ -881,8 +917,9 @@ def watch_live_event_results() -> WatchResult:
         )
     except Exception as exc:
         logger.exception(
-            "live_event_results outcome=failure event_id=%s error=%s",
+            "live_event_results outcome=failure event_id=%s elapsed_ms=%s error=%s",
             event_id,
+            _elapsed_ms(),
             exc,
         )
         _fail_lease_best_effort(event_id, owner_token, last_error=str(exc))

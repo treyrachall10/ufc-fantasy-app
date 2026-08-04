@@ -1,6 +1,6 @@
 # Fights in event (`fights_in_event`)
 
-This feature consumes **Pub/Sub** messages that point at a UFC Stats **event detail** page, downloads the HTML, parses fight rows and fighter links, upserts **`Fighters`** rows (by normalized name), bulk-inserts **`Fights`** rows for that event, and records each delivery in **`FightCreationJob`**. It is the downstream step after the **Event Watcher** publishes new events (see related doc below).
+This feature consumes **Pub/Sub** messages that point at a UFC Stats **event detail** page, downloads the HTML, parses fight rows and fighter links, upserts **`Fighters`** rows (by normalized name), bulk-inserts **`Fights`** rows for that event, and records each delivery in **`FightCreationJob`**. It is the downstream step after the **Event Watcher** publishes new events, and also after the **Live Event Results Watcher** republishes the same `{"url", "event_id"}` contract for card-change rescrapes (optional `reason` / `fingerprint` metadata). See related docs below.
 
 When new fighters are created or an existing fighter receives a backfilled `profile_url`, it publishes `{fighter_id, fighter_url}` to the **`fighter-profile-jobs`** topic for the fighter profile worker. It does **not** create or update `FighterProfileScrapeJob` rows (see `backend/ufc_data_pipeline/fighters/fighter_profile/docs/fighter-profile.md`).
 
@@ -13,8 +13,8 @@ When new fighters are created or an existing fighter receives a backfilled `prof
 
 - Feature root: `backend/ufc_data_pipeline/fights/fights_in_event/`
 - Job model: `backend/ufc_data_pipeline/models.py` (`FightCreationJob`)
-- Upstream publisher: `backend/ufc_data_pipeline/events/event_watcher/publisher.py`
-- Related developer doc: `backend/ufc_data_pipeline/events/event_watcher/docs/event-watcher.md`
+- Upstream publisher: `backend/ufc_data_pipeline/events/event_watcher/publisher.py` (new events) and `backend/ufc_data_pipeline/shared/fights_in_event_publisher.py` (Live Event Results card-change rescrapes)
+- Related developer docs: `backend/ufc_data_pipeline/events/event_watcher/docs/event-watcher.md`, `backend/ufc_data_pipeline/fights/live_event_results/docs/live-event-results.md`
 
 ## Main Files
 
@@ -48,7 +48,7 @@ When new fighters are created or an existing fighter receives a backfilled `prof
 ```mermaid
 flowchart TB
   subgraph in_msg [Inbound messaging]
-    T["Pub/Sub topic\nPUBSUB_FIGHTS_IN_EVENT_TOPIC\n(publisher: event_watcher)"]
+    T["Pub/Sub topic\nPUBSUB_FIGHTS_IN_EVENT_TOPIC\n(publishers: event_watcher,\nlive_event_results rescrape)"]
     Sub["Subscription\nPUBSUB_FIGHTS_IN_EVENT_SUBSCRIPTION"]
     CB["consumer.callback"]
   end
@@ -133,4 +133,6 @@ Requires Django settings, database, valid GCP credentials for the subscriber cli
 
 - Acking/Nacking **must** be called in the callback function or it may not be respected according to PubSub's official docs.
 - Align **URL** publishing in the Event Watcher with what `requests.get` needs (absolute vs relative) if you see fetch failures in `fetch_soup`. The watcher normalizes listing hrefs to absolute UFC Stats URLs before publish.
+- Required inbound fields remain `url` + `event_id`. Optional `reason` / `fingerprint` from Live Event Results are backward-compatible logging metadata and must not break consumers.
+- Live Event Results never creates Fight rows itself; replacement recovery depends on this worker’s replay-safe upsert.
 - Consider tests for `parse_message_payload`, `ensure_fighters_exist`, and `scrape_fights_in_event` similar to `events/shared/tests/test_parser.py`.

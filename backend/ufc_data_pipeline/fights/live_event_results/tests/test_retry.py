@@ -139,3 +139,36 @@ class CallWithRetriesTests(SimpleTestCase):
                 sleep_fn=lambda _d: None,
             )
         assert fn.call_count == 3
+
+    def test_retry_log_includes_operation_attempt_and_elapsed(self) -> None:
+        fn = MagicMock(side_effect=[TransportError("1"), "ok"])
+        with self.assertLogs(
+            "ufc_data_pipeline.fights.live_event_results.retry",
+            level="WARNING",
+        ) as captured:
+            call_with_retries(
+                "publish_fight_stats fight_id=9",
+                fn,
+                max_attempts=3,
+                sleep_fn=lambda _d: None,
+                rng=lambda: 0.5,
+            )
+        joined = "\n".join(captured.output)
+        assert "operation=publish_fight_stats fight_id=9" in joined
+        assert "attempt=1/3" in joined
+        assert "elapsed_ms=" in joined
+        assert "secret" not in joined.lower()
+        assert "api-key" not in joined.lower()
+
+    def test_permanent_error_log_does_not_retry(self) -> None:
+        fn = MagicMock(side_effect=PermanentError("PIPELINE_SERVICE_API_KEY is not configured"))
+        with self.assertLogs(
+            "ufc_data_pipeline.fights.live_event_results.retry",
+            level="WARNING",
+        ) as captured:
+            with self.assertRaises(PermanentError):
+                call_with_retries("op", fn, max_attempts=3, sleep_fn=lambda _d: None)
+        joined = "\n".join(captured.output)
+        assert "outcome=permanent_error" in joined
+        assert "elapsed_ms=" in joined
+        assert fn.call_count == 1

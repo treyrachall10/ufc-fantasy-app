@@ -11,8 +11,7 @@ The system should be designed so each worker can be run independently, retried s
 Event Watcher
 → Fights In Event Scraper
 → Fighter Profile Scraper
-→ DB Event Watcher
-→ Fight Results Watcher
+→ Live Event Results Watcher
 → Fight Stats Scraper
 → Career Stats Worker
 → ScoreFight Job
@@ -103,7 +102,7 @@ Creates:
 
 ### Boundary
 
-This worker must not scrape individual fight detail pages or deep per-round fight stats. Event-page result summaries are in scope here; detailed stats and round-level data remain downstream (Fight Results Watcher / Fight Stats Scraper). For live events, the Fight Results Watcher may still poll until fights complete.
+This worker must not scrape individual fight detail pages or deep per-round fight stats. Event-page result summaries are in scope here; detailed stats and round-level data remain downstream (Fight Stats Scraper). For live events, the Live Event Results Watcher detects completion on the event page and publishes Fight Stats work.
 
 ## 3. Fighter Profile Scraper
 
@@ -137,54 +136,45 @@ This worker should support:
 - Chromium must be installed in the Docker image (`playwright install --with-deps chromium` in `backend/Dockerfile`).
 - Worker idle shutdown is controlled by `WORKER_IDLE_SHUTDOWN_ENABLED` (Compose disables it for local development).
 
-## 4. DB Event Watcher
+## 4. Live Event Results Watcher
 
 ### Role
 
-Scheduled job.
+Scheduled one-shot job (Cloud Scheduler → Cloud Run Job → existing backend image → `python manage.py watch_live_event_results` → exit). Replaces the former planned separate DB Event Watcher and permanent-polling Fight Results Watcher.
 
 ### Responsibility
 
-The DB Event Watcher checks whether the newest event in the database is happening today or recently enough to begin watching for fight results.
+Select the newest stored event through the pipeline discovery API, apply a required IANA timezone date gate (today/yesterday), load one event fight snapshot, claim an API-owned event lease, fetch the UFC Stats event page at most once when eligible, reconcile fights by normalized URL, persist cancellations/restorations/completions through pipeline APIs, publish durable Fight Stats and Fights In Event rescrape handoffs, and exit.
 
 ### Flow
 
-1. Query the newest event in the database.
-2. Check whether the event date is today or yesterday.
-3. If yes, trigger/start the Fight Results Watcher.
-4. If no, do nothing.
-
-### Boundary
-
-This job should only check the database. It should not scrape UFC.com.
-
-## 5. Fight Results Watcher
-
-### Role
-
-Temporary polling worker (not implemented in this repo yet).
-
-### Responsibility
-
-The Fight Results Watcher watches an active event for fight result availability and **publishes** fight-stats work to Pub/Sub.
-
-### Flow
-
-1. Query fights for the active event.
-2. Use the saved event URL or fight URLs.
-3. Poll for the fight results badge.
-4. If no result badge exists, sleep for 5 minutes.
-5. If a result badge exists, publish a message to `fight-stats-jobs` with `{"fight_id": <int>, "fight_url": "<url>"}`.
+1. Fail fast on missing/invalid `LIVE_EVENT_RESULTS_TIMEZONE` or missing pipeline API base URL/key.
+2. Load newest event via discovery API; no event exits successfully (`no_event`).
+3. Load LiveResultsSource snapshot (fights + handoff state).
+4. If date-ineligible and no pending handoffs → successful `date_ineligible` (no lease, no scrape).
+5. Claim event lease (active other owner → successful `active_lease_skip`).
+6. If terminal (no upcoming fights, no unresolved handoffs) → complete lease and exit without scrape.
+7. If date-ineligible with pending work → drain Fight Stats / due rescrape publications only (`pending_without_scrape`); no UFC Stats fetch.
+8. Else fetch event page once, renew lease, compare card, apply cancel/restore/complete transitions, ensure/publish rescrape handoffs, drain Fight Stats handoffs, renew during progress, complete or fail the lease, exit.
 
 ### Output
 
-Publishes Pub/Sub messages to `fight-stats-jobs`. It does **not** create `FightStatsScrapeJob` rows — job creation is owned by the Fight Stats Scraper consumer.
+- Fight status transitions and durable handoff/lease state via API
+- Pub/Sub `fight-stats-jobs` messages `{"fight_id", "fight_url"}` (unchanged contract)
+- Pub/Sub `fights-in-event` messages `{"url", "event_id"}` plus optional card-change metadata for replacement recovery
 
 ### Boundary
 
-This watcher should not scrape full fight stats directly. It must not write fantasy fight-stats tables or pipeline job rows.
+- Must not write fantasy/domain or watcher-state tables through Django ORM.
+- Must not create Fight rows or scrape full fight-detail stats.
+- Must not start containers or run a permanent poll/sleep/subscriber loop.
+- Deployment Terraform / scheduler IaC is out of scope until a follow-up adds it.
 
-## 6. Fight Stats Scraper
+### Production scheduling
+
+Package as Cloud Scheduler (every 10 minutes) → Cloud Run Job → existing backend image → `python manage.py watch_live_event_results` → exit. Operator checklist (command override, env vars, IAM, Chromium, timeouts, leases, rescrape exhaustion) lives in `fights/live_event_results/docs/live-event-results.md`.
+
+## 5. Fight Stats Scraper
 
 ### Role
 
@@ -223,7 +213,7 @@ Do not mark the job `COMPLETED` if API writes fail. Publish career-stats only af
 
 ### Local operation
 
-Without the Fight Results Watcher, operators can publish test messages with:
+Without the Live Event Results Watcher, operators can publish test messages with:
 
 ```bash
 docker compose exec web python manage.py enqueue_fight_stats \
@@ -233,7 +223,7 @@ docker compose exec web python manage.py enqueue_fight_stats \
 
 See `backend/ufc_data_pipeline/fights/fight_stats/docs/fight-stats.md`.
 
-## 7. Career Stats Worker
+## 6. Career Stats Worker
 
 ### Role
 
@@ -271,11 +261,11 @@ The worker owns only pipeline job state (`CareerStatsJob`). It does not query fa
 
 - Assume fight-stats rows already exist (no readiness poll).
 - Exclude NC (`Could Not Continue` / similar + null result) from tallies.
-- The Score Fight Worker (section 8) consumes `score-fight-jobs` downstream.
+- The Score Fight Worker (section 7) consumes `score-fight-jobs` downstream.
 
 See `backend/ufc_data_pipeline/fighters/career_stats/docs/career-stats.md`.
 
-## 8. Score Fight Worker
+## 7. Score Fight Worker
 
 ### Role
 
@@ -329,8 +319,7 @@ The full pipeline is successful when:
 3. Fights are discovered and stored.
 4. Fighter profile jobs are created for new fighters.
 5. Fighter profiles are scraped.
-6. Active events are detected.
-7. Fight result availability is watched.
-8. Fight stats and round stats are stored.
-9. Career stats are updated.
-10. Final fight scores are calculated and stored.
+6. Live Event Results detects completions/cancellations/replacements for the newest eligible event.
+7. Fight stats and round stats are stored.
+8. Career stats are updated.
+9. Final fight scores are calculated and stored.

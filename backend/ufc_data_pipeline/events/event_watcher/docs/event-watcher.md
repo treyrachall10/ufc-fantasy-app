@@ -191,5 +191,5 @@ Event-detail page selectors are **not** required for Event persistence (listing 
 
 - Listing fields (name, date, location, URL) are enough to persist an Event; do not add an Event Scraper or detail-page scrape for Event persistence.
 - Shared listing code stays under `events/shared/`; do not reintroduce `events/event_page_sync/`.
-- Downstream fight discovery remains `fights_in_event` (see its feature doc).
+- Downstream fight discovery remains `fights_in_event` (see its feature doc). The Live Event Results Watcher may also publish the same `fights-in-event` contract for card-change rescrapes; Event Watcher responsibilities are unchanged.
 - Re-run the live selector check if UFC Stats markup drifts; update `events/shared/` fixtures/parser, not event-detail scrapers.

@@ -126,6 +126,22 @@ class TerminalHelpersTests(SimpleTestCase):
 
 
 class WatchLiveEventResultsServiceTests(SimpleTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self._config_patches = [
+            patch(
+                "ufc_data_pipeline.fights.live_event_results.service.PIPELINE_API_BASE_URL",
+                "http://testserver",
+            ),
+            patch(
+                "ufc_data_pipeline.fights.live_event_results.service.PIPELINE_SERVICE_API_KEY",
+                "test-pipeline-key",
+            ),
+        ]
+        for p in self._config_patches:
+            p.start()
+            self.addCleanup(p.stop)
+
     def test_missing_timezone_fails_before_api_calls(self) -> None:
         with patch(
             "ufc_data_pipeline.fights.live_event_results.service.LIVE_EVENT_RESULTS_TIMEZONE",
@@ -135,6 +151,21 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
         ) as discovery:
             with self.assertRaises(Exception):
                 watch_live_event_results()
+            discovery.assert_not_called()
+
+    def test_missing_api_key_fails_before_discovery(self) -> None:
+        with patch(
+            "ufc_data_pipeline.fights.live_event_results.service.LIVE_EVENT_RESULTS_TIMEZONE",
+            "America/New_York",
+        ), patch(
+            "ufc_data_pipeline.fights.live_event_results.service.PIPELINE_SERVICE_API_KEY",
+            "",
+        ), patch(
+            "ufc_data_pipeline.fights.live_event_results.service.api_client.get_discovery_source"
+        ) as discovery:
+            with self.assertRaises(Exception) as ctx:
+                watch_live_event_results()
+            assert "PIPELINE_SERVICE_API_KEY" in str(ctx.exception)
             discovery.assert_not_called()
 
     @patch(
@@ -1006,6 +1037,22 @@ class PublishAndMarkHandoffTests(SimpleTestCase):
 
 
 class PendingWithoutScrapeDrainTests(SimpleTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        for target, value in (
+            (
+                "ufc_data_pipeline.fights.live_event_results.service.PIPELINE_API_BASE_URL",
+                "http://testserver",
+            ),
+            (
+                "ufc_data_pipeline.fights.live_event_results.service.PIPELINE_SERVICE_API_KEY",
+                "test-pipeline-key",
+            ),
+        ):
+            p = patch(target, value)
+            p.start()
+            self.addCleanup(p.stop)
+
     @patch(
         "ufc_data_pipeline.fights.live_event_results.service.LIVE_EVENT_RESULTS_TIMEZONE",
         "America/New_York",
