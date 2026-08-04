@@ -20,11 +20,24 @@ LIVE_EVENT_RESULTS_LEASE_SECONDS = int(
 PLAYWRIGHT_TIMEOUT_S = 60
 EVENT_PAGE_READY_SELECTOR = "tr.b-fight-details__table-row"
 
-# In-command retries for transition/publish boundaries (issue 035).
-HANDOFF_MAX_ATTEMPTS = int(os.getenv("LIVE_EVENT_RESULTS_HANDOFF_MAX_ATTEMPTS", "3"))
-HANDOFF_BACKOFF_BASE_S = float(
-    os.getenv("LIVE_EVENT_RESULTS_HANDOFF_BACKOFF_BASE_S", "1")
+# Bounded in-command retry policy (issue 038).
+RETRY_MAX_ATTEMPTS = int(os.getenv("LIVE_EVENT_RESULTS_RETRY_MAX_ATTEMPTS", "3"))
+RETRY_BACKOFF_BASE_S = float(
+    os.getenv("LIVE_EVENT_RESULTS_RETRY_BACKOFF_BASE_S", "1")
 )
+RETRY_BACKOFF_CAP_S = float(
+    os.getenv("LIVE_EVENT_RESULTS_RETRY_BACKOFF_CAP_S", "8")
+)
+RETRY_JITTER_RATIO = float(
+    os.getenv("LIVE_EVENT_RESULTS_RETRY_JITTER_RATIO", "0.25")
+)
+RETRY_AFTER_MAX_S = float(
+    os.getenv("LIVE_EVENT_RESULTS_RETRY_AFTER_MAX_S", "30")
+)
+
+# Backward-compatible aliases used by earlier handoff code/tests.
+HANDOFF_MAX_ATTEMPTS = RETRY_MAX_ATTEMPTS
+HANDOFF_BACKOFF_BASE_S = RETRY_BACKOFF_BASE_S
 
 # Card-change rescrape cooldown and publication bound (issue 037).
 RESCRAPE_COOLDOWN_SECONDS = int(

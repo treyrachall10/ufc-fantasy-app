@@ -307,6 +307,9 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
         "America/New_York",
     )
     @patch(
+        "ufc_data_pipeline.fights.live_event_results.retry.time.sleep"
+    )
+    @patch(
         "ufc_data_pipeline.fights.live_event_results.service.api_client.fail_lease"
     )
     @patch(
@@ -342,6 +345,7 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
         renew,
         complete,
         fail,
+        _sleep,
     ) -> None:
         discovery.return_value = {
             "latest_event": {
@@ -504,13 +508,13 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
         assert result.plan is not None
         assert len(result.plan.matches) == 2
         fetch_soup.assert_called_once_with("http://ufcstats.com/event-details/live")
-        renew.assert_called_once()
         apply_cancel.assert_called_once()
         apply_restore.assert_called_once()
         apply_transitions.assert_called_once()
         apply_rescrape.assert_called_once()
         drain.assert_called_once()
         complete.assert_called_once()
+        assert renew.call_count >= 1
         _args, kwargs = complete.call_args
         assert "warnings" in kwargs
         # Renew happens after fetch; complete after compare.
@@ -747,7 +751,7 @@ class ApplyCancellationAndRestoreTests(SimpleTestCase):
         assert cancel.call_args.args[1]["expected_status"] == "UPCOMING"
 
     @patch(
-        "ufc_data_pipeline.fights.live_event_results.service.HANDOFF_MAX_ATTEMPTS",
+        "ufc_data_pipeline.fights.live_event_results.retry.RETRY_MAX_ATTEMPTS",
         1,
     )
     @patch(
@@ -826,7 +830,7 @@ class ApplyCancellationAndRestoreTests(SimpleTestCase):
         assert restore.call_args.args[1]["expected_status"] == "CANCELLED"
 
     @patch(
-        "ufc_data_pipeline.fights.live_event_results.service.HANDOFF_MAX_ATTEMPTS",
+        "ufc_data_pipeline.fights.live_event_results.retry.RETRY_MAX_ATTEMPTS",
         1,
     )
     @patch(
@@ -928,10 +932,10 @@ class PublishAndMarkHandoffTests(SimpleTestCase):
         mark.assert_called_once_with(9)
 
     @patch(
-        "ufc_data_pipeline.fights.live_event_results.service._sleep_backoff"
+        "ufc_data_pipeline.fights.live_event_results.retry.time.sleep"
     )
     @patch(
-        "ufc_data_pipeline.fights.live_event_results.service.HANDOFF_MAX_ATTEMPTS",
+        "ufc_data_pipeline.fights.live_event_results.retry.RETRY_MAX_ATTEMPTS",
         3,
     )
     @patch(
@@ -965,7 +969,7 @@ class PublishAndMarkHandoffTests(SimpleTestCase):
         assert "fight_id=9" in error
         assert publish.call_count == 3
         mark.assert_not_called()
-        assert record.call_count == 3
+        assert record.call_count == 1
 
     @patch(
         "ufc_data_pipeline.fights.live_event_results.service.api_client."
@@ -996,7 +1000,7 @@ class PublishAndMarkHandoffTests(SimpleTestCase):
 
         assert error is not None
         publish.assert_called_once()
-        mark.assert_called_once()
+        assert mark.call_count == 3
         record.assert_called_once()
         assert "mark_published_failed" in record.call_args.kwargs["last_error"]
 

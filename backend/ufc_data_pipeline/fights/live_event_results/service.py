@@ -5,7 +5,6 @@ Orchestrate one Live Event Results Watcher pass (lease + transitions + handoffs)
 from __future__ import annotations
 
 import logging
-import time
 from dataclasses import dataclass
 from datetime import date as Date
 from datetime import datetime, timezone as datetime_timezone
@@ -15,8 +14,6 @@ from uuid import uuid4
 from ufc_data_pipeline.fights.live_event_results import api_client
 from ufc_data_pipeline.fights.live_event_results.api_client import ApiClientError
 from ufc_data_pipeline.fights.live_event_results.config import (
-    HANDOFF_BACKOFF_BASE_S,
-    HANDOFF_MAX_ATTEMPTS,
     LIVE_EVENT_RESULTS_TIMEZONE,
     RESCRAPE_MAX_PUBLICATIONS,
 )
@@ -34,6 +31,11 @@ from ufc_data_pipeline.fights.live_event_results.matcher import (
     CardComparisonPlan,
     PlanItem,
     compare_card,
+)
+from ufc_data_pipeline.fights.live_event_results.retry import (
+    LeaseOwnerLostError,
+    PermanentError,
+    call_with_retries,
 )
 from ufc_data_pipeline.fights.live_event_results.scraper import fetch_event_soup
 from ufc_data_pipeline.fights.shared.event_page_fights import (
@@ -139,35 +141,37 @@ def _merge_pending_handoffs(*groups: list[dict]) -> list[dict]:
     return [by_fight_id[key] for key in sorted(by_fight_id)]
 
 
-def _sleep_backoff(attempt: int) -> None:
-    delay = HANDOFF_BACKOFF_BASE_S * (2 ** (attempt - 1))
-    if delay > 0:
-        time.sleep(delay)
+def _renew_lease(event_id: int, owner_token) -> None:
+    """Renew lease ownership; stop the run on owner-token loss."""
+    call_with_retries(
+        f"renew_lease event_id={event_id}",
+        lambda: api_client.renew_lease(event_id, owner_token),
+    )
 
 
-def _with_retries(operation_name: str, fn):
-    """Run ``fn`` with bounded in-command retries and exponential backoff."""
-    last_error: Exception | None = None
-    for attempt in range(1, HANDOFF_MAX_ATTEMPTS + 1):
-        try:
-            return fn()
-        except ApiClientError as exc:
-            if exc.is_client_error:
-                raise
-            last_error = exc
-        except Exception as exc:
-            last_error = exc
-        logger.warning(
-            "live_event_results %s attempt=%s/%s failed error=%s",
-            operation_name,
-            attempt,
-            HANDOFF_MAX_ATTEMPTS,
-            last_error,
+def _complete_lease(event_id: int, owner_token, *, warnings: str = "") -> None:
+    call_with_retries(
+        f"complete_lease event_id={event_id}",
+        lambda: api_client.complete_lease(
+            event_id, owner_token, warnings=warnings
+        ),
+    )
+
+
+def _fail_lease_best_effort(event_id: int, owner_token, *, last_error: str) -> None:
+    try:
+        call_with_retries(
+            f"fail_lease event_id={event_id}",
+            lambda: api_client.fail_lease(
+                event_id, owner_token, last_error=last_error
+            ),
         )
-        if attempt < HANDOFF_MAX_ATTEMPTS:
-            _sleep_backoff(attempt)
-    assert last_error is not None
-    raise last_error
+    except Exception:
+        logger.exception(
+            "live_event_results lease_fail_release_failed event_id=%s "
+            "(recoverable via lease expiration)",
+            event_id,
+        )
 
 
 def _transition_payload(event_id: int, item: PlanItem) -> dict:
@@ -227,7 +231,7 @@ def apply_cancellations(event_id: int, plan: CardComparisonPlan) -> None:
             return api_client.cancel_live_fight_transition(fid, body)
 
         try:
-            response = _with_retries(
+            response = call_with_retries(
                 f"cancel_transition fight_id={fight_id}",
                 _call_cancel,
             )
@@ -236,6 +240,8 @@ def apply_cancellations(event_id: int, plan: CardComparisonPlan) -> None:
                 response.get("outcome"),
                 fight_id,
             )
+        except LeaseOwnerLostError:
+            raise
         except Exception as exc:
             logger.warning(
                 "live_event_results cancel_skipped fight_id=%s error=%s",
@@ -276,7 +282,7 @@ def apply_restorations(
             return api_client.restore_live_fight_upcoming(fid, body)
 
         try:
-            response = _with_retries(
+            response = call_with_retries(
                 f"restore_upcoming fight_id={fight_id}",
                 _call_restore,
             )
@@ -285,11 +291,9 @@ def apply_restorations(
                 response.get("outcome"),
                 fight_id,
             )
-        except ApiClientError as exc:
-            msg = f"fight_id={fight_id} restore failed: {exc}"
-            logger.error("live_event_results %s", msg)
-            failures.append(msg)
-        except Exception as exc:
+        except LeaseOwnerLostError:
+            raise
+        except (ApiClientError, PermanentError, Exception) as exc:
             msg = f"fight_id={fight_id} restore failed: {exc}"
             logger.error("live_event_results %s", msg)
             failures.append(msg)
@@ -329,16 +333,13 @@ def apply_completed_transitions(
             return api_client.complete_live_fight_transition(fid, body)
 
         try:
-            response = _with_retries(
+            response = call_with_retries(
                 f"complete_transition fight_id={fight_id}",
                 _call_transition,
             )
-        except ApiClientError as exc:
-            msg = f"fight_id={fight_id} transition failed: {exc}"
-            logger.error("live_event_results %s", msg)
-            failures.append(msg)
-            continue
-        except Exception as exc:
+        except LeaseOwnerLostError:
+            raise
+        except (ApiClientError, PermanentError, Exception) as exc:
             msg = f"fight_id={fight_id} transition failed: {exc}"
             logger.error("live_event_results %s", msg)
             failures.append(msg)
@@ -366,62 +367,64 @@ def publish_and_mark_handoff(handoff: dict) -> str | None:
     """
     fight_id = int(handoff["fight_id"])
     fight_url = handoff.get("fight_url") or ""
-    last_error: Exception | None = None
 
-    for attempt in range(1, HANDOFF_MAX_ATTEMPTS + 1):
+    try:
+        call_with_retries(
+            f"publish_fight_stats fight_id={fight_id}",
+            lambda: publish_fight_stats_job(fight_id, fight_url),
+        )
+    except Exception as exc:
+        logger.warning(
+            "live_event_results publish failed fight_id=%s error=%s",
+            fight_id,
+            exc,
+        )
         try:
-            publish_fight_stats_job(fight_id, fight_url)
-        except Exception as exc:
-            last_error = exc
-            logger.warning(
-                "live_event_results publish failed fight_id=%s attempt=%s/%s error=%s",
-                fight_id,
-                attempt,
-                HANDOFF_MAX_ATTEMPTS,
-                exc,
-            )
-            try:
-                api_client.record_fight_stats_handoff_attempt(
+            call_with_retries(
+                f"record_fight_stats_attempt fight_id={fight_id}",
+                lambda: api_client.record_fight_stats_handoff_attempt(
                     fight_id,
                     last_error=str(exc),
-                )
-            except Exception:
-                logger.exception(
-                    "live_event_results record_attempt_failed fight_id=%s",
-                    fight_id,
-                )
-            if attempt < HANDOFF_MAX_ATTEMPTS:
-                _sleep_backoff(attempt)
-            continue
+                ),
+            )
+        except Exception:
+            logger.exception(
+                "live_event_results record_attempt_failed fight_id=%s",
+                fight_id,
+            )
+        return f"fight_id={fight_id} publish failed: {exc}"
 
+    try:
+        call_with_retries(
+            f"mark_fight_stats_published fight_id={fight_id}",
+            lambda: api_client.mark_fight_stats_handoff_published(fight_id),
+        )
+        logger.info(
+            "live_event_results handoff_published fight_id=%s",
+            fight_id,
+        )
+        return None
+    except Exception as exc:
+        # Publish succeeded; leave pending so a later run may republish.
+        logger.warning(
+            "live_event_results mark_published_failed fight_id=%s error=%s",
+            fight_id,
+            exc,
+        )
         try:
-            api_client.mark_fight_stats_handoff_published(fight_id)
-            logger.info(
-                "live_event_results handoff_published fight_id=%s",
-                fight_id,
-            )
-            return None
-        except Exception as exc:
-            # Publish succeeded; leave pending so a later run may republish.
-            last_error = exc
-            logger.warning(
-                "live_event_results mark_published_failed fight_id=%s error=%s",
-                fight_id,
-                exc,
-            )
-            try:
-                api_client.record_fight_stats_handoff_attempt(
+            call_with_retries(
+                f"record_fight_stats_attempt fight_id={fight_id}",
+                lambda: api_client.record_fight_stats_handoff_attempt(
                     fight_id,
                     last_error=f"mark_published_failed: {exc}",
-                )
-            except Exception:
-                logger.exception(
-                    "live_event_results record_attempt_failed fight_id=%s",
-                    fight_id,
-                )
-            return f"fight_id={fight_id} mark_published failed: {exc}"
-
-    return f"fight_id={fight_id} publish failed: {last_error}"
+                ),
+            )
+        except Exception:
+            logger.exception(
+                "live_event_results record_attempt_failed fight_id=%s",
+                fight_id,
+            )
+        return f"fight_id={fight_id} mark_published failed: {exc}"
 
 
 def drain_pending_handoffs(handoffs: list[dict]) -> list[str]:
@@ -473,83 +476,87 @@ def publish_and_mark_rescrape(
     handoff_id = int(handoff["id"])
     fingerprint = handoff.get("card_fingerprint") or ""
     reason = handoff.get("reason") or None
-    last_error: Exception | None = None
 
-    for attempt in range(1, HANDOFF_MAX_ATTEMPTS + 1):
-        try:
-            publish_fights_in_event(
+    try:
+        call_with_retries(
+            f"publish_rescrape event_id={event_id} handoff_id={handoff_id}",
+            lambda: publish_fights_in_event(
                 event_id,
                 event_url,
                 reason=reason,
                 fingerprint=fingerprint,
-            )
-        except Exception as exc:
-            last_error = exc
-            logger.warning(
-                "live_event_results rescrape_publish failed event_id=%s "
-                "handoff_id=%s attempt=%s/%s error=%s",
-                event_id,
-                handoff_id,
-                attempt,
-                HANDOFF_MAX_ATTEMPTS,
-                exc,
-            )
-            try:
-                api_client.record_live_event_rescrape_attempt(
+            ),
+        )
+    except Exception as exc:
+        logger.warning(
+            "live_event_results rescrape_publish failed event_id=%s "
+            "handoff_id=%s error=%s",
+            event_id,
+            handoff_id,
+            exc,
+        )
+        try:
+            call_with_retries(
+                f"record_rescrape_attempt event_id={event_id} handoff_id={handoff_id}",
+                lambda: api_client.record_live_event_rescrape_attempt(
                     event_id,
                     handoff_id,
                     last_error=str(exc),
-                )
-            except Exception:
-                logger.exception(
-                    "live_event_results rescrape_record_attempt_failed "
-                    "event_id=%s handoff_id=%s",
-                    event_id,
-                    handoff_id,
-                )
-            if attempt < HANDOFF_MAX_ATTEMPTS:
-                _sleep_backoff(attempt)
-            continue
+                ),
+            )
+        except Exception:
+            logger.exception(
+                "live_event_results rescrape_record_attempt_failed "
+                "event_id=%s handoff_id=%s",
+                event_id,
+                handoff_id,
+            )
+        return (
+            f"event_id={event_id} handoff_id={handoff_id} "
+            f"rescrape publish failed: {exc}"
+        )
 
+    try:
+        call_with_retries(
+            f"mark_rescrape_published event_id={event_id} handoff_id={handoff_id}",
+            lambda: api_client.mark_live_event_rescrape_published(
+                event_id, handoff_id
+            ),
+        )
+        logger.info(
+            "live_event_results rescrape_published event_id=%s handoff_id=%s",
+            event_id,
+            handoff_id,
+        )
+        return None
+    except Exception as exc:
+        logger.warning(
+            "live_event_results rescrape_mark_published_failed "
+            "event_id=%s handoff_id=%s error=%s",
+            event_id,
+            handoff_id,
+            exc,
+        )
         try:
-            api_client.mark_live_event_rescrape_published(event_id, handoff_id)
-            logger.info(
-                "live_event_results rescrape_published event_id=%s handoff_id=%s",
-                event_id,
-                handoff_id,
-            )
-            return None
-        except Exception as exc:
-            last_error = exc
-            logger.warning(
-                "live_event_results rescrape_mark_published_failed "
-                "event_id=%s handoff_id=%s error=%s",
-                event_id,
-                handoff_id,
-                exc,
-            )
-            try:
-                api_client.record_live_event_rescrape_attempt(
+            call_with_retries(
+                f"record_rescrape_attempt event_id={event_id} handoff_id={handoff_id}",
+                lambda: api_client.record_live_event_rescrape_attempt(
                     event_id,
                     handoff_id,
                     last_error=f"mark_published_failed: {exc}",
-                )
-            except Exception:
-                logger.exception(
-                    "live_event_results rescrape_record_attempt_failed "
-                    "event_id=%s handoff_id=%s",
-                    event_id,
-                    handoff_id,
-                )
-            return (
-                f"event_id={event_id} handoff_id={handoff_id} "
-                f"rescrape mark_published failed: {exc}"
+                ),
             )
-
-    return (
-        f"event_id={event_id} handoff_id={handoff_id} "
-        f"rescrape publish failed: {last_error}"
-    )
+        except Exception:
+            logger.exception(
+                "live_event_results rescrape_record_attempt_failed "
+                "event_id=%s handoff_id=%s",
+                event_id,
+                handoff_id,
+            )
+        return (
+            f"event_id={event_id} handoff_id={handoff_id} "
+            f"rescrape mark_published failed: {exc}"
+        )
 
 
 def apply_rescrape_handoffs(
@@ -584,10 +591,12 @@ def apply_rescrape_handoffs(
             )
 
         try:
-            response = _with_retries(
+            response = call_with_retries(
                 f"ensure_rescrape event_id={event_id}",
                 _call_ensure,
             )
+        except LeaseOwnerLostError:
+            raise
         except Exception as exc:
             msg = f"event_id={event_id} ensure_rescrape failed: {exc}"
             logger.error("live_event_results %s", msg)
@@ -722,7 +731,10 @@ def watch_live_event_results() -> WatchResult:
         logger.exception("live_event_results timezone_config_error")
         raise
 
-    discovery = api_client.get_discovery_source()
+    discovery = call_with_retries(
+        "get_discovery_source",
+        api_client.get_discovery_source,
+    )
     latest = discovery.get("latest_event")
     if not latest:
         logger.info("live_event_results outcome=%s", WatchOutcome.NO_EVENT.value)
@@ -730,7 +742,10 @@ def watch_live_event_results() -> WatchResult:
 
     event_id = int(latest["event_id"])
     event_date = _parse_event_date(latest.get("date"))
-    snapshot = api_client.get_live_results_source(event_id)
+    snapshot = call_with_retries(
+        f"get_live_results_source event_id={event_id}",
+        lambda: api_client.get_live_results_source(event_id),
+    )
     pending = has_unresolved_handoffs(snapshot)
     eligible = is_event_date_eligible(event_date, tz)
 
@@ -744,7 +759,10 @@ def watch_live_event_results() -> WatchResult:
         return WatchResult(outcome=WatchOutcome.DATE_INELIGIBLE, event_id=event_id)
 
     owner_token = uuid4()
-    claim = api_client.claim_lease(event_id, owner_token)
+    claim = call_with_retries(
+        f"claim_lease event_id={event_id}",
+        lambda: api_client.claim_lease(event_id, owner_token),
+    )
     if claim.get("outcome") == "skipped":
         logger.info(
             "live_event_results outcome=%s event_id=%s owner_token_suffix=%s",
@@ -762,7 +780,7 @@ def watch_live_event_results() -> WatchResult:
 
     try:
         if is_terminal_snapshot(snapshot):
-            api_client.complete_lease(event_id, owner_token)
+            _complete_lease(event_id, owner_token)
             logger.info(
                 "live_event_results outcome=%s event_id=%s",
                 WatchOutcome.TERMINAL.value,
@@ -771,6 +789,7 @@ def watch_live_event_results() -> WatchResult:
             return WatchResult(outcome=WatchOutcome.TERMINAL, event_id=event_id)
 
         if not eligible:
+            # Aged pending drain only — no UFC Stats fetch / result discovery.
             event = snapshot.get("event") or {}
             event_url = (event.get("url") or "").strip()
             drain_failures = drain_pending_handoffs(
@@ -784,7 +803,7 @@ def watch_live_event_results() -> WatchResult:
                     snapshot,
                 )
             _raise_if_failures(drain_failures + rescrape_failures)
-            api_client.complete_lease(event_id, owner_token)
+            _complete_lease(event_id, owner_token)
             logger.info(
                 "live_event_results outcome=%s event_id=%s",
                 WatchOutcome.PENDING_WITHOUT_SCRAPE.value,
@@ -798,23 +817,32 @@ def watch_live_event_results() -> WatchResult:
         event = snapshot.get("event") or {}
         event_url = (event.get("url") or "").strip()
         if not event_url:
-            raise RuntimeError(
+            raise PermanentError(
                 f"LiveResultsSource missing event url event_id={event_id}"
             )
 
-        soup = fetch_event_soup(event_url)
-        api_client.renew_lease(event_id, owner_token)
+        soup = call_with_retries(
+            f"fetch_event_soup event_id={event_id}",
+            lambda: fetch_event_soup(event_url),
+        )
+        _renew_lease(event_id, owner_token)
 
         scraped = parse_event_fight_rows(soup)
         plan = compare_card(snapshot.get("fights") or [], scraped)
         _log_comparison_plan(event_id, plan)
 
         apply_cancellations(event_id, plan)
+        _renew_lease(event_id, owner_token)
+
         restore_failures = apply_restorations(event_id, plan)
+        _renew_lease(event_id, owner_token)
+
         transition_pending, transition_failures = apply_completed_transitions(
             event_id,
             plan,
         )
+        _renew_lease(event_id, owner_token)
+
         rescrape_failures = apply_rescrape_handoffs(
             event_id,
             event_url,
@@ -822,6 +850,8 @@ def watch_live_event_results() -> WatchResult:
             scraped,
             snapshot,
         )
+        _renew_lease(event_id, owner_token)
+
         to_drain = _merge_pending_handoffs(
             _pending_fight_stats_handoffs(snapshot),
             transition_pending,
@@ -834,7 +864,7 @@ def watch_live_event_results() -> WatchResult:
             + drain_failures
         )
 
-        api_client.complete_lease(
+        _complete_lease(
             event_id,
             owner_token,
             warnings=plan.warning_summary(),
@@ -855,12 +885,5 @@ def watch_live_event_results() -> WatchResult:
             event_id,
             exc,
         )
-        try:
-            api_client.fail_lease(event_id, owner_token, last_error=str(exc))
-        except Exception:
-            logger.exception(
-                "live_event_results lease_fail_release_failed event_id=%s "
-                "(recoverable via lease expiration)",
-                event_id,
-            )
+        _fail_lease_best_effort(event_id, owner_token, last_error=str(exc))
         raise

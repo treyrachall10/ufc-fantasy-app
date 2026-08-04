@@ -15,6 +15,13 @@ from ufc_data_pipeline.fights.live_event_results.config import (
     PIPELINE_API_BASE_URL,
     PIPELINE_SERVICE_API_KEY,
 )
+from ufc_data_pipeline.fights.live_event_results.retry import (
+    LeaseOwnerLostError,
+    PermanentError,
+    TransportError,
+    is_retryable_status,
+    parse_retry_after,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -22,26 +29,48 @@ _REQUEST_TIMEOUT_S = 60
 
 
 class ApiClientError(RuntimeError):
-    """HTTP API failure with optional status code for retry classification."""
+    """HTTP API failure with status/retry metadata for classification."""
 
-    def __init__(self, message: str, *, status_code: int | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        status_code: int | None = None,
+        retry_after_seconds: float | None = None,
+    ) -> None:
         super().__init__(message)
         self.status_code = status_code
+        self.retry_after_seconds = retry_after_seconds
 
     @property
     def is_conflict(self) -> bool:
         return self.status_code == 409
 
     @property
+    def is_auth_error(self) -> bool:
+        return self.status_code in (401, 403)
+
+    @property
     def is_client_error(self) -> bool:
-        return self.status_code is not None and 400 <= self.status_code < 500
+        """True for non-retryable HTTP 4xx (excludes 408/429)."""
+        if self.status_code is None:
+            return False
+        if is_retryable_status(self.status_code):
+            return False
+        return 400 <= self.status_code < 500
+
+    @property
+    def is_retryable(self) -> bool:
+        if self.status_code is None:
+            return False
+        return is_retryable_status(self.status_code)
 
 
 def _pipeline_headers() -> dict[str, str]:
     if not PIPELINE_API_BASE_URL:
-        raise RuntimeError("PIPELINE_API_BASE_URL is not configured")
+        raise PermanentError("PIPELINE_API_BASE_URL is not configured")
     if not PIPELINE_SERVICE_API_KEY:
-        raise RuntimeError("PIPELINE_SERVICE_API_KEY is not configured")
+        raise PermanentError("PIPELINE_SERVICE_API_KEY is not configured")
     return {
         "Content-Type": "application/json",
         "Authorization": f"Api-Key {PIPELINE_SERVICE_API_KEY}",
@@ -52,72 +81,71 @@ def _base_url() -> str:
     return PIPELINE_API_BASE_URL.rstrip("/")
 
 
-def get_discovery_source() -> dict:
-    """GET DiscoverySource for newest-event selection."""
-    url = f"{_base_url()}/api/events/DiscoverySource"
+def _raise_for_response(response: requests.Response, *, action: str) -> None:
+    if response.ok:
+        return
+    retry_after = parse_retry_after(response.headers.get("Retry-After"))
+    message = (
+        f"API {action} failed status={response.status_code} body={response.text}"
+    )
+    if response.status_code in (401, 403):
+        raise PermanentError(message)
+    if response.status_code == 409:
+        raise LeaseOwnerLostError(message)
+    raise ApiClientError(
+        message,
+        status_code=response.status_code,
+        retry_after_seconds=retry_after,
+    )
+
+
+def _request(method: str, url: str, *, data: str | None = None) -> requests.Response:
     try:
-        response = requests.get(
+        return requests.request(
+            method,
             url,
+            data=data,
             headers=_pipeline_headers(),
             timeout=_REQUEST_TIMEOUT_S,
         )
+    except requests.Timeout as exc:
+        raise TransportError(f"API request timed out: {exc}") from exc
+    except requests.ConnectionError as exc:
+        raise TransportError(f"API connection failed: {exc}") from exc
     except requests.RequestException as exc:
-        raise RuntimeError(f"API request failed: {exc}") from exc
+        raise TransportError(f"API request failed: {exc}") from exc
 
-    if not response.ok:
-        raise RuntimeError(
-            f"API GET failed status={response.status_code} body={response.text}"
-        )
+
+def get_discovery_source() -> dict:
+    """GET DiscoverySource for newest-event selection."""
+    url = f"{_base_url()}/api/events/DiscoverySource"
+    response = _request("GET", url)
+    _raise_for_response(response, action="GET DiscoverySource")
     if not response.content:
-        raise RuntimeError("DiscoverySource returned empty body")
+        raise PermanentError("DiscoverySource returned empty body")
     return response.json()
 
 
 def get_live_results_source(event_id: int) -> dict:
     """GET LiveResultsSource for one event's fights and watcher state."""
     url = f"{_base_url()}/api/events/{event_id}/LiveResultsSource"
-    try:
-        response = requests.get(
-            url,
-            headers=_pipeline_headers(),
-            timeout=_REQUEST_TIMEOUT_S,
-        )
-    except requests.RequestException as exc:
-        raise RuntimeError(f"API request failed: {exc}") from exc
-
+    response = _request("GET", url)
     if response.status_code == 404:
-        raise RuntimeError(f"LiveResultsSource event not found event_id={event_id}")
-    if not response.ok:
-        raise RuntimeError(
-            f"API GET failed status={response.status_code} body={response.text}"
+        raise PermanentError(
+            f"LiveResultsSource event not found event_id={event_id}"
         )
+    _raise_for_response(response, action="GET LiveResultsSource")
     if not response.content:
-        raise RuntimeError("LiveResultsSource returned empty body")
+        raise PermanentError("LiveResultsSource returned empty body")
     return response.json()
 
 
 def _post_lease(event_id: int, action: str, payload: dict[str, Any]) -> dict:
     url = f"{_base_url()}/api/events/{event_id}/LiveResultsLease/{action}"
-    try:
-        response = requests.post(
-            url,
-            data=json.dumps(payload),
-            headers=_pipeline_headers(),
-            timeout=_REQUEST_TIMEOUT_S,
-        )
-    except requests.RequestException as exc:
-        raise RuntimeError(f"API request failed: {exc}") from exc
-
-    if response.status_code == 409:
-        raise RuntimeError(
-            f"Lease {action} conflict status=409 body={response.text}"
-        )
-    if not response.ok:
-        raise RuntimeError(
-            f"API POST failed status={response.status_code} body={response.text}"
-        )
+    response = _request("POST", url, data=json.dumps(payload))
+    _raise_for_response(response, action=f"LiveResultsLease/{action}")
     if not response.content:
-        raise RuntimeError(f"LiveResultsLease/{action} returned empty body")
+        raise PermanentError(f"LiveResultsLease/{action} returned empty body")
     return response.json()
 
 
@@ -159,26 +187,22 @@ def fail_lease(
     )
 
 
-def _post_fight_action(fight_id: int, action: str, payload: dict[str, Any] | None = None) -> dict:
+def _post_fight_action(
+    fight_id: int,
+    action: str,
+    payload: dict[str, Any] | None = None,
+) -> dict:
     url = f"{_base_url()}/api/fights/{fight_id}/{action}"
-    try:
-        response = requests.post(
-            url,
-            data=json.dumps(payload or {}),
-            headers=_pipeline_headers(),
-            timeout=_REQUEST_TIMEOUT_S,
-        )
-    except requests.RequestException as exc:
-        raise RuntimeError(f"API request failed: {exc}") from exc
-
-    if not response.ok:
+    response = _request("POST", url, data=json.dumps(payload or {}))
+    # Fight identity/validation conflicts are permanent, not lease-owner loss.
+    if response.status_code == 409:
         raise ApiClientError(
-            f"API POST {action} failed status={response.status_code} "
-            f"body={response.text}",
-            status_code=response.status_code,
+            f"API POST {action} failed status=409 body={response.text}",
+            status_code=409,
         )
+    _raise_for_response(response, action=action)
     if not response.content:
-        raise RuntimeError(f"{action} returned empty body")
+        raise PermanentError(f"{action} returned empty body")
     return response.json()
 
 
@@ -217,24 +241,15 @@ def _post_event_action(
     payload: dict[str, Any] | None = None,
 ) -> dict:
     url = f"{_base_url()}/api/events/{event_id}/{action}"
-    try:
-        response = requests.post(
-            url,
-            data=json.dumps(payload or {}),
-            headers=_pipeline_headers(),
-            timeout=_REQUEST_TIMEOUT_S,
-        )
-    except requests.RequestException as exc:
-        raise RuntimeError(f"API request failed: {exc}") from exc
-
-    if not response.ok:
+    response = _request("POST", url, data=json.dumps(payload or {}))
+    if response.status_code == 409:
         raise ApiClientError(
-            f"API POST {action} failed status={response.status_code} "
-            f"body={response.text}",
-            status_code=response.status_code,
+            f"API POST {action} failed status=409 body={response.text}",
+            status_code=409,
         )
+    _raise_for_response(response, action=action)
     if not response.content:
-        raise RuntimeError(f"{action} returned empty body")
+        raise PermanentError(f"{action} returned empty body")
     return response.json()
 
 
