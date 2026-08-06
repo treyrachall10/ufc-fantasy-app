@@ -26,6 +26,7 @@ from django.utils import timezone
 from google.cloud import pubsub_v1
 
 from ufc_data_pipeline.models import FightCreationJob
+from ufc_data_pipeline.shared.job_claim import claim_pubsub_job
 from ufc_data_pipeline.worker_settings import (
     idle_check_interval_seconds,
     should_shutdown_for_idle,
@@ -112,30 +113,19 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
         message.ack()
         return
 
-    job = FightCreationJob.objects.filter(pubsub_message_id=message.message_id).first() # get the job by the message id
-
-    # If no job found, create a new one
+    try:
+        job = claim_pubsub_job(
+            model=FightCreationJob,
+            message_id=message.message_id,
+            logical_filters={"event_id": event_id},
+            create_kwargs={"url": url, "event_id": event_id},
+            retry_update_fields={"url": url},
+        )
+    except Exception:
+        logger.exception("Failed to claim FightCreationJob row")
+        message.nack()
+        return
     if job is None:
-        try:
-            job = FightCreationJob.objects.create(
-                pubsub_message_id=message.message_id,
-                ran_at=timezone.now(),
-                status=FightCreationJob.Status.RUNNING,
-                retry_count=0,
-                error_msg="",
-                url=url,
-                event_id=event_id,
-            )
-        except Exception:
-            logger.exception("Failed to create FightCreationJob row")
-            message.nack()
-            return
-
-    # If the job is completed or failed, acknowledge the message
-    if job.status in (
-        FightCreationJob.Status.COMPLETED,
-        FightCreationJob.Status.FAILED,
-    ):
         message.ack()
         return
 

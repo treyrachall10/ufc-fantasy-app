@@ -7,9 +7,6 @@ Environment: ``GOOGLE_CLOUD_PROJECT``, ``PUBSUB_FIGHTER_PROFILE_SUBSCRIPTION``.
 
 All ``ack()`` / ``nack()`` calls happen only from the subscriber ``callback``, as Pub/Sub
 requires.
-
-TODO: Add dedicated fighter profile job status tracking improvements later,
-owned by the fighter profile worker/service (e.g. stronger dedup/idempotency by fighter_id).
 """
 
 from __future__ import annotations
@@ -31,6 +28,7 @@ from ufc_data_pipeline.fighters.fighter_profile.config import (
 )
 from ufc_data_pipeline.fighters.fighter_profile.service import process_fighter_profile
 from ufc_data_pipeline.models import FighterProfileScrapeJob
+from ufc_data_pipeline.shared.job_claim import claim_pubsub_job
 from ufc_data_pipeline.worker_settings import (
     idle_check_interval_seconds,
     should_shutdown_for_idle,
@@ -65,93 +63,17 @@ def ensure_django() -> None:
         _django_ready = True
 
 
-def _debug_log(hypothesis_id: str, location: str, message: str, data: dict) -> None:
-    # #region agent log
-    import time
-    from pathlib import Path
-
-    payload = {
-        "sessionId": "d7790b",
-        "runId": "pre-fix",
-        "hypothesisId": hypothesis_id,
-        "location": location,
-        "message": message,
-        "data": data,
-        "timestamp": int(time.time() * 1000),
-    }
-    log_path = Path(__file__).resolve().parents[4] / "debug-d7790b.log"
-    with log_path.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(payload) + "\n")
-    # #endregion
-
-
 def parse_message_payload(raw: bytes) -> tuple[int, str]:
     """
     Parse the message payload into fighter_id and profile URL.
     Receives raw Pub/Sub bytes and returns fighter_id and fighter_url.
     """
-    raw_text = raw.decode("utf-8")
-    data = json.loads(raw_text)
-    # #region agent log
-    _debug_log(
-        "A,B,C,D,E",
-        "consumer.py:parse_message_payload",
-        "parsed pubsub payload keys",
-        {
-            "raw_preview": raw_text[:500],
-            "raw_len": len(raw_text),
-            "top_level_keys": sorted(data.keys()) if isinstance(data, dict) else type(data).__name__,
-            "has_fighter_id": isinstance(data, dict) and "fighter_id" in data,
-            "has_fighter_url": isinstance(data, dict) and "fighter_url" in data,
-            "has_url": isinstance(data, dict) and "url" in data,
-            "has_profile_url": isinstance(data, dict) and "profile_url" in data,
-            "has_job_id": isinstance(data, dict) and "job_id" in data,
-        },
-    )
-    # #endregion
+    data = json.loads(raw.decode("utf-8"))
     fighter_id = int(data["fighter_id"])
     fighter_url = str(data["fighter_url"]).strip()
     if not fighter_url:
         raise ValueError("fighter_url is empty")
     return fighter_id, fighter_url
-
-
-def _get_or_create_job(fighter_id: int, fighter_url: str) -> FighterProfileScrapeJob | None:
-    """
-    Return a job row to process, or None when a scrape is already in progress.
-
-    Reuses a RETRYING job; creates a new job when none is active (including after COMPLETED).
-    Receives fighter_id and fighter_url; returns a job instance or None.
-    """
-    if FighterProfileScrapeJob.objects.filter(
-        fighter_id=fighter_id,
-        status=FighterProfileScrapeJob.Status.RUNNING,
-    ).exists():
-        return None
-
-    retrying_job = (
-        FighterProfileScrapeJob.objects.filter(
-            fighter_id=fighter_id,
-            status=FighterProfileScrapeJob.Status.RETRYING,
-        )
-        .order_by("-ran_at")
-        .first()
-    )
-    if retrying_job is not None:
-        retrying_job.status = FighterProfileScrapeJob.Status.RUNNING
-        retrying_job.profile_url = fighter_url
-        retrying_job.error_msg = ""
-        retrying_job.save(update_fields=["status", "profile_url", "error_msg"])
-        return retrying_job
-
-    return FighterProfileScrapeJob.objects.create(
-        fighter_id=fighter_id,
-        profile_url=fighter_url,
-        ran_at=timezone.now(),
-        status=FighterProfileScrapeJob.Status.RUNNING,
-        retry_count=0,
-        error_msg="",
-    )
 
 
 def callback(message: pubsub_v1.subscriber.message.Message) -> None:
@@ -165,22 +87,6 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
 
     ensure_django()
 
-    # #region agent log
-    _debug_log(
-        "C,D",
-        "consumer.py:callback",
-        "received pubsub message metadata",
-        {
-            "message_id": message.message_id,
-            "ordering_key": message.ordering_key or "",
-            "attributes": dict(message.attributes) if message.attributes else {},
-            "data_len": len(message.data),
-            "subscription": SUBSCRIPTION_ID,
-            "project": PROJECT_ID,
-        },
-    )
-    # #endregion
-
     # Try to parse the Pub/Sub payload before creating or loading a job row.
     try:
         fighter_id, fighter_url = parse_message_payload(message.data)
@@ -189,12 +95,14 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
         message.ack()
         return
 
-    job = _get_or_create_job(fighter_id, fighter_url)
+    job = claim_pubsub_job(
+        model=FighterProfileScrapeJob,
+        message_id=message.message_id,
+        logical_filters={"fighter_id": fighter_id},
+        create_kwargs={"fighter_id": fighter_id, "profile_url": fighter_url},
+        retry_update_fields={"profile_url": fighter_url},
+    )
     if job is None:
-        logger.info(
-            "Skipping fighter profile scrape; job already running fighter_id=%s",
-            fighter_id,
-        )
         message.ack()
         return
 

@@ -14,7 +14,7 @@ from concurrent.futures import TimeoutError
 from threading import Lock
 from time import monotonic
 
-from django.db import connection, transaction
+from django.db import transaction
 from django.utils import timezone
 from google.cloud import pubsub_v1
 from google.cloud.pubsub_v1 import types
@@ -31,6 +31,7 @@ from ufc_data_pipeline.fantasy.score_fight.config import (
 from ufc_data_pipeline.fantasy.score_fight.scoring import UnscoreableFightError
 from ufc_data_pipeline.fantasy.score_fight.service import process_score_fight
 from ufc_data_pipeline.models import ScoreFightJob
+from ufc_data_pipeline.shared.job_claim import claim_pubsub_job
 from ufc_data_pipeline.worker_settings import (
     idle_check_interval_seconds,
     should_shutdown_for_idle,
@@ -39,7 +40,6 @@ from ufc_data_pipeline.worker_settings import (
 logger = logging.getLogger(__name__)
 
 _STATE_LOCK = Lock()
-_JOB_CLAIM_LOCK = Lock()
 _LAST_MESSAGE_AT = monotonic()
 _django_ready = False
 
@@ -75,52 +75,6 @@ def parse_message_payload(raw: bytes) -> int:
     return fight_id
 
 
-def _get_or_create_job(fight_id: int) -> ScoreFightJob | None:
-    """Claim a new/retrying job; return None when the fight is already running."""
-    # The local lock closes same-process absent-row races during the claim.
-    with _JOB_CLAIM_LOCK, transaction.atomic():
-        if connection.vendor == "postgresql":
-            # The advisory lock closes the same race across worker instances.
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT pg_advisory_xact_lock(hashtext(%s), %s)",
-                    ["score_fight_job", fight_id],
-                )
-
-        if (
-            ScoreFightJob.objects.select_for_update()
-            .filter(
-                fight_id=fight_id,
-                status=ScoreFightJob.Status.RUNNING,
-            )
-            .exists()
-        ):
-            return None
-
-        retrying_job = (
-            ScoreFightJob.objects.select_for_update()
-            .filter(
-                fight_id=fight_id,
-                status=ScoreFightJob.Status.RETRYING,
-            )
-            .order_by("-ran_at")
-            .first()
-        )
-        if retrying_job is not None:
-            retrying_job.status = ScoreFightJob.Status.RUNNING
-            retrying_job.error_msg = ""
-            retrying_job.save(update_fields=["status", "error_msg"])
-            return retrying_job
-
-        return ScoreFightJob.objects.create(
-            fight_id=fight_id,
-            ran_at=timezone.now(),
-            status=ScoreFightJob.Status.RUNNING,
-            retry_count=0,
-            error_msg="",
-        )
-
-
 def _mark_failed(job: ScoreFightJob, error: Exception) -> None:
     """Persist a terminal failure before its message is acknowledged."""
     with transaction.atomic():
@@ -145,10 +99,13 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
         message.ack()
         return
 
-    job = _get_or_create_job(fight_id)
+    job = claim_pubsub_job(
+        model=ScoreFightJob,
+        message_id=message.message_id,
+        logical_filters={"fight_id": fight_id},
+        create_kwargs={"fight_id": fight_id},
+    )
     if job is None:
-        # Another RUNNING job owns this fight, so this delivery is redundant.
-        logger.info("Skipping score-fight job already running fight_id=%s", fight_id)
         message.ack()
         return
 

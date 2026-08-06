@@ -33,6 +33,7 @@ from ufc_data_pipeline.fighters.career_stats.service import (
     publish_score_fight_job,
 )
 from ufc_data_pipeline.models import CareerStatsJob
+from ufc_data_pipeline.shared.job_claim import claim_pubsub_job
 from ufc_data_pipeline.worker_settings import (
     idle_check_interval_seconds,
     should_shutdown_for_idle,
@@ -77,40 +78,6 @@ def parse_message_payload(raw: bytes) -> int:
     return fight_id
 
 
-# Receives fight_id; returns a job instance or None.
-# This function claims work under row locks so concurrent deliveries cannot double-process.
-def _get_or_create_job(fight_id: int) -> CareerStatsJob | None:
-    with transaction.atomic():
-        if CareerStatsJob.objects.select_for_update().filter(
-            fight_id=fight_id,
-            status=CareerStatsJob.Status.RUNNING,
-        ).exists():
-            return None
-
-        retrying_job = (
-            CareerStatsJob.objects.select_for_update()
-            .filter(
-                fight_id=fight_id,
-                status=CareerStatsJob.Status.RETRYING,
-            )
-            .order_by("-ran_at")
-            .first()
-        )
-        if retrying_job is not None:
-            retrying_job.status = CareerStatsJob.Status.RUNNING
-            retrying_job.error_msg = ""
-            retrying_job.save(update_fields=["status", "error_msg"])
-            return retrying_job
-
-        return CareerStatsJob.objects.create(
-            fight_id=fight_id,
-            ran_at=timezone.now(),
-            status=CareerStatsJob.Status.RUNNING,
-            retry_count=0,
-            error_msg="",
-        )
-
-
 # Receives a Pub/Sub message and returns nothing.
 # This function owns payload parse, job lifecycle, service invocation, and ack/nack.
 def callback(message: pubsub_v1.subscriber.message.Message) -> None:
@@ -128,12 +95,13 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
         message.ack()
         return
 
-    job = _get_or_create_job(fight_id)
+    job = claim_pubsub_job(
+        model=CareerStatsJob,
+        message_id=message.message_id,
+        logical_filters={"fight_id": fight_id},
+        create_kwargs={"fight_id": fight_id},
+    )
     if job is None:
-        logger.info(
-            "Skipping career stats job; already running fight_id=%s",
-            fight_id,
-        )
         message.ack()
         return
 
@@ -178,7 +146,7 @@ def run_subscriber() -> None:
 
     subscriber = pubsub_v1.SubscriberClient()
     subscription_path = subscriber.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
-    # Cap concurrent callbacks; same-fight_id dedup is enforced by select_for_update job claims.
+    # Cap concurrent callbacks; same-fight_id dedup is enforced by job claims + DB constraints.
     flow_control = types.FlowControl(max_messages=MAX_MESSAGES)
     streaming_pull_future = subscriber.subscribe(
         subscription_path,

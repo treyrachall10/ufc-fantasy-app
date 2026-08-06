@@ -33,6 +33,7 @@ from ufc_data_pipeline.fights.fight_stats.service import (
     publish_career_stats_job,
 )
 from ufc_data_pipeline.models import FightStatsScrapeJob
+from ufc_data_pipeline.shared.job_claim import claim_pubsub_job
 from ufc_data_pipeline.shared.ufcstats_urls import normalize_ufcstats_url
 from ufc_data_pipeline.worker_settings import (
     idle_check_interval_seconds,
@@ -79,40 +80,18 @@ def parse_message_payload(raw: bytes) -> tuple[int, str]:
     return fight_id, fight_url
 
 
-# Receives fight_id and fight_url; returns a job instance or None.
-# This function claims work under row locks so concurrent deliveries cannot double-scrape.
-def _get_or_create_job(fight_id: int, fight_url: str) -> FightStatsScrapeJob | None:
-    with transaction.atomic():
-        if FightStatsScrapeJob.objects.select_for_update().filter(
-            fight_id=fight_id,
-            status=FightStatsScrapeJob.Status.RUNNING,
-        ).exists():
-            return None
-
-        retrying_job = (
-            FightStatsScrapeJob.objects.select_for_update()
-            .filter(
-                fight_id=fight_id,
-                status=FightStatsScrapeJob.Status.RETRYING,
-            )
-            .order_by("-ran_at")
-            .first()
-        )
-        if retrying_job is not None:
-            retrying_job.status = FightStatsScrapeJob.Status.RUNNING
-            retrying_job.fight_url = fight_url
-            retrying_job.error_msg = ""
-            retrying_job.save(update_fields=["status", "fight_url", "error_msg"])
-            return retrying_job
-
-        return FightStatsScrapeJob.objects.create(
-            fight_id=fight_id,
-            fight_url=fight_url,
-            ran_at=timezone.now(),
-            status=FightStatsScrapeJob.Status.RUNNING,
-            retry_count=0,
-            error_msg="",
-        )
+# Receives fight_id, fight_url, and message_id; returns a job instance or None.
+# This function claims work under row locks / constraints so duplicates cannot double-scrape.
+def _get_or_create_job(
+    fight_id: int, fight_url: str, message_id: str
+) -> FightStatsScrapeJob | None:
+    return claim_pubsub_job(
+        model=FightStatsScrapeJob,
+        message_id=message_id,
+        logical_filters={"fight_id": fight_id},
+        create_kwargs={"fight_id": fight_id, "fight_url": fight_url},
+        retry_update_fields={"fight_url": fight_url},
+    )
 
 
 # Receives a Pub/Sub message and returns nothing.
@@ -132,12 +111,8 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
         message.ack()
         return
 
-    job = _get_or_create_job(fight_id, fight_url)
+    job = _get_or_create_job(fight_id, fight_url, message.message_id)
     if job is None:
-        logger.info(
-            "Skipping fight stats scrape; job already running fight_id=%s",
-            fight_id,
-        )
         message.ack()
         return
 
@@ -182,7 +157,7 @@ def run_subscriber() -> None:
 
     subscriber = pubsub_v1.SubscriberClient()
     subscription_path = subscriber.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
-    # Cap concurrent callbacks; same-fight_id dedup is enforced by select_for_update job claims.
+    # Cap concurrent callbacks; same-fight_id dedup is enforced by job claims + DB constraints.
     flow_control = types.FlowControl(max_messages=MAX_MESSAGES)
     streaming_pull_future = subscriber.subscribe(
         subscription_path,

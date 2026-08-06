@@ -15,14 +15,16 @@ from ufc_data_pipeline.models import ScoreFightJob
 
 
 class ScoreFightConsumerTests(TestCase):
-    def _message(self, payload: dict) -> MagicMock:
+    def _message(self, payload: dict, *, message_id: str = "msg-1") -> MagicMock:
         message = MagicMock()
         message.data = json.dumps(payload).encode("utf-8")
+        message.message_id = message_id
         return message
 
     def test_invalid_payload_is_acked_without_job(self) -> None:
         message = MagicMock()
         message.data = b"not-json"
+        message.message_id = "bad"
 
         consumer.callback(message)
 
@@ -48,6 +50,7 @@ class ScoreFightConsumerTests(TestCase):
 
         job = ScoreFightJob.objects.get(fight_id=42)
         self.assertEqual(job.status, ScoreFightJob.Status.COMPLETED)
+        self.assertEqual(job.pubsub_message_id, "msg-1")
         self.assertIsNotNone(job.completed_at)
         process_mock.assert_called_once_with(42)
         message.ack.assert_called_once()
@@ -66,13 +69,36 @@ class ScoreFightConsumerTests(TestCase):
     @patch(
         "ufc_data_pipeline.fantasy.score_fight.consumer.process_score_fight"
     )
-    def test_running_job_is_skipped_and_acked(self, process_mock) -> None:
+    def test_same_message_id_redelivery_after_completed_acks_without_reprocessing(
+        self, process_mock
+    ) -> None:
+        ScoreFightJob.objects.create(
+            fight_id=10,
+            ran_at=timezone.now(),
+            status=ScoreFightJob.Status.COMPLETED,
+            pubsub_message_id="msg-same",
+        )
+        message = self._message({"fight_id": 10}, message_id="msg-same")
+
+        consumer.callback(message)
+
+        process_mock.assert_not_called()
+        message.ack.assert_called_once()
+        self.assertEqual(ScoreFightJob.objects.filter(fight_id=10).count(), 1)
+
+    @patch(
+        "ufc_data_pipeline.fantasy.score_fight.consumer.process_score_fight"
+    )
+    def test_different_message_id_while_running_acks_without_creating(
+        self, process_mock
+    ) -> None:
         ScoreFightJob.objects.create(
             fight_id=6,
             ran_at=timezone.now(),
             status=ScoreFightJob.Status.RUNNING,
+            pubsub_message_id="msg-a",
         )
-        message = self._message({"fight_id": 6})
+        message = self._message({"fight_id": 6}, message_id="msg-b")
 
         consumer.callback(message)
 
@@ -91,8 +117,9 @@ class ScoreFightConsumerTests(TestCase):
             status=ScoreFightJob.Status.RETRYING,
             retry_count=1,
             error_msg="temporary",
+            pubsub_message_id="msg-retry",
         )
-        message = self._message({"fight_id": 5})
+        message = self._message({"fight_id": 5}, message_id="msg-retry")
 
         consumer.callback(message)
 
@@ -108,16 +135,17 @@ class ScoreFightConsumerTests(TestCase):
         "ufc_data_pipeline.fantasy.score_fight.consumer.process_score_fight"
     )
     def test_completed_and_failed_jobs_allow_new_runs(self, process_mock) -> None:
-        for fight_id, status in (
-            (50, ScoreFightJob.Status.COMPLETED),
-            (51, ScoreFightJob.Status.FAILED),
+        for fight_id, status, old_msg, new_msg in (
+            (50, ScoreFightJob.Status.COMPLETED, "msg-c-old", "msg-c-new"),
+            (51, ScoreFightJob.Status.FAILED, "msg-f-old", "msg-f-new"),
         ):
             ScoreFightJob.objects.create(
                 fight_id=fight_id,
                 ran_at=timezone.now(),
                 status=status,
+                pubsub_message_id=old_msg,
             )
-            message = self._message({"fight_id": fight_id})
+            message = self._message({"fight_id": fight_id}, message_id=new_msg)
 
             consumer.callback(message)
 
@@ -174,8 +202,9 @@ class ScoreFightConsumerTests(TestCase):
             ran_at=timezone.now(),
             status=ScoreFightJob.Status.RETRYING,
             retry_count=2,
+            pubsub_message_id="msg-max",
         )
-        message = self._message({"fight_id": 4})
+        message = self._message({"fight_id": 4}, message_id="msg-max")
 
         consumer.callback(message)
 
