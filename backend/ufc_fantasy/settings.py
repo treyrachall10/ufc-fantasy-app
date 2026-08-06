@@ -77,7 +77,10 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
 ]
 
-ROOT_URLCONF = 'ufc_fantasy.urls'
+from ufc_fantasy.service_routing import resolve_root_urlconf
+
+ROOT_URLCONF = resolve_root_urlconf(os.environ.get("SERVICE_TYPE"))
+
 
 TEMPLATES = [
     {
