@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import Q
+
 
 class BaseJobModel(models.Model):
     """Base model for all job models."""
@@ -22,10 +24,15 @@ class BaseJobModel(models.Model):
     class Meta:
         abstract = True
 
+
+_ACTIVE_JOB_STATUS_Q = Q(status__in=["PENDING", "RUNNING", "RETRYING"])
+
+
 class EventSyncJob(BaseJobModel):
     """Tracks a UFC Stats completed-events listing scrape/sync run."""
     class Meta:
         db_table = "event_sync_job"
+
 
 class FightCreationJob(BaseJobModel):
     """Tracks a UFC Stats fights creation run (one Pub/Sub delivery per logical job)."""
@@ -46,11 +53,25 @@ class FightCreationJob(BaseJobModel):
 
     class Meta:
         db_table = "fight_creation_job"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event_id"],
+                condition=_ACTIVE_JOB_STATUS_Q,
+                name="uniq_fight_creation_active_event",
+            ),
+        ]
 
 
 class FighterProfileScrapeJob(BaseJobModel):
     """Tracks a UFC Stats fighter profile scrape run."""
 
+    pubsub_message_id = models.CharField(
+        max_length=256,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="GCP Pub/Sub message_id so redeliveries map to one job row.",
+    )
     fighter_id = models.PositiveIntegerField()
     profile_url = models.CharField(max_length=512)
     status = models.CharField(
@@ -64,11 +85,25 @@ class FighterProfileScrapeJob(BaseJobModel):
         indexes = [
             models.Index(fields=["fighter_id", "status"]),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["fighter_id"],
+                condition=_ACTIVE_JOB_STATUS_Q,
+                name="uniq_fighter_profile_active_fighter",
+            ),
+        ]
 
 
 class FightStatsScrapeJob(BaseJobModel):
     """Tracks a UFC Stats fight detail stats scrape run."""
 
+    pubsub_message_id = models.CharField(
+        max_length=256,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="GCP Pub/Sub message_id so redeliveries map to one job row.",
+    )
     fight_id = models.PositiveIntegerField()
     fight_url = models.CharField(max_length=512)
 
@@ -77,11 +112,25 @@ class FightStatsScrapeJob(BaseJobModel):
         indexes = [
             models.Index(fields=["fight_id", "status"]),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["fight_id"],
+                condition=_ACTIVE_JOB_STATUS_Q,
+                name="uniq_fight_stats_active_fight",
+            ),
+        ]
 
 
 class CareerStatsJob(BaseJobModel):
     """Tracks a fighter career-stats recalculation run triggered by a fight."""
 
+    pubsub_message_id = models.CharField(
+        max_length=256,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="GCP Pub/Sub message_id so redeliveries map to one job row.",
+    )
     fight_id = models.PositiveIntegerField()
 
     class Meta:
@@ -89,17 +138,38 @@ class CareerStatsJob(BaseJobModel):
         indexes = [
             models.Index(fields=["fight_id", "status"]),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["fight_id"],
+                condition=_ACTIVE_JOB_STATUS_Q,
+                name="uniq_career_stats_active_fight",
+            ),
+        ]
 
 
 class ScoreFightJob(BaseJobModel):
     """Tracks one fantasy scoring run for a fight."""
 
+    pubsub_message_id = models.CharField(
+        max_length=256,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="GCP Pub/Sub message_id so redeliveries map to one job row.",
+    )
     fight_id = models.PositiveIntegerField()
 
     class Meta:
         db_table = "score_fight_job"
         indexes = [
             models.Index(fields=["fight_id", "status"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["fight_id"],
+                condition=_ACTIVE_JOB_STATUS_Q,
+                name="uniq_score_fight_active_fight",
+            ),
         ]
 
 
