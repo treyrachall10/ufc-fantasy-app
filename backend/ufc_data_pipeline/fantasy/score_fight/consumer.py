@@ -14,24 +14,19 @@ from concurrent.futures import TimeoutError
 from threading import Lock
 from time import monotonic
 
-from django.db import transaction
-from django.utils import timezone
 from google.cloud import pubsub_v1
 from google.cloud.pubsub_v1 import types
 
-from ufc_data_pipeline.fantasy.score_fight.api_client import (
-    ScoringSourceUnscoreableError,
+from ufc_data_pipeline.fantasy.score_fight.api.resolver import (
+    resolve_score_fight_message,
 )
 from ufc_data_pipeline.fantasy.score_fight.config import (
     MAX_MESSAGES,
-    MAX_RETRY_COUNT,
     PROJECT_ID,
     SUBSCRIPTION_ID,
 )
-from ufc_data_pipeline.fantasy.score_fight.scoring import UnscoreableFightError
-from ufc_data_pipeline.fantasy.score_fight.service import process_score_fight
-from ufc_data_pipeline.models import ScoreFightJob
-from ufc_data_pipeline.shared.job_claim import claim_pubsub_job
+from ufc_data_pipeline.shared.delivery_result import DeliveryResult
+from ufc_data_pipeline.shared.payload_validation import PayloadValidationError
 from ufc_data_pipeline.worker_settings import (
     idle_check_interval_seconds,
     should_shutdown_for_idle,
@@ -62,92 +57,37 @@ def ensure_django() -> None:
         _django_ready = True
 
 
-def parse_message_payload(raw: bytes) -> int:
-    """Parse a message containing one positive integer fight_id."""
-    data = json.loads(raw.decode("utf-8"))
-    if not isinstance(data, dict):
-        raise ValueError("payload must be a JSON object")
-    fight_id = data["fight_id"]
-    if isinstance(fight_id, bool) or not isinstance(fight_id, int):
-        raise ValueError("fight_id must be an integer")
-    if fight_id <= 0:
-        raise ValueError("fight_id must be a positive integer")
-    return fight_id
-
-
-def _mark_failed(job: ScoreFightJob, error: Exception) -> None:
-    """Persist a terminal failure before its message is acknowledged."""
-    with transaction.atomic():
-        job.retry_count += 1
-        job.status = ScoreFightJob.Status.FAILED
-        job.error_msg = str(error)
-        job.save(update_fields=["retry_count", "status", "error_msg"])
-
-
 def callback(message: pubsub_v1.subscriber.message.Message) -> None:
-    """Parse, claim, process, update status, then ack or nack one message."""
+    """Decode payload, delegate to resolver, then ack or nack one message."""
     global _LAST_MESSAGE_AT
     with _STATE_LOCK:
         _LAST_MESSAGE_AT = monotonic()
 
     ensure_django()
+
     try:
-        fight_id = parse_message_payload(message.data)
-    except (UnicodeDecodeError, json.JSONDecodeError, KeyError, ValueError, TypeError) as exc:
-        # Invalid payloads cannot succeed on retry, so drop them.
+        payload = json.loads(message.data.decode("utf-8"))
+        if not isinstance(payload, dict):
+            raise PayloadValidationError("payload must be a JSON object")
+        result = resolve_score_fight_message(message.message_id, payload)
+    except (
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        PayloadValidationError,
+        TypeError,
+    ) as exc:
         logger.warning("Invalid score-fight payload; acknowledging: %s", exc)
         message.ack()
         return
-
-    job = claim_pubsub_job(
-        model=ScoreFightJob,
-        message_id=message.message_id,
-        logical_filters={"fight_id": fight_id},
-        create_kwargs={"fight_id": fight_id},
-    )
-    if job is None:
-        message.ack()
+    except Exception:
+        logger.exception("Unexpected error in score-fight pull callback")
+        message.nack()
         return
 
-    try:
-        process_score_fight(fight_id)
-        with transaction.atomic():
-            job.status = ScoreFightJob.Status.COMPLETED
-            job.completed_at = timezone.now()
-            job.error_msg = ""
-            job.save(update_fields=["status", "completed_at", "error_msg"])
+    if result is DeliveryResult.RETRY:
+        message.nack()
+    else:
         message.ack()
-    except (ScoringSourceUnscoreableError, UnscoreableFightError) as exc:
-        # Unscoreable outcomes are permanent, so fail once and do not redeliver.
-        logger.warning(
-            "Score-fight job is permanently unscoreable job_id=%s fight_id=%s: %s",
-            job.pk,
-            fight_id,
-            exc,
-        )
-        _mark_failed(job, exc)
-        message.ack()
-    except Exception as exc:
-        logger.exception(
-            "Score-fight job failed job_id=%s fight_id=%s",
-            job.pk,
-            fight_id,
-        )
-        with transaction.atomic():
-            job.retry_count += 1
-            job.error_msg = str(exc)
-            if job.retry_count >= MAX_RETRY_COUNT:
-                # Exhausted failures are terminal, so save FAILED before ack.
-                job.status = ScoreFightJob.Status.FAILED
-            else:
-                # Transient/incomplete failures retain the job and request redelivery.
-                job.status = ScoreFightJob.Status.RETRYING
-            job.save(update_fields=["retry_count", "error_msg", "status"])
-
-        if job.status == ScoreFightJob.Status.FAILED:
-            message.ack()
-        else:
-            message.nack()
 
 
 def run_subscriber() -> None:

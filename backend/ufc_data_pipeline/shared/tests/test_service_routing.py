@@ -24,18 +24,17 @@ def test_unsupported_service_type_fails_fast() -> None:
         resolve_root_urlconf("not-a-real-service")
 
 
-def test_worker_service_types_not_registered_yet() -> None:
-    """Issue 001 only registers api; worker roles arrive in later slices."""
-    for worker in (
-        "fights_in_event",
-        "fighter_profile",
-        "fight_stats",
-        "career_stats",
-        "score_fight",
-        "pipeline",
-    ):
-        with pytest.raises(ValueError, match="Unsupported SERVICE_TYPE"):
-            resolve_root_urlconf(worker)
+def test_worker_service_types_resolve_to_dedicated_urlconfs() -> None:
+    assert resolve_root_urlconf("fights_in_event") == "ufc_fantasy.fights_in_event_urls"
+    assert resolve_root_urlconf("fighter_profile") == "ufc_fantasy.fighter_profile_urls"
+    assert resolve_root_urlconf("fight_stats") == "ufc_fantasy.fight_stats_urls"
+    assert resolve_root_urlconf("career_stats") == "ufc_fantasy.career_stats_urls"
+    assert resolve_root_urlconf("score_fight") == "ufc_fantasy.score_fight_urls"
+
+
+def test_unknown_service_type_still_fails_fast() -> None:
+    with pytest.raises(ValueError, match="Unsupported SERVICE_TYPE"):
+        resolve_root_urlconf("pipeline")
 
 
 def test_public_urlconf_module_is_api_only() -> None:

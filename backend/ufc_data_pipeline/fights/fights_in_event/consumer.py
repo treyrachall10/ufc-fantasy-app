@@ -1,5 +1,5 @@
 """
-Subscribe to Pub/Sub fight-in-event jobs: fetch event HTML, parse fights, persist rows.
+Subscribe to Pub/Sub fight-in-event jobs: thin transport adapter over resolver/processor.
 
 Expects message JSON: ``{"url": "<event page URL>", "event_id": <int>}``.
 
@@ -17,27 +17,23 @@ import os
 from threading import Lock
 from time import monotonic
 from concurrent.futures import TimeoutError
-from playwright.sync_api import sync_playwright
 
 import requests
 from bs4 import BeautifulSoup
-from django.db import transaction
-from django.utils import timezone
 from google.cloud import pubsub_v1
 
-from ufc_data_pipeline.models import FightCreationJob
-from ufc_data_pipeline.shared.job_claim import claim_pubsub_job
+from ufc_data_pipeline.shared.delivery_result import DeliveryResult
+from ufc_data_pipeline.shared.payload_validation import PayloadValidationError
 from ufc_data_pipeline.worker_settings import (
     idle_check_interval_seconds,
     should_shutdown_for_idle,
 )
 
-from .service import process_fights_in_event
+from .api.resolver import resolve_fights_in_event_message
 
 logger = logging.getLogger(__name__)
 
 _REQUEST_TIMEOUT_S = 60
-_MAX_RETRY_COUNT_BEFORE_FAIL = 3
 
 project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
 subscription_id = os.getenv("PUBSUB_FIGHTS_IN_EVENT_SUBSCRIPTION")
@@ -62,30 +58,6 @@ def ensure_django() -> None:
         _django_ready = True
 
 
-def parse_message_payload(raw: bytes) -> tuple[str, int]:
-    """
-    Parse the message payload into a URL and event ID.
-
-    Optional ``reason`` / ``fingerprint`` metadata is ignored for processing and
-    kept backward compatible with Event Watcher payloads.
-    """
-    data = json.loads(raw.decode("utf-8"))
-    url = str(data["url"]).strip()
-    event_id = int(data["event_id"])
-    if not url:
-        raise ValueError("url is empty")
-    reason = data.get("reason")
-    fingerprint = data.get("fingerprint")
-    if reason or fingerprint:
-        logger.info(
-            "fights_in_event payload metadata event_id=%s reason=%s fingerprint=%s",
-            event_id,
-            reason,
-            fingerprint,
-        )
-    return url, event_id
-
-
 def fetch_soup(url: str) -> BeautifulSoup:
     """
     Fetch the soup from the event page.
@@ -99,81 +71,32 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
     """
     Callback function to handle the message from Pub/Sub.
     """
-    global _LAST_MESSAGE_AT # update the last message at time
+    global _LAST_MESSAGE_AT
     with _STATE_LOCK:
-        _LAST_MESSAGE_AT = monotonic() # update the last message at time
+        _LAST_MESSAGE_AT = monotonic()
 
     ensure_django()
 
-    # parse the message payload
     try:
-        url, event_id = parse_message_payload(message.data) # parse the message payload
-    except (json.JSONDecodeError, KeyError, ValueError, TypeError) as exc:
+        payload = json.loads(message.data.decode("utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("payload must be a JSON object")
+    except (json.JSONDecodeError, UnicodeDecodeError, ValueError, TypeError) as exc:
         logger.exception("Invalid Pub/Sub payload; acknowledging to drop message: %s", exc)
         message.ack()
         return
 
     try:
-        job = claim_pubsub_job(
-            model=FightCreationJob,
-            message_id=message.message_id,
-            logical_filters={"event_id": event_id},
-            create_kwargs={"url": url, "event_id": event_id},
-            retry_update_fields={"url": url},
-        )
-    except Exception:
-        logger.exception("Failed to claim FightCreationJob row")
-        message.nack()
-        return
-    if job is None:
+        result = resolve_fights_in_event_message(message.message_id, payload)
+    except PayloadValidationError as exc:
+        logger.exception("Invalid Pub/Sub payload; acknowledging to drop message: %s", exc)
         message.ack()
         return
 
-    try:
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.launch()
-
-            # Try to scrape the fights in the event
-            try:
-                # Navigate to the UFC stats page.
-                page = browser.new_page()
-                page.goto(job.url, timeout=_REQUEST_TIMEOUT_S * 1000)
-                # Wait for the table rows that indicate the page is fully rendered.
-                page.wait_for_selector(".b-fight-details__table-row", timeout=_REQUEST_TIMEOUT_S * 1000)
-                html = page.content()
-                soup = BeautifulSoup(html, "html.parser")
-
-            finally:
-                browser.close()
-
-        # Reconciliation commits before required downstream publications. Any
-        # publication failure propagates so this delivery can be retried safely.
-        process_fights_in_event(soup, job.event_id)
-
-        with transaction.atomic():
-            job.status = FightCreationJob.Status.COMPLETED # set the job status to completed
-            job.completed_at = timezone.now() # set the completed at to current time
-            job.error_msg = "" # set the error message to empty
-            job.save(update_fields=["status", "completed_at", "error_msg"]) # save the job
-
-        message.ack() # acknowledge the message
-
-    # If there is an error, set the job status to retrying or failed
-    except Exception as exc:
-        err_text = str(exc) # get the error text
-        logger.exception("Fight creation failed for job id=%s", job.pk)
-        job.retry_count += 1
-        job.error_msg = err_text # set the error message to the error text
-        # If the retry count is greater than or equal to the maximum retry count, set the job status to failed
-        if job.retry_count >= _MAX_RETRY_COUNT_BEFORE_FAIL:
-            job.status = FightCreationJob.Status.FAILED
-            job.save(update_fields=["retry_count", "error_msg", "status"])
-            message.ack()
-        # If the retry count is less than the maximum retry count, set the job status to retrying, send the message back to the subscriber
-        else:
-            job.status = FightCreationJob.Status.RETRYING
-            job.save(update_fields=["retry_count", "error_msg", "status"])
-            message.nack()
+    if result == DeliveryResult.ACKNOWLEDGE:
+        message.ack()
+    else:
+        message.nack()
 
 
 def run_subscriber() -> None:
@@ -187,10 +110,10 @@ def run_subscriber() -> None:
             "GOOGLE_CLOUD_PROJECT and PUBSUB_FIGHTS_IN_EVENT_SUBSCRIPTION must be set."
         )
 
-    subscriber = pubsub_v1.SubscriberClient() # create a subscriber client
-    subscription_path = subscriber.subscription_path(project_id, subscription_id) # create a subscription path
-    
-    streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback) # subscribe to the subscription
+    subscriber = pubsub_v1.SubscriberClient()
+    subscription_path = subscriber.subscription_path(project_id, subscription_id)
+
+    streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback)
     logger.info("Listening on %s", subscription_path)
 
     with subscriber:

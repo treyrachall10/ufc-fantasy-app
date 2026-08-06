@@ -120,6 +120,7 @@ class ScoreFightIntegrationTests(TestCase):
         self.assertEqual(published_payloads, [{"fight_id": fight_id}])
         message = MagicMock()
         message.data = json.dumps(published_payloads[0]).encode("utf-8")
+        message.message_id = "integration-message"
         consumer.callback(message)
         return message
 

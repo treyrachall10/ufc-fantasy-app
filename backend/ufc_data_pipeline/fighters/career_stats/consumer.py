@@ -17,23 +17,19 @@ from concurrent.futures import TimeoutError
 from threading import Lock
 from time import monotonic
 
-from django.db import transaction
-from django.utils import timezone
 from google.cloud import pubsub_v1
 from google.cloud.pubsub_v1 import types
 
+from ufc_data_pipeline.fighters.career_stats.api.resolver import (
+    resolve_career_stats_message,
+)
 from ufc_data_pipeline.fighters.career_stats.config import (
     MAX_MESSAGES,
-    MAX_RETRY_COUNT,
     PROJECT_ID,
     SUBSCRIPTION_ID,
 )
-from ufc_data_pipeline.fighters.career_stats.service import (
-    process_career_stats,
-    publish_score_fight_job,
-)
-from ufc_data_pipeline.models import CareerStatsJob
-from ufc_data_pipeline.shared.job_claim import claim_pubsub_job
+from ufc_data_pipeline.shared.delivery_result import DeliveryResult
+from ufc_data_pipeline.shared.payload_validation import PayloadValidationError
 from ufc_data_pipeline.worker_settings import (
     idle_check_interval_seconds,
     should_shutdown_for_idle,
@@ -68,18 +64,8 @@ def ensure_django() -> None:
         _django_ready = True
 
 
-# Receives raw Pub/Sub bytes and returns fight_id.
-# This function validates the message payload before a job row is created.
-def parse_message_payload(raw: bytes) -> int:
-    data = json.loads(raw.decode("utf-8"))
-    fight_id = int(data["fight_id"])
-    if fight_id <= 0:
-        raise ValueError("fight_id must be a positive integer")
-    return fight_id
-
-
 # Receives a Pub/Sub message and returns nothing.
-# This function owns payload parse, job lifecycle, service invocation, and ack/nack.
+# This function decodes the payload, delegates to the resolver, and ack/nacks.
 def callback(message: pubsub_v1.subscriber.message.Message) -> None:
     global _LAST_MESSAGE_AT
     with _STATE_LOCK:
@@ -87,52 +73,29 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
 
     ensure_django()
 
-    # Try to parse the Pub/Sub payload before creating or loading a job row.
     try:
-        fight_id = parse_message_payload(message.data)
-    except (json.JSONDecodeError, KeyError, ValueError, TypeError) as exc:
+        payload = json.loads(message.data.decode("utf-8"))
+        if not isinstance(payload, dict):
+            raise PayloadValidationError("payload must be a JSON object")
+        result = resolve_career_stats_message(message.message_id, payload)
+    except (
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        PayloadValidationError,
+        TypeError,
+    ) as exc:
         logger.exception("Invalid Pub/Sub payload; acknowledging to drop message: %s", exc)
         message.ack()
         return
-
-    job = claim_pubsub_job(
-        model=CareerStatsJob,
-        message_id=message.message_id,
-        logical_filters={"fight_id": fight_id},
-        create_kwargs={"fight_id": fight_id},
-    )
-    if job is None:
-        message.ack()
+    except Exception:
+        logger.exception("Unexpected error in career-stats pull callback")
+        message.nack()
         return
 
-    # Try to recalculate career stats for fighters on the triggering fight.
-    try:
-        process_career_stats(fight_id)
-        with transaction.atomic():
-            job.status = CareerStatsJob.Status.COMPLETED
-            job.completed_at = timezone.now()
-            job.error_msg = ""
-            job.save(update_fields=["status", "completed_at", "error_msg"])
-        # Publish after the COMPLETED status commits so failures do not enqueue score-fight work.
-        publish_score_fight_job(fight_id)
+    if result is DeliveryResult.RETRY:
+        message.nack()
+    else:
         message.ack()
-    except Exception as exc:
-        err_text = str(exc)
-        logger.exception(
-            "Career stats job failed for job id=%s fight_id=%s",
-            job.pk,
-            fight_id,
-        )
-        job.retry_count += 1
-        job.error_msg = err_text
-        if job.retry_count >= MAX_RETRY_COUNT:
-            job.status = CareerStatsJob.Status.FAILED
-            job.save(update_fields=["retry_count", "error_msg", "status"])
-            message.ack()
-        else:
-            job.status = CareerStatsJob.Status.RETRYING
-            job.save(update_fields=["retry_count", "error_msg", "status"])
-            message.nack()
 
 
 # Receives no parameters and returns nothing.

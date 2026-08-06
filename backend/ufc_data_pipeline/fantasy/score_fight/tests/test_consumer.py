@@ -1,75 +1,45 @@
-"""Tests for score-fight Pub/Sub consumer behavior."""
+"""Tests for score-fight message processor, resolver, and push view behavior."""
 
+import base64
 import json
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase
+from django.test import Client, TestCase, override_settings
 from django.utils import timezone
 
-from ufc_data_pipeline.fantasy.score_fight import consumer
+from ufc_data_pipeline.fantasy.score_fight.api.resolver import (
+    resolve_score_fight_message,
+)
 from ufc_data_pipeline.fantasy.score_fight.api_client import (
     ScoringSourceIncompleteError,
     ScoringSourceUnscoreableError,
 )
+from ufc_data_pipeline.fantasy.score_fight.message_processor import (
+    process_score_fight_message,
+)
 from ufc_data_pipeline.models import ScoreFightJob
+from ufc_data_pipeline.shared.delivery_result import DeliveryResult
+from ufc_data_pipeline.shared.payload_validation import PayloadValidationError
 
 
-class ScoreFightConsumerTests(TestCase):
-    def _message(self, payload: dict, *, message_id: str = "msg-1") -> MagicMock:
-        message = MagicMock()
-        message.data = json.dumps(payload).encode("utf-8")
-        message.message_id = message_id
-        return message
-
-    def test_invalid_payload_is_acked_without_job(self) -> None:
-        message = MagicMock()
-        message.data = b"not-json"
-        message.message_id = "bad"
-
-        consumer.callback(message)
-
-        message.ack.assert_called_once()
-        message.nack.assert_not_called()
-        self.assertEqual(ScoreFightJob.objects.count(), 0)
-
+class ScoreFightMessageProcessorTests(TestCase):
     @patch(
-        "ufc_data_pipeline.fantasy.score_fight.consumer.process_score_fight"
+        "ufc_data_pipeline.fantasy.score_fight.message_processor.process_score_fight"
     )
-    def test_success_marks_completed_before_ack(self, process_mock) -> None:
-        message = self._message({"fight_id": 42})
-        status_at_ack: list[str] = []
-
-        def capture_status() -> None:
-            status_at_ack.append(
-                ScoreFightJob.objects.get(fight_id=42).status
-            )
-
-        message.ack.side_effect = capture_status
-
-        consumer.callback(message)
+    def test_success_marks_completed_and_acknowledges(self, process_mock) -> None:
+        result = process_score_fight_message("msg-1", 42)
 
         job = ScoreFightJob.objects.get(fight_id=42)
         self.assertEqual(job.status, ScoreFightJob.Status.COMPLETED)
         self.assertEqual(job.pubsub_message_id, "msg-1")
         self.assertIsNotNone(job.completed_at)
         process_mock.assert_called_once_with(42)
-        message.ack.assert_called_once()
-        message.nack.assert_not_called()
-        self.assertEqual(status_at_ack, [ScoreFightJob.Status.COMPLETED])
-
-    def test_non_positive_or_non_integer_fight_id_is_acked(self) -> None:
-        for fight_id in (0, -1, "42", True):
-            with self.subTest(fight_id=fight_id):
-                message = self._message({"fight_id": fight_id})
-                consumer.callback(message)
-                message.ack.assert_called_once()
-                message.nack.assert_not_called()
-        self.assertEqual(ScoreFightJob.objects.count(), 0)
+        self.assertIs(result, DeliveryResult.ACKNOWLEDGE)
 
     @patch(
-        "ufc_data_pipeline.fantasy.score_fight.consumer.process_score_fight"
+        "ufc_data_pipeline.fantasy.score_fight.message_processor.process_score_fight"
     )
-    def test_same_message_id_redelivery_after_completed_acks_without_reprocessing(
+    def test_same_message_id_redelivery_after_completed_acknowledges_without_reprocessing(
         self, process_mock
     ) -> None:
         ScoreFightJob.objects.create(
@@ -78,18 +48,17 @@ class ScoreFightConsumerTests(TestCase):
             status=ScoreFightJob.Status.COMPLETED,
             pubsub_message_id="msg-same",
         )
-        message = self._message({"fight_id": 10}, message_id="msg-same")
 
-        consumer.callback(message)
+        result = process_score_fight_message("msg-same", 10)
 
         process_mock.assert_not_called()
-        message.ack.assert_called_once()
+        self.assertIs(result, DeliveryResult.ACKNOWLEDGE)
         self.assertEqual(ScoreFightJob.objects.filter(fight_id=10).count(), 1)
 
     @patch(
-        "ufc_data_pipeline.fantasy.score_fight.consumer.process_score_fight"
+        "ufc_data_pipeline.fantasy.score_fight.message_processor.process_score_fight"
     )
-    def test_different_message_id_while_running_acks_without_creating(
+    def test_different_message_id_while_running_acknowledges_without_creating(
         self, process_mock
     ) -> None:
         ScoreFightJob.objects.create(
@@ -98,17 +67,15 @@ class ScoreFightConsumerTests(TestCase):
             status=ScoreFightJob.Status.RUNNING,
             pubsub_message_id="msg-a",
         )
-        message = self._message({"fight_id": 6}, message_id="msg-b")
 
-        consumer.callback(message)
+        result = process_score_fight_message("msg-b", 6)
 
         process_mock.assert_not_called()
-        message.ack.assert_called_once()
-        message.nack.assert_not_called()
+        self.assertIs(result, DeliveryResult.ACKNOWLEDGE)
         self.assertEqual(ScoreFightJob.objects.filter(fight_id=6).count(), 1)
 
     @patch(
-        "ufc_data_pipeline.fantasy.score_fight.consumer.process_score_fight"
+        "ufc_data_pipeline.fantasy.score_fight.message_processor.process_score_fight"
     )
     def test_retrying_job_is_reused_and_completed(self, process_mock) -> None:
         job = ScoreFightJob.objects.create(
@@ -119,9 +86,8 @@ class ScoreFightConsumerTests(TestCase):
             error_msg="temporary",
             pubsub_message_id="msg-retry",
         )
-        message = self._message({"fight_id": 5}, message_id="msg-retry")
 
-        consumer.callback(message)
+        result = process_score_fight_message("msg-retry", 5)
 
         job.refresh_from_db()
         self.assertEqual(job.status, ScoreFightJob.Status.COMPLETED)
@@ -129,10 +95,10 @@ class ScoreFightConsumerTests(TestCase):
         self.assertEqual(job.error_msg, "")
         self.assertEqual(ScoreFightJob.objects.filter(fight_id=5).count(), 1)
         process_mock.assert_called_once_with(5)
-        message.ack.assert_called_once()
+        self.assertIs(result, DeliveryResult.ACKNOWLEDGE)
 
     @patch(
-        "ufc_data_pipeline.fantasy.score_fight.consumer.process_score_fight"
+        "ufc_data_pipeline.fantasy.score_fight.message_processor.process_score_fight"
     )
     def test_completed_and_failed_jobs_allow_new_runs(self, process_mock) -> None:
         for fight_id, status, old_msg, new_msg in (
@@ -145,9 +111,8 @@ class ScoreFightConsumerTests(TestCase):
                 status=status,
                 pubsub_message_id=old_msg,
             )
-            message = self._message({"fight_id": fight_id}, message_id=new_msg)
 
-            consumer.callback(message)
+            result = process_score_fight_message(new_msg, fight_id)
 
             self.assertEqual(
                 ScoreFightJob.objects.filter(fight_id=fight_id).count(),
@@ -159,40 +124,38 @@ class ScoreFightConsumerTests(TestCase):
                     status=ScoreFightJob.Status.COMPLETED,
                 ).exists()
             )
-            message.ack.assert_called_once()
+            self.assertIs(result, DeliveryResult.ACKNOWLEDGE)
         self.assertEqual(process_mock.call_count, 2)
 
     @patch(
-        "ufc_data_pipeline.fantasy.score_fight.consumer.process_score_fight"
+        "ufc_data_pipeline.fantasy.score_fight.message_processor.process_score_fight"
     )
     @patch(
-        "ufc_data_pipeline.fantasy.score_fight.consumer.MAX_RETRY_COUNT",
+        "ufc_data_pipeline.fantasy.score_fight.message_processor.MAX_RETRY_COUNT",
         3,
     )
-    def test_retryable_failure_marks_retrying_and_nacks(
+    def test_retryable_failure_marks_retrying_and_returns_retry(
         self,
         process_mock,
     ) -> None:
         process_mock.side_effect = ScoringSourceIncompleteError("not ready")
-        message = self._message({"fight_id": 3})
 
-        consumer.callback(message)
+        result = process_score_fight_message("msg-1", 3)
 
         job = ScoreFightJob.objects.get(fight_id=3)
         self.assertEqual(job.status, ScoreFightJob.Status.RETRYING)
         self.assertEqual(job.retry_count, 1)
         self.assertEqual(job.error_msg, "not ready")
-        message.nack.assert_called_once()
-        message.ack.assert_not_called()
+        self.assertIs(result, DeliveryResult.RETRY)
 
     @patch(
-        "ufc_data_pipeline.fantasy.score_fight.consumer.process_score_fight"
+        "ufc_data_pipeline.fantasy.score_fight.message_processor.process_score_fight"
     )
     @patch(
-        "ufc_data_pipeline.fantasy.score_fight.consumer.MAX_RETRY_COUNT",
+        "ufc_data_pipeline.fantasy.score_fight.message_processor.MAX_RETRY_COUNT",
         3,
     )
-    def test_retry_exhaustion_marks_failed_and_acks(
+    def test_retry_exhaustion_marks_failed_and_acknowledges(
         self,
         process_mock,
     ) -> None:
@@ -204,31 +167,118 @@ class ScoreFightConsumerTests(TestCase):
             retry_count=2,
             pubsub_message_id="msg-max",
         )
-        message = self._message({"fight_id": 4}, message_id="msg-max")
 
-        consumer.callback(message)
+        result = process_score_fight_message("msg-max", 4)
 
         job.refresh_from_db()
         self.assertEqual(job.status, ScoreFightJob.Status.FAILED)
         self.assertEqual(job.retry_count, 3)
-        message.ack.assert_called_once()
-        message.nack.assert_not_called()
+        self.assertIs(result, DeliveryResult.ACKNOWLEDGE)
 
     @patch(
-        "ufc_data_pipeline.fantasy.score_fight.consumer.process_score_fight"
+        "ufc_data_pipeline.fantasy.score_fight.message_processor.process_score_fight"
     )
-    def test_unscoreable_failure_is_immediately_failed_and_acked(
+    def test_unscoreable_failure_is_immediately_failed_and_acknowledged(
         self,
         process_mock,
     ) -> None:
         process_mock.side_effect = ScoringSourceUnscoreableError("no contest")
-        message = self._message({"fight_id": 8})
 
-        consumer.callback(message)
+        result = process_score_fight_message("msg-1", 8)
 
         job = ScoreFightJob.objects.get(fight_id=8)
         self.assertEqual(job.status, ScoreFightJob.Status.FAILED)
         self.assertEqual(job.retry_count, 1)
         self.assertEqual(job.error_msg, "no contest")
-        message.ack.assert_called_once()
-        message.nack.assert_not_called()
+        self.assertIs(result, DeliveryResult.ACKNOWLEDGE)
+
+
+class ScoreFightResolverTests(TestCase):
+    @patch(
+        "ufc_data_pipeline.fantasy.score_fight.api.resolver.process_score_fight_message"
+    )
+    def test_valid_payload_calls_processor(self, processor_mock: MagicMock) -> None:
+        processor_mock.return_value = DeliveryResult.ACKNOWLEDGE
+
+        result = resolve_score_fight_message("msg-1", {"fight_id": 42})
+
+        processor_mock.assert_called_once_with("msg-1", 42)
+        self.assertIs(result, DeliveryResult.ACKNOWLEDGE)
+
+    def test_missing_fight_id_raises(self) -> None:
+        with self.assertRaises(PayloadValidationError):
+            resolve_score_fight_message("msg-1", {})
+
+    def test_non_positive_or_non_integer_fight_id_raises(self) -> None:
+        for fight_id in (0, -1, "42", True):
+            with self.subTest(fight_id=fight_id):
+                with self.assertRaises(PayloadValidationError):
+                    resolve_score_fight_message("msg-1", {"fight_id": fight_id})
+
+
+@override_settings(ROOT_URLCONF="ufc_fantasy.score_fight_urls")
+class ScoreFightPushViewTests(TestCase):
+    def setUp(self) -> None:
+        self.client = Client()
+
+    def _push_body(self, payload: dict, *, message_id: str = "push-msg-1") -> dict:
+        return {
+            "message": {
+                "messageId": message_id,
+                "data": base64.b64encode(json.dumps(payload).encode("utf-8")).decode(
+                    "ascii"
+                ),
+            },
+            "subscription": "projects/local-project/subscriptions/score-fight-jobs-sub",
+        }
+
+    @patch(
+        "ufc_data_pipeline.fantasy.score_fight.api.views.resolve_score_fight_message"
+    )
+    def test_acknowledge_returns_204(self, resolve_mock: MagicMock) -> None:
+        resolve_mock.return_value = DeliveryResult.ACKNOWLEDGE
+
+        response = self.client.post(
+            "/pipeline/pubsub/score-fight/",
+            data=json.dumps(self._push_body({"fight_id": 42})),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 204)
+
+    @patch(
+        "ufc_data_pipeline.fantasy.score_fight.api.views.resolve_score_fight_message"
+    )
+    def test_retry_returns_500(self, resolve_mock: MagicMock) -> None:
+        resolve_mock.return_value = DeliveryResult.RETRY
+
+        response = self.client.post(
+            "/pipeline/pubsub/score-fight/",
+            data=json.dumps(self._push_body({"fight_id": 42})),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 500)
+
+    def test_invalid_envelope_returns_204(self) -> None:
+        response = self.client.post(
+            "/pipeline/pubsub/score-fight/",
+            data=b"not-json",
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 204)
+
+    @patch(
+        "ufc_data_pipeline.fantasy.score_fight.api.views.resolve_score_fight_message"
+    )
+    def test_invalid_payload_returns_204(self, resolve_mock: MagicMock) -> None:
+        resolve_mock.side_effect = PayloadValidationError("fight_id must be an integer")
+
+        response = self.client.post(
+            "/pipeline/pubsub/score-fight/",
+            data=json.dumps(self._push_body({"fight_id": True})),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 204)

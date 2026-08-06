@@ -1,7 +1,7 @@
 """
 Map ``SERVICE_TYPE`` to Django ``ROOT_URLCONF`` modules.
 
-Worker roles are registered by later slices; this module starts with ``api`` only.
+Each non-api role exposes only that worker's Pub/Sub push endpoint.
 """
 
 from __future__ import annotations
@@ -9,6 +9,11 @@ from __future__ import annotations
 # service_type -> dotted URLConf module path
 SERVICE_TYPE_URLCONFS: dict[str, str] = {
     "api": "ufc_fantasy.public_urls",
+    "fights_in_event": "ufc_fantasy.fights_in_event_urls",
+    "fighter_profile": "ufc_fantasy.fighter_profile_urls",
+    "fight_stats": "ufc_fantasy.fight_stats_urls",
+    "career_stats": "ufc_fantasy.career_stats_urls",
+    "score_fight": "ufc_fantasy.score_fight_urls",
 }
 
 

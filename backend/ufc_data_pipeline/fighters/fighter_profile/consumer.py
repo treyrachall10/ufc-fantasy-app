@@ -17,18 +17,14 @@ from concurrent.futures import TimeoutError
 from threading import Lock
 from time import monotonic
 
-from django.db import transaction
-from django.utils import timezone
 from google.cloud import pubsub_v1
 
-from ufc_data_pipeline.fighters.fighter_profile.config import (
-    MAX_RETRY_COUNT,
-    PROJECT_ID,
-    SUBSCRIPTION_ID,
+from ufc_data_pipeline.fighters.fighter_profile.api.resolver import (
+    resolve_fighter_profile_message,
 )
-from ufc_data_pipeline.fighters.fighter_profile.service import process_fighter_profile
-from ufc_data_pipeline.models import FighterProfileScrapeJob
-from ufc_data_pipeline.shared.job_claim import claim_pubsub_job
+from ufc_data_pipeline.fighters.fighter_profile.config import PROJECT_ID, SUBSCRIPTION_ID
+from ufc_data_pipeline.shared.delivery_result import DeliveryResult
+from ufc_data_pipeline.shared.payload_validation import PayloadValidationError
 from ufc_data_pipeline.worker_settings import (
     idle_check_interval_seconds,
     should_shutdown_for_idle,
@@ -63,19 +59,6 @@ def ensure_django() -> None:
         _django_ready = True
 
 
-def parse_message_payload(raw: bytes) -> tuple[int, str]:
-    """
-    Parse the message payload into fighter_id and profile URL.
-    Receives raw Pub/Sub bytes and returns fighter_id and fighter_url.
-    """
-    data = json.loads(raw.decode("utf-8"))
-    fighter_id = int(data["fighter_id"])
-    fighter_url = str(data["fighter_url"]).strip()
-    if not fighter_url:
-        raise ValueError("fighter_url is empty")
-    return fighter_id, fighter_url
-
-
 def callback(message: pubsub_v1.subscriber.message.Message) -> None:
     """
     Handle one fighter profile Pub/Sub message.
@@ -87,51 +70,28 @@ def callback(message: pubsub_v1.subscriber.message.Message) -> None:
 
     ensure_django()
 
-    # Try to parse the Pub/Sub payload before creating or loading a job row.
     try:
-        fighter_id, fighter_url = parse_message_payload(message.data)
-    except (json.JSONDecodeError, KeyError, ValueError, TypeError) as exc:
+        payload = json.loads(message.data.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError, TypeError) as exc:
         logger.exception("Invalid Pub/Sub payload; acknowledging to drop message: %s", exc)
         message.ack()
         return
 
-    job = claim_pubsub_job(
-        model=FighterProfileScrapeJob,
-        message_id=message.message_id,
-        logical_filters={"fighter_id": fighter_id},
-        create_kwargs={"fighter_id": fighter_id, "profile_url": fighter_url},
-        retry_update_fields={"profile_url": fighter_url},
-    )
-    if job is None:
+    try:
+        result = resolve_fighter_profile_message(message.message_id, payload)
+    except PayloadValidationError as exc:
+        logger.exception("Invalid Pub/Sub payload; acknowledging to drop message: %s", exc)
         message.ack()
         return
+    except Exception:
+        logger.exception("Unexpected error processing fighter profile message")
+        message.nack()
+        return
 
-    # Try to scrape the profile page and update fighter metadata through the API service.
-    try:
-        process_fighter_profile(fighter_id, fighter_url)
-        with transaction.atomic():
-            job.status = FighterProfileScrapeJob.Status.COMPLETED
-            job.completed_at = timezone.now()
-            job.error_msg = ""
-            job.save(update_fields=["status", "completed_at", "error_msg"])
+    if result is DeliveryResult.RETRY:
+        message.nack()
+    else:
         message.ack()
-    except Exception as exc:
-        err_text = str(exc)
-        logger.exception(
-            "Fighter profile scrape failed for job id=%s fighter_id=%s",
-            job.pk,
-            fighter_id,
-        )
-        job.retry_count += 1
-        job.error_msg = err_text
-        if job.retry_count >= MAX_RETRY_COUNT:
-            job.status = FighterProfileScrapeJob.Status.FAILED
-            job.save(update_fields=["retry_count", "error_msg", "status"])
-            message.ack()
-        else:
-            job.status = FighterProfileScrapeJob.Status.RETRYING
-            job.save(update_fields=["retry_count", "error_msg", "status"])
-            message.nack()
 
 
 def run_subscriber() -> None:
