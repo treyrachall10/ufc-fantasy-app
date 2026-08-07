@@ -16,3 +16,11 @@ class IsUploaderService(BasePermission):
         key = header.split()[1] # Extract API key from header (assuming format "Api-Key <key>")
         api_key = APIKey.objects.get_from_key(key) # Get APIKey object from key
         return api_key is not None and api_key.name == "downloader_uploader_service" # Check name of api to ensure it's the correct service
+
+# Custom permission for UFC data pipeline service
+class IsPipelineService(BasePermission):
+    def has_permission(self, request, view):
+        header = request.META.get("HTTP_AUTHORIZATION", "")
+        key = header.split()[1]
+        api_key = APIKey.objects.get_from_key(key)
+        return api_key is not None and api_key.name == "ufc_data_pipeline_service"

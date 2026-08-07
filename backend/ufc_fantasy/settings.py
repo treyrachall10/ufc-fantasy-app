@@ -56,7 +56,9 @@ INSTALLED_APPS = [
     # Filters
     'django_filters',
     # API key auth
-    "rest_framework_api_key"
+    "rest_framework_api_key",
+
+    "ufc_data_pipeline",
 ]
 SITE_ID = 1
 CORS_ALLOW_ALL_ORIGINS = True
@@ -75,7 +77,10 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
 ]
 
-ROOT_URLCONF = 'ufc_fantasy.urls'
+from ufc_fantasy.service_routing import resolve_root_urlconf
+
+ROOT_URLCONF = resolve_root_urlconf(os.environ.get("SERVICE_TYPE"))
+
 
 TEMPLATES = [
     {

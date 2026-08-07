@@ -62,89 +62,81 @@ Copy the values provided under **View Parameters**.
 
 ## 3. Create the `.env` File
 
-Create a `.env` file in the **same directory as `docker-compose.yml`**.
+Copy the example env file in the **same directory as `docker-compose.yml`**:
 
-Example project structure:
-
-```
-ufc-fantasy-app/
-│
-├── docker-compose.yml
-├── .env
+```bash
+cp .env.example .env
 ```
 
-Add the database values using the format expected by Django `settings.py`.
+Fill in Supabase DB credentials, API keys, and other secrets. Do not commit `.env`.
 
-Example:
-
-```
-DB_NAME=postgres
-DB_USER=postgres
-DB_PASSWORD=yourpassword
-DB_HOST=your-supabase-host
-DB_PORT=6543
-```
-
-Once this file exists, the Django container will connect to Supabase automatically.
+Compose overrides `PUBSUB_EMULATOR_HOST` and API base URLs inside containers so services talk over the Docker network (`pubsub:8085`, `http://web:8000`). Keep host-oriented values in `.env` for IDE debugging.
 
 ---
 
 # Running the Backend
 
-Build and start the container:
+Build and start the full local stack (API, Pub/Sub emulator, and pipeline workers):
 
 ```bash
 docker compose up --build
 ```
 
-When the container starts:
+This starts:
 
-- Django connects to Supabase
-- Migrations run automatically
-- Database tables are created
+- `web` — Django API on `http://localhost:8000`
+- `pubsub` / `pubsub-init` — local Pub/Sub emulator and topics
+- `fighter-profile-worker`, `fights-in-event-worker`, `fight-stats-worker`, `career-stats-worker`
+- image scraper / image worker jobs
 
-The API will run at:
-
-```
-http://localhost:8000
-```
+Workers keep listening while idle in Compose (`WORKER_IDLE_SHUTDOWN_ENABLED=false`).
 
 ---
 
-# Populate the Database
+# Pipeline development workflow
 
-After the container is running, open a shell inside the container.
+1. Start the stack: `docker compose up --build`
+2. Enqueue a test job from the Django container:
 
-```
-docker exec -it <container-name> bash
-```
-
-Then run:
-
-```
-python manage.py refresh_ufc_data
+```bash
+docker compose exec web python manage.py enqueue_fight_stats \
+  --fight-id 1 \
+  --fight-url 'http://ufcstats.com/fight-details/...'
 ```
 
-This command:
+```bash
+docker compose exec web python manage.py enqueue_career_stats --fight-id 1
+```
 
-- Scrapes UFC data
-- Populates fighters
-- Populates events
-- Populates fights
+Other useful commands:
 
-After this step the database is fully initialized.
+```bash
+docker compose exec web python manage.py enqueue_fight_import \
+  --event-id 1 \
+  --url 'http://ufcstats.com/event-details/...'
+
+docker compose exec web python manage.py enqueue_fighter_profile \
+  --fighter-id 1 \
+  --fighter-url 'http://ufcstats.com/fighter-details/...'
+
+docker compose exec web python manage.py watch_events
+
+docker compose exec web python manage.py init_pubsub_emulator
+```
+
+3. Watch the matching worker logs process the message.
+
+Prefer `docker compose exec web …` so Pub/Sub and API URLs match the Compose network.
 
 ---
 
-# Updating the Data
+# Legacy bulk populate
 
-After new UFC events occur, update the database by running:
+For the older CSV-style scrape into the DB:
 
+```bash
+docker compose exec web python manage.py refresh_ufc_data
 ```
-python manage.py refresh_ufc_data
-```
-
-This should typically be done **once per week**.
 
 ---
 
@@ -172,12 +164,10 @@ npm start
 
 # Development Workflow
 
-During development you need **two running processes**.
-
-## Backend
+## Backend + workers
 
 ```
-docker compose up
+docker compose up --build
 ```
 
 ## Frontend

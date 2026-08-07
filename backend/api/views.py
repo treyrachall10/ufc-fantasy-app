@@ -21,7 +21,9 @@ from dateutil.parser import ParserError
 from django.shortcuts import get_object_or_404
 from zoneinfo import ZoneInfo
 from datetime import timezone as datetime_timezone
+from datetime import timedelta
 from pathlib import Path
+import os
 
 from services.supabase import supabase
 
@@ -43,20 +45,52 @@ from .serializers import (
     TeamListFighterSerializer,
     TeamSerializer,
     UserLeaguesAndTeamsListSerializer,
-    FighterImageCandidateSerializer
+    FighterImageCandidateSerializer,
+    FighterProfileUpdateSerializer,
+    FightResultMetadataUpdateSerializer,
+    FightStatsTotalsUpdateSerializer,
+    RoundStatsUpdateSerializer,
+    CareerStatsSourceSerializer,
+    EventDiscoverySourceSerializer,
+    EventUpsertSerializer,
+    LiveResultsSourceSerializer,
+    LiveResultsLeaseOwnerSerializer,
+    LiveResultsLeaseFailSerializer,
+    LiveResultsLeaseCompleteSerializer,
+    CompleteLiveFightTransitionSerializer,
+    CancelLiveFightTransitionSerializer,
+    RestoreLiveFightUpcomingSerializer,
+    FightStatsHandoffAttemptSerializer,
+    LiveFightStatsHandoffSerializer,
+    LiveEventRescrapeHandoffSerializer,
+    EnsureLiveEventRescrapeHandoffSerializer,
+    LiveEventRescrapeAttemptSerializer,
+    LiveEventRescrapeFailSerializer,
+    ScoringSourceSerializer,
+    FightScoringUpdateSerializer,
+    FighterCareerStatsUpdateSerializer,
 )
 from fantasy.models import (Fighters, Events, Fights, FighterCareerStats, 
-                            FightStats, RoundStats, FightScore, League, LeagueMember, 
+                            FightStats, RoundStats, RoundScore, FightScore, League, LeagueMember,
                             Team, Roster, Draft, DraftPick, DraftOrder)
 from .utils import (create_fantasy_for_fighter, generate_join_code, get_draftable_fighters, get_or_create_user_from_token, 
                     weight_to_slot, generate_draft_order, execute_draft_pick,
                     is_user_in_league, autopick_fighter, get_drafted_fighter_ids, check_draft_completed,
-                    get_league_standings, validate_image, upload_file
+                    get_league_standings, validate_image, upload_file,
+                    career_stats_source_stat_row,
                     )
 
 from accounts.models import User
 
-from .permissions import IsAthleteImageService, IsUploaderService
+from .permissions import IsAthleteImageService, IsUploaderService, IsPipelineService
+
+from shared.utils import normalize_name
+from ufc_data_pipeline.models import (
+    LiveEventResultsState,
+    LiveEventRescrapeHandoff,
+    LiveFightStatsHandoff,
+)
+from ufc_data_pipeline.shared.ufcstats_urls import normalize_ufcstats_url
 
 from authlib.integrations.django_oauth2 import ResourceProtector
 from .auth0_validator import Auth0JWTBearerTokenValidator
@@ -1148,3 +1182,1637 @@ class AddFighterImageURL(generics.UpdateAPIView):
             },
             status=200,
         )
+
+
+class SetFighterProfile(generics.UpdateAPIView):
+    '''
+        API view to allow the UFC data pipeline to update fighter profile metadata.
+    '''
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = FighterProfileUpdateSerializer
+
+    def patch(self, request, fighter_id):
+        '''
+            Expects fighter profile fields in request data and updates the fighter record.
+        '''
+        fighter = get_object_or_404(Fighters, fighter_id=fighter_id)
+        serializer = self.serializer_class(fighter, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            {
+                "detail": "Fighter profile updated successfully.",
+            },
+            status=200,
+        )
+
+
+class SetFightResultMetadata(generics.GenericAPIView):
+    """
+    API view to allow the UFC data pipeline to update fight result metadata.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = FightResultMetadataUpdateSerializer
+
+    def patch(self, request, fight_id: int):
+        """
+        Expects fight result fields in request data and updates the fight record.
+        """
+        fight = get_object_or_404(Fights, fight_id=fight_id)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+
+        winner_name = data.pop("winner_name", None)
+        data.pop("fighter_a_name", None)
+        data.pop("fighter_b_name", None)
+
+        for field, value in data.items():
+            setattr(fight, field, value)
+
+        if winner_name:
+            normalized = normalize_name(winner_name)
+            winner = Fighters.objects.filter(normalized_name=normalized).first()
+            if winner is None:
+                return Response(
+                    {"detail": f"Fighter not found for winner_name: {winner_name}"},
+                    status=400,
+                )
+            fight.winner = winner
+
+        fight.save()
+
+        return Response(
+            {"detail": "Fight result metadata updated successfully."},
+            status=200,
+        )
+
+
+class SetFightStatsTotals(generics.GenericAPIView):
+    """
+    API view to allow the UFC data pipeline to upsert fight-total FightStats rows.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = FightStatsTotalsUpdateSerializer
+
+    def patch(self, request, fight_id: int):
+        """
+        Expects two fighter stat bundles and upserts FightStats by fight + fighter.
+        """
+        fight = get_object_or_404(Fights, fight_id=fight_id)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        resolved: list[tuple] = []
+        for fighter_payload in serializer.validated_data["fighters"]:
+            fighter_name = fighter_payload["fighter_name"]
+            normalized = normalize_name(fighter_name)
+            fighter = Fighters.objects.filter(normalized_name=normalized).first()
+            if fighter is None:
+                return Response(
+                    {"detail": f"Fighter not found for fighter_name: {fighter_name}"},
+                    status=400,
+                )
+            resolved.append((fighter, fighter_payload))
+
+        updated_ids: list[int] = []
+        with transaction.atomic():
+            for fighter, fighter_payload in resolved:
+                defaults = {
+                    key: value
+                    for key, value in fighter_payload.items()
+                    if key != "fighter_name"
+                }
+                fight_stats, _created = FightStats.objects.update_or_create(
+                    fight=fight,
+                    fighter=fighter,
+                    defaults=defaults,
+                )
+                updated_ids.append(fight_stats.pk)
+
+        return Response(
+            {
+                "detail": "Fight stats totals upserted successfully.",
+                "fight_stats_ids": updated_ids,
+            },
+            status=200,
+        )
+
+
+class SetRoundStats(generics.GenericAPIView):
+    """
+    API view to allow the UFC data pipeline to upsert per-round RoundStats rows.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = RoundStatsUpdateSerializer
+
+    def patch(self, request, fight_id: int):
+        """
+        Expects two fighter round bundles and upserts RoundStats by fight_stats + round_number.
+        """
+        fight = get_object_or_404(Fights, fight_id=fight_id)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        resolved: list[tuple] = []
+        for fighter_payload in serializer.validated_data["fighters"]:
+            fighter_name = fighter_payload["fighter_name"]
+            normalized = normalize_name(fighter_name)
+            fighter = Fighters.objects.filter(normalized_name=normalized).first()
+            if fighter is None:
+                return Response(
+                    {"detail": f"Fighter not found for fighter_name: {fighter_name}"},
+                    status=400,
+                )
+            fight_stats = FightStats.objects.filter(fight=fight, fighter=fighter).first()
+            if fight_stats is None:
+                return Response(
+                    {
+                        "detail": (
+                            f"FightStats not found for fight_id={fight_id} "
+                            f"fighter_name={fighter_name}"
+                        )
+                    },
+                    status=400,
+                )
+            resolved.append((fight_stats, fighter_payload["rounds"]))
+
+        updated_ids: list[int] = []
+        with transaction.atomic():
+            for fight_stats, rounds in resolved:
+                for round_payload in rounds:
+                    defaults = {
+                        key: value
+                        for key, value in round_payload.items()
+                        if key != "round_number"
+                    }
+                    round_stats, _created = RoundStats.objects.update_or_create(
+                        fight_stats=fight_stats,
+                        round_number=round_payload["round_number"],
+                        defaults=defaults,
+                    )
+                    updated_ids.append(round_stats.pk)
+
+        return Response(
+            {
+                "detail": "Round stats upserted successfully.",
+                "round_stats_ids": updated_ids,
+            },
+            status=200,
+        )
+
+
+class EventDiscoverySource(generics.GenericAPIView):
+    """
+    API view to return the Event Watcher discovery snapshot.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = EventDiscoverySourceSerializer
+
+    def get(self, request):
+        """
+        Return latest_event plus every stored event identity for comparison.
+        """
+        # Order by date then id so latest_event is deterministic when dates tie.
+        events = list(
+            Events.objects.order_by("-date", "-event_id").values(
+                "event_id",
+                "event",
+                "date",
+                "url",
+            )
+        )
+        latest_event = events[0] if events else None
+        payload = {
+            "latest_event": latest_event,
+            "events": events,
+        }
+        serializer = self.serializer_class(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=200)
+
+
+class SetEvent(generics.GenericAPIView):
+    """
+    API view to create or update one Events row for the UFC data pipeline.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = EventUpsertSerializer
+
+    def patch(self, request):
+        """
+        Upsert by URL first, then (event, date). Returns event_id and url.
+        """
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        event_name = data["event"]
+        event_date = data["date"]
+        location = (data.get("location") or "")[:50]
+        event_url = data["url"].strip()
+
+        with transaction.atomic():
+            matched = None
+            if event_url:
+                matched = Events.objects.filter(url=event_url).first()
+            if matched is None:
+                matched = Events.objects.filter(event=event_name, date=event_date).first()
+
+            if matched is None:
+                matched = Events.objects.create(
+                    event=event_name,
+                    date=event_date,
+                    location=location,
+                    url=event_url,
+                )
+            else:
+                matched.event = event_name
+                matched.date = event_date
+                matched.location = location
+                matched.url = event_url
+                matched.save(update_fields=["event", "date", "location", "url"])
+
+        return Response(
+            {
+                "event_id": matched.event_id,
+                "url": matched.url,
+                "detail": "Event upserted successfully.",
+            },
+            status=200,
+        )
+
+
+class CareerStatsSource(generics.GenericAPIView):
+    """
+    API view to return FightStats history for career-stats recalculation.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = CareerStatsSourceSerializer
+
+    def get(self, request, fight_id: int):
+        """
+        Uses fight_id to identify both fighters, then returns each fighter's
+        completed FightStats history (including the triggering fight).
+        """
+        # Resolve the triggering fight; 404 if it does not exist.
+        fight = get_object_or_404(Fights, fight_id=fight_id)
+
+        # Load FightStats for this fight to discover the two fighters involved.
+        trigger_stats = list(
+            FightStats.objects.filter(fight=fight)
+            .select_related("fighter")
+            .order_by("pk")
+        )
+
+        fighters_payload: list[dict] = []
+        # For each fighter on the triggering fight, attach their completed-fight history.
+        for fight_stats in trigger_stats:
+            fighter = fight_stats.fighter
+            if fighter is None:
+                continue
+
+            # All completed FightStats for this fighter (includes the triggering fight).
+            history = (
+                FightStats.objects.filter(
+                    fighter=fighter,
+                    fight__fight_status=Fights.FightStatus.COMPLETED,
+                )
+                .select_related("fight", "fight__winner")
+                .order_by("fight_id", "pk")
+            )
+            fighters_payload.append(
+                {
+                    "fighter_id": fighter.fighter_id,
+                    # Map each FightStats row into the flat counter-ready dict shape.
+                    "fights": [career_stats_source_stat_row(row) for row in history],
+                }
+            )
+
+        payload = {"fighters": fighters_payload}
+        serializer = self.serializer_class(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=200)
+
+
+class ScoringSource(generics.GenericAPIView):
+    """
+    API view to return one complete scoreable snapshot for a fight.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = ScoringSourceSerializer
+
+    # Preserve batch scorer allowlist for no-winner scoreable draws.
+    _DRAW_METHODS = frozenset({"Decision - Split", "Decision - Majority", "Draw"})
+    _ROUND_FIELDS = (
+        "kd",
+        "sig_str_landed",
+        "td_landed",
+        "sub_att",
+        "ctrl_time",
+        "reversals",
+    )
+
+    def get(self, request, fight_id: int):
+        """
+        Return fight metadata plus both fighters' round stats when scoreable.
+        """
+        fight = get_object_or_404(Fights, fight_id=fight_id)
+
+        # Incomplete: fight must be completed before scoring can run.
+        if fight.fight_status != Fights.FightStatus.COMPLETED:
+            return Response(
+                {
+                    "error_code": "SCORING_SOURCE_INCOMPLETE",
+                    "detail": (
+                        f"Fight {fight_id} is not completed "
+                        f"(status={fight.fight_status})."
+                    ),
+                },
+                status=409,
+            )
+
+        # Unscoreable: NC and other no-winner outcomes outside the draw allowlist.
+        if fight.winner_id is None and fight.method not in self._DRAW_METHODS:
+            return Response(
+                {
+                    "error_code": "SCORING_SOURCE_UNSCOREABLE",
+                    "detail": (
+                        f"Fight {fight_id} outcome is unscoreable "
+                        f"(method={fight.method!r}, winner_id=null)."
+                    ),
+                },
+                status=422,
+            )
+
+        # Incomplete: decisive winners need round/time for finish bonuses.
+        if fight.winner_id is not None and (fight.round is None or fight.time is None):
+            return Response(
+                {
+                    "error_code": "SCORING_SOURCE_INCOMPLETE",
+                    "detail": (
+                        f"Fight {fight_id} is missing finish round/time required "
+                        "to score the winner."
+                    ),
+                },
+                status=409,
+            )
+
+        fight_stats_rows = list(
+            FightStats.objects.filter(fight=fight)
+            .select_related("fighter")
+            .prefetch_related(
+                Prefetch(
+                    "roundstats_set",
+                    queryset=RoundStats.objects.order_by("round_number", "pk"),
+                )
+            )
+            .order_by("pk")
+        )
+
+        # Incomplete: scoring requires exactly two fighter FightStats rows.
+        if len(fight_stats_rows) != 2 or any(
+            row.fighter_id is None for row in fight_stats_rows
+        ):
+            return Response(
+                {
+                    "error_code": "SCORING_SOURCE_INCOMPLETE",
+                    "detail": (
+                        f"Fight {fight_id} does not have FightStats for both fighters."
+                    ),
+                },
+                status=409,
+            )
+
+        fighters_payload: list[dict] = []
+        for fight_stats in fight_stats_rows:
+            rounds_payload: list[dict] = []
+            for round_stats in fight_stats.roundstats_set.all():
+                # Incomplete: every round needs the fields used by round scoring.
+                if round_stats.round_number is None or any(
+                    getattr(round_stats, field) is None for field in self._ROUND_FIELDS
+                ):
+                    return Response(
+                        {
+                            "error_code": "SCORING_SOURCE_INCOMPLETE",
+                            "detail": (
+                                f"Fight {fight_id} has incomplete RoundStats "
+                                f"for fighter_id={fight_stats.fighter_id}."
+                            ),
+                        },
+                        status=409,
+                    )
+                rounds_payload.append(
+                    {
+                        "round_number": round_stats.round_number,
+                        "kd": round_stats.kd,
+                        "sig_str_landed": round_stats.sig_str_landed,
+                        "td_landed": round_stats.td_landed,
+                        "sub_att": round_stats.sub_att,
+                        "ctrl_time": round_stats.ctrl_time,
+                        "reversals": round_stats.reversals,
+                    }
+                )
+
+            # Incomplete: each fighter must have at least one round to score.
+            if not rounds_payload:
+                return Response(
+                    {
+                        "error_code": "SCORING_SOURCE_INCOMPLETE",
+                        "detail": (
+                            f"Fight {fight_id} is missing RoundStats "
+                            f"for fighter_id={fight_stats.fighter_id}."
+                        ),
+                    },
+                    status=409,
+                )
+
+            fighters_payload.append(
+                {
+                    "fighter_id": fight_stats.fighter_id,
+                    "rounds": rounds_payload,
+                }
+            )
+
+        payload = {
+            "fight": {
+                "fight_id": fight.fight_id,
+                "fight_status": fight.fight_status,
+                "method": fight.method,
+                "round": fight.round,
+                "time": fight.time,
+                "winner_id": fight.winner_id,
+            },
+            "fighters": fighters_payload,
+        }
+        serializer = self.serializer_class(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=200)
+
+
+class SetFightScoring(generics.GenericAPIView):
+    """Atomically replace one fight's complete calculated score state."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = FightScoringUpdateSerializer
+
+    def patch(self, request, fight_id: int):
+        fight = get_object_or_404(Fights, fight_id=fight_id)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        fight_scores_payload = serializer.validated_data["fight_scores"]
+        round_scores_payload = serializer.validated_data["round_scores"]
+        requested_round_keys = {
+            (row["fighter_id"], row["round_number"])
+            for row in round_scores_payload
+        }
+        fighter_ids = {row["fighter_id"] for row in fight_scores_payload}
+        round_numbers = {row["round_number"] for row in round_scores_payload}
+
+        with transaction.atomic():
+            # Resolve every submitted fighter/round through this fight in one query.
+            resolved_rows = list(
+                RoundStats.objects.filter(
+                    fight_stats__fight=fight,
+                    fight_stats__fighter_id__in=fighter_ids,
+                    round_number__in=round_numbers,
+                ).values("id", "fight_stats__fighter_id", "round_number")
+            )
+            resolved_by_key = {
+                (row["fight_stats__fighter_id"], row["round_number"]): row["id"]
+                for row in resolved_rows
+            }
+            missing_keys = requested_round_keys - resolved_by_key.keys()
+            if missing_keys:
+                missing_text = ", ".join(
+                    f"fighter_id={fighter_id} round_number={round_number}"
+                    for fighter_id, round_number in sorted(missing_keys)
+                )
+                return Response(
+                    {
+                        "detail": (
+                            f"RoundStats not found for fight_id={fight_id}: "
+                            f"{missing_text}."
+                        )
+                    },
+                    status=400,
+                )
+
+            # Bulk upsert both score tables; no database work occurs inside loops.
+            fight_score_rows = [
+                FightScore(
+                    fight=fight,
+                    fighter_id=row["fighter_id"],
+                    points_win=row["points_win"],
+                    points_round=row["points_round"],
+                    points_time=row["points_time"],
+                    fight_total_points=row["fight_total_points"],
+                )
+                for row in fight_scores_payload
+            ]
+            FightScore.objects.bulk_create(
+                fight_score_rows,
+                update_conflicts=True,
+                update_fields=[
+                    "points_win",
+                    "points_round",
+                    "points_time",
+                    "fight_total_points",
+                ],
+                unique_fields=["fight", "fighter"],
+            )
+            # This request is the complete fight-score state, not an additive patch.
+            FightScore.objects.filter(fight=fight).exclude(
+                fighter_id__in=fighter_ids
+            ).delete()
+
+            round_score_rows = [
+                RoundScore(
+                    round_stats_id=resolved_by_key[
+                        (row["fighter_id"], row["round_number"])
+                    ],
+                    points_knockdowns=row["points_knockdowns"],
+                    points_sig_str_landed=row["points_sig_str_landed"],
+                    points_td_landed=row["points_td_landed"],
+                    points_sub_att=row["points_sub_att"],
+                    points_ctrl_time=row["points_ctrl_time"],
+                    points_reversals=row["points_reversals"],
+                    round_total_points=row["round_total_points"],
+                )
+                for row in round_scores_payload
+            ]
+            RoundScore.objects.bulk_create(
+                round_score_rows,
+                update_conflicts=True,
+                update_fields=[
+                    "points_knockdowns",
+                    "points_sig_str_landed",
+                    "points_td_landed",
+                    "points_sub_att",
+                    "points_ctrl_time",
+                    "points_reversals",
+                    "round_total_points",
+                ],
+                unique_fields=["round_stats"],
+            )
+
+            # Delete obsolete round scores so this request is the complete state.
+            submitted_round_stats_ids = {
+                resolved_by_key[key] for key in requested_round_keys
+            }
+            RoundScore.objects.filter(
+                round_stats__fight_stats__fight=fight,
+            ).exclude(
+                round_stats_id__in=submitted_round_stats_ids,
+            ).delete()
+
+        return Response(
+            {
+                "detail": "Fight scoring upserted successfully.",
+                "fight_score_count": len(fight_score_rows),
+                "round_score_count": len(round_score_rows),
+            },
+            status=200,
+        )
+
+
+class SetFighterCareerStats(generics.GenericAPIView):
+    """
+    API view to allow the UFC data pipeline to upsert FighterCareerStats.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = FighterCareerStatsUpdateSerializer
+
+    def patch(self, request, fighter_id: int):
+        """
+        Full-replace upsert of cumulative career stats for the given fighter.
+        """
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Lock the fighter row so concurrent upserts for the same fighter serialize.
+        with transaction.atomic():
+            fighter = get_object_or_404(
+                Fighters.objects.select_for_update(),
+                fighter_id=fighter_id,
+            )
+            # Lock existing career-stats row when present; create if missing.
+            career_stats = (
+                FighterCareerStats.objects.select_for_update()
+                .filter(fighter=fighter)
+                .first()
+            )
+            if career_stats is None:
+                career_stats = FighterCareerStats(fighter=fighter)
+
+            for field, value in serializer.validated_data.items():
+                setattr(career_stats, field, value)
+            career_stats.save()
+
+        return Response(
+            {
+                "detail": "Fighter career stats upserted successfully.",
+                "fighter_career_stats_id": career_stats.pk,
+            },
+            status=200,
+        )
+
+
+def _live_results_lease_seconds() -> int:
+    raw = os.environ.get("LIVE_EVENT_RESULTS_LEASE_SECONDS", "900")
+    try:
+        seconds = int(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"LIVE_EVENT_RESULTS_LEASE_SECONDS must be an integer; got {raw!r}"
+        ) from exc
+    if seconds <= 0:
+        raise ValueError("LIVE_EVENT_RESULTS_LEASE_SECONDS must be positive")
+    return seconds
+
+
+def _live_results_rescrape_cooldown_seconds() -> int:
+    raw = os.getenv("LIVE_EVENT_RESULTS_RESCRAPE_COOLDOWN_SECONDS", "1800")
+    try:
+        seconds = int(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"LIVE_EVENT_RESULTS_RESCRAPE_COOLDOWN_SECONDS must be an integer; "
+            f"got {raw!r}"
+        ) from exc
+    if seconds <= 0:
+        raise ValueError(
+            "LIVE_EVENT_RESULTS_RESCRAPE_COOLDOWN_SECONDS must be positive"
+        )
+    return seconds
+
+
+def _serialize_watcher_state(state: LiveEventResultsState | None) -> dict | None:
+    if state is None:
+        return None
+    return {
+        "status": state.status,
+        "owner_token": state.owner_token,
+        "locked_until": state.locked_until,
+        "last_started_at": state.last_started_at,
+        "last_completed_at": state.last_completed_at,
+        "warnings": state.warnings,
+        "last_error": state.last_error,
+    }
+
+
+def _lease_is_active(state: LiveEventResultsState, now) -> bool:
+    return (
+        state.owner_token is not None
+        and state.locked_until is not None
+        and state.locked_until > now
+    )
+
+
+def _resolve_live_result_winner(
+    *,
+    winner_name: str | None,
+    winner_url: str | None,
+) -> tuple[object | None, Response | None]:
+    """
+    Resolve winner by profile URL first, then unambiguous normalized name.
+
+    Returns ``(fighter_or_None, error_response_or_None)``.
+    """
+    claimed_name = (winner_name or "").strip()
+    claimed_url = normalize_ufcstats_url(winner_url)
+    if not claimed_name and not claimed_url:
+        return None, None
+
+    if claimed_url:
+        by_url = list(Fighters.objects.filter(profile_url=claimed_url))
+        if len(by_url) == 1:
+            return by_url[0], None
+        if len(by_url) > 1:
+            return None, Response(
+                {"detail": f"Ambiguous winner_url: {claimed_url}"},
+                status=400,
+            )
+
+    if claimed_name:
+        normalized = normalize_name(claimed_name)
+        if not normalized:
+            return None, Response(
+                {"detail": f"Invalid winner_name: {claimed_name}"},
+                status=400,
+            )
+        by_name = list(Fighters.objects.filter(normalized_name=normalized))
+        if len(by_name) == 1:
+            return by_name[0], None
+        if len(by_name) > 1:
+            return None, Response(
+                {"detail": f"Ambiguous winner_name: {claimed_name}"},
+                status=400,
+            )
+        return None, Response(
+            {"detail": f"Fighter not found for winner: {claimed_name or claimed_url}"},
+            status=400,
+        )
+
+    return None, Response(
+        {"detail": f"Fighter not found for winner_url: {claimed_url}"},
+        status=400,
+    )
+
+
+def _ensure_pending_fight_stats_handoff(
+    *,
+    fight_id: int,
+    event_id: int,
+    fight_url: str,
+) -> LiveFightStatsHandoff:
+    handoff = (
+        LiveFightStatsHandoff.objects.select_for_update()
+        .filter(fight_id=fight_id)
+        .first()
+    )
+    if handoff is None:
+        return LiveFightStatsHandoff.objects.create(
+            fight_id=fight_id,
+            event_id=event_id,
+            fight_url=fight_url,
+            status=LiveFightStatsHandoff.Status.PENDING,
+        )
+
+    handoff.event_id = event_id
+    handoff.fight_url = fight_url
+    if handoff.status != LiveFightStatsHandoff.Status.PUBLISHED:
+        handoff.status = LiveFightStatsHandoff.Status.PENDING
+    handoff.save(update_fields=["event_id", "fight_url", "status"])
+    return handoff
+
+
+class LiveResultsSource(generics.GenericAPIView):
+    """
+    Pipeline snapshot of one event's fights and live-results watcher state.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveResultsSourceSerializer
+
+    def get(self, request, event_id: int):
+        event = get_object_or_404(Events, event_id=event_id)
+        fights = [
+            {
+                "fight_id": fight.fight_id,
+                "url": normalize_ufcstats_url(fight.url),
+                "bout": fight.bout or "",
+                "fight_status": fight.fight_status,
+            }
+            for fight in Fights.objects.filter(event=event).order_by("fight_id")
+        ]
+        watcher_state = LiveEventResultsState.objects.filter(event=event).first()
+        handoffs = [
+            LiveFightStatsHandoffSerializer.from_instance(row)
+            for row in LiveFightStatsHandoff.objects.filter(event_id=event_id).order_by(
+                "fight_id"
+            )
+        ]
+        rescrape_handoffs = [
+            LiveEventRescrapeHandoffSerializer.from_instance(row)
+            for row in LiveEventRescrapeHandoff.objects.filter(event_id=event_id).order_by(
+                "id"
+            )
+        ]
+        payload = {
+            "event": {
+                "event_id": event.event_id,
+                "event": event.event,
+                "date": event.date,
+                "url": event.url or "",
+            },
+            "fights": fights,
+            "watcher_state": _serialize_watcher_state(watcher_state),
+            "fight_stats_handoffs": handoffs,
+            "rescrape_handoffs": rescrape_handoffs,
+        }
+        serializer = self.serializer_class(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=200)
+
+
+class LiveResultsLeaseClaim(generics.GenericAPIView):
+    """Atomically claim or reclaim the live-results lease for one event."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveResultsLeaseOwnerSerializer
+
+    def post(self, request, event_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        owner_token = serializer.validated_data["owner_token"]
+        now = timezone.now()
+        lease_until = now + timedelta(seconds=_live_results_lease_seconds())
+
+        with transaction.atomic():
+            event = get_object_or_404(
+                Events.objects.select_for_update(),
+                event_id=event_id,
+            )
+            state = (
+                LiveEventResultsState.objects.select_for_update()
+                .filter(event=event)
+                .first()
+            )
+            if state is None:
+                state = LiveEventResultsState(event=event)
+
+            if _lease_is_active(state, now) and state.owner_token != owner_token:
+                return Response(
+                    {
+                        "outcome": "skipped",
+                        "skip_reason": "ACTIVE_LEASE",
+                        "locked_until": state.locked_until,
+                        "status": state.status,
+                    },
+                    status=200,
+                )
+
+            state.owner_token = owner_token
+            state.locked_until = lease_until
+            state.status = LiveEventResultsState.Status.RUNNING
+            state.last_started_at = now
+            state.last_error = ""
+            state.save()
+
+        return Response(
+            {
+                "outcome": "claimed",
+                "owner_token": state.owner_token,
+                "locked_until": state.locked_until,
+                "status": state.status,
+            },
+            status=200,
+        )
+
+
+class LiveResultsLeaseRenew(generics.GenericAPIView):
+    """Extend an active live-results lease for the current owner."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveResultsLeaseOwnerSerializer
+
+    def post(self, request, event_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        owner_token = serializer.validated_data["owner_token"]
+        now = timezone.now()
+        lease_until = now + timedelta(seconds=_live_results_lease_seconds())
+
+        with transaction.atomic():
+            state = (
+                LiveEventResultsState.objects.select_for_update()
+                .filter(event_id=event_id)
+                .first()
+            )
+            if state is None:
+                return Response({"detail": "Lease state not found."}, status=404)
+            if state.owner_token != owner_token or not _lease_is_active(state, now):
+                return Response(
+                    {"detail": "Stale or inactive lease owner."},
+                    status=409,
+                )
+            state.locked_until = lease_until
+            state.save(update_fields=["locked_until"])
+
+        return Response(
+            {
+                "outcome": "renewed",
+                "owner_token": state.owner_token,
+                "locked_until": state.locked_until,
+                "status": state.status,
+            },
+            status=200,
+        )
+
+
+class LiveResultsLeaseComplete(generics.GenericAPIView):
+    """Release the live-results lease after a successful run."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveResultsLeaseCompleteSerializer
+
+    def post(self, request, event_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        owner_token = serializer.validated_data["owner_token"]
+        warnings = serializer.validated_data.get("warnings") or ""
+        now = timezone.now()
+
+        with transaction.atomic():
+            state = (
+                LiveEventResultsState.objects.select_for_update()
+                .filter(event_id=event_id)
+                .first()
+            )
+            if state is None:
+                return Response({"detail": "Lease state not found."}, status=404)
+            if state.owner_token != owner_token:
+                return Response(
+                    {"detail": "Stale lease owner."},
+                    status=409,
+                )
+            state.status = LiveEventResultsState.Status.COMPLETED
+            state.last_completed_at = now
+            state.owner_token = None
+            state.locked_until = None
+            state.last_error = ""
+            state.warnings = warnings
+            state.save(
+                update_fields=[
+                    "status",
+                    "last_completed_at",
+                    "owner_token",
+                    "locked_until",
+                    "last_error",
+                    "warnings",
+                ]
+            )
+
+        return Response(
+            {
+                "outcome": "completed",
+                "status": state.status,
+                "last_completed_at": state.last_completed_at,
+                "warnings": state.warnings,
+            },
+            status=200,
+        )
+
+
+class LiveResultsLeaseFail(generics.GenericAPIView):
+    """Release the live-results lease after a failed run."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveResultsLeaseFailSerializer
+
+    def post(self, request, event_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        owner_token = serializer.validated_data["owner_token"]
+        last_error = serializer.validated_data.get("last_error") or ""
+        now = timezone.now()
+
+        with transaction.atomic():
+            state = (
+                LiveEventResultsState.objects.select_for_update()
+                .filter(event_id=event_id)
+                .first()
+            )
+            if state is None:
+                return Response({"detail": "Lease state not found."}, status=404)
+            if state.owner_token != owner_token:
+                return Response(
+                    {"detail": "Stale lease owner."},
+                    status=409,
+                )
+            state.status = LiveEventResultsState.Status.FAILED
+            state.last_completed_at = now
+            state.owner_token = None
+            state.locked_until = None
+            state.last_error = last_error
+            state.save(
+                update_fields=[
+                    "status",
+                    "last_completed_at",
+                    "owner_token",
+                    "locked_until",
+                    "last_error",
+                ]
+            )
+
+        return Response(
+            {
+                "outcome": "failed",
+                "status": state.status,
+                "last_error": state.last_error,
+                "last_completed_at": state.last_completed_at,
+            },
+            status=200,
+        )
+
+
+class CompleteLiveFightTransition(generics.GenericAPIView):
+    """
+    Atomically mark a fight COMPLETED and ensure a pending Fight Stats handoff.
+    """
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = CompleteLiveFightTransitionSerializer
+
+    def post(self, request, fight_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        event_id = int(data["event_id"])
+        fight_url = normalize_ufcstats_url(data["fight_url"])
+        expected_status = data["expected_status"]
+        if not fight_url:
+            return Response({"detail": "fight_url is empty after normalization."}, status=400)
+
+        winner, winner_error = _resolve_live_result_winner(
+            winner_name=data.get("winner_name"),
+            winner_url=data.get("winner_url"),
+        )
+        if winner_error is not None:
+            return winner_error
+
+        with transaction.atomic():
+            fight = get_object_or_404(
+                Fights.objects.select_for_update(),
+                fight_id=fight_id,
+            )
+            if fight.event_id != event_id:
+                return Response(
+                    {"detail": "Fight does not belong to event."},
+                    status=409,
+                )
+            stored_url = normalize_ufcstats_url(fight.url)
+            if stored_url != fight_url:
+                return Response(
+                    {"detail": "Fight URL does not match stored identity."},
+                    status=409,
+                )
+
+            already_completed = fight.fight_status == Fights.FightStatus.COMPLETED
+            if already_completed:
+                # Idempotent retry after a successful transition.
+                handoff = _ensure_pending_fight_stats_handoff(
+                    fight_id=fight.fight_id,
+                    event_id=event_id,
+                    fight_url=fight_url,
+                )
+                return Response(
+                    {
+                        "outcome": "idempotent",
+                        "fight_id": fight.fight_id,
+                        "fight_status": fight.fight_status,
+                        "handoff": LiveFightStatsHandoffSerializer.from_instance(handoff),
+                    },
+                    status=200,
+                )
+
+            if fight.fight_status != expected_status:
+                return Response(
+                    {
+                        "detail": (
+                            f"Expected status {expected_status} but fight is "
+                            f"{fight.fight_status}."
+                        )
+                    },
+                    status=409,
+                )
+            if expected_status not in (
+                Fights.FightStatus.UPCOMING,
+                Fights.FightStatus.CANCELLED,
+            ):
+                return Response(
+                    {"detail": f"Unsupported transition from {expected_status}."},
+                    status=409,
+                )
+
+            fight.fight_status = Fights.FightStatus.COMPLETED
+            fight.winner = winner
+            if "method" in data:
+                fight.method = data.get("method") or None
+            if "round" in data:
+                fight.round = data.get("round")
+            if "time" in data:
+                fight.time = data.get("time")
+            if "round_format" in data:
+                fight.round_format = data.get("round_format") or None
+            if "weight_class" in data and data.get("weight_class"):
+                fight.weight_class = data.get("weight_class")
+            fight.url = fight_url
+            fight.save()
+
+            handoff = _ensure_pending_fight_stats_handoff(
+                fight_id=fight.fight_id,
+                event_id=event_id,
+                fight_url=fight_url,
+            )
+
+        return Response(
+            {
+                "outcome": "completed",
+                "fight_id": fight.fight_id,
+                "fight_status": fight.fight_status,
+                "handoff": LiveFightStatsHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+
+
+class CancelLiveFightTransition(generics.GenericAPIView):
+    """Atomically mark an UPCOMING fight CANCELLED without Fight Stats handoff."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = CancelLiveFightTransitionSerializer
+
+    def post(self, request, fight_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        event_id = int(data["event_id"])
+        fight_url = normalize_ufcstats_url(data["fight_url"])
+        expected_status = data["expected_status"]
+        if not fight_url:
+            return Response(
+                {"detail": "fight_url is empty after normalization."},
+                status=400,
+            )
+
+        with transaction.atomic():
+            fight = get_object_or_404(
+                Fights.objects.select_for_update(),
+                fight_id=fight_id,
+            )
+            if fight.event_id != event_id:
+                return Response(
+                    {"detail": "Fight does not belong to event."},
+                    status=409,
+                )
+            stored_url = normalize_ufcstats_url(fight.url)
+            if stored_url != fight_url:
+                return Response(
+                    {"detail": "Fight URL does not match stored identity."},
+                    status=409,
+                )
+
+            if fight.fight_status == Fights.FightStatus.CANCELLED:
+                return Response(
+                    {
+                        "outcome": "idempotent",
+                        "fight_id": fight.fight_id,
+                        "fight_status": fight.fight_status,
+                    },
+                    status=200,
+                )
+
+            if fight.fight_status == Fights.FightStatus.COMPLETED:
+                return Response(
+                    {"detail": "Completed fights cannot transition to cancelled."},
+                    status=409,
+                )
+
+            if fight.fight_status != expected_status:
+                return Response(
+                    {
+                        "detail": (
+                            f"Expected status {expected_status} but fight is "
+                            f"{fight.fight_status}."
+                        )
+                    },
+                    status=409,
+                )
+            if expected_status != Fights.FightStatus.UPCOMING:
+                return Response(
+                    {"detail": f"Unsupported transition from {expected_status}."},
+                    status=409,
+                )
+
+            fight.fight_status = Fights.FightStatus.CANCELLED
+            fight.save(update_fields=["fight_status"])
+
+        return Response(
+            {
+                "outcome": "cancelled",
+                "fight_id": fight.fight_id,
+                "fight_status": fight.fight_status,
+            },
+            status=200,
+        )
+
+
+class RestoreLiveFightUpcoming(generics.GenericAPIView):
+    """Atomically restore a CANCELLED fight to UPCOMING; clear result fields only."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = RestoreLiveFightUpcomingSerializer
+
+    def post(self, request, fight_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        event_id = int(data["event_id"])
+        fight_url = normalize_ufcstats_url(data["fight_url"])
+        expected_status = data["expected_status"]
+        if not fight_url:
+            return Response(
+                {"detail": "fight_url is empty after normalization."},
+                status=400,
+            )
+
+        with transaction.atomic():
+            fight = get_object_or_404(
+                Fights.objects.select_for_update(),
+                fight_id=fight_id,
+            )
+            if fight.event_id != event_id:
+                return Response(
+                    {"detail": "Fight does not belong to event."},
+                    status=409,
+                )
+            stored_url = normalize_ufcstats_url(fight.url)
+            if stored_url != fight_url:
+                return Response(
+                    {"detail": "Fight URL does not match stored identity."},
+                    status=409,
+                )
+
+            if fight.fight_status == Fights.FightStatus.UPCOMING:
+                return Response(
+                    {
+                        "outcome": "idempotent",
+                        "fight_id": fight.fight_id,
+                        "fight_status": fight.fight_status,
+                    },
+                    status=200,
+                )
+
+            if fight.fight_status == Fights.FightStatus.COMPLETED:
+                return Response(
+                    {"detail": "Completed fights cannot transition to upcoming."},
+                    status=409,
+                )
+
+            if fight.fight_status != expected_status:
+                return Response(
+                    {
+                        "detail": (
+                            f"Expected status {expected_status} but fight is "
+                            f"{fight.fight_status}."
+                        )
+                    },
+                    status=409,
+                )
+            if expected_status != Fights.FightStatus.CANCELLED:
+                return Response(
+                    {"detail": f"Unsupported transition from {expected_status}."},
+                    status=409,
+                )
+
+            fight.fight_status = Fights.FightStatus.UPCOMING
+            fight.winner = None
+            fight.method = None
+            fight.round = None
+            fight.time = None
+            fight.round_format = None
+            fight.save(
+                update_fields=[
+                    "fight_status",
+                    "winner",
+                    "method",
+                    "round",
+                    "time",
+                    "round_format",
+                ]
+            )
+
+        return Response(
+            {
+                "outcome": "restored",
+                "fight_id": fight.fight_id,
+                "fight_status": fight.fight_status,
+            },
+            status=200,
+        )
+
+
+class MarkFightStatsHandoffPublished(generics.GenericAPIView):
+    """Mark a Fight Stats handoff published after confirmed Pub/Sub delivery."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+
+    def post(self, request, fight_id: int):
+        now = timezone.now()
+        with transaction.atomic():
+            handoff = (
+                LiveFightStatsHandoff.objects.select_for_update()
+                .filter(fight_id=fight_id)
+                .first()
+            )
+            if handoff is None:
+                return Response({"detail": "Handoff not found."}, status=404)
+            handoff.status = LiveFightStatsHandoff.Status.PUBLISHED
+            handoff.published_at = now
+            handoff.last_attempt_at = now
+            handoff.attempt_count = handoff.attempt_count + 1
+            handoff.last_error = ""
+            handoff.save(
+                update_fields=[
+                    "status",
+                    "published_at",
+                    "last_attempt_at",
+                    "attempt_count",
+                    "last_error",
+                ]
+            )
+        return Response(
+            {
+                "outcome": "published",
+                "handoff": LiveFightStatsHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+
+
+class RecordFightStatsHandoffAttempt(generics.GenericAPIView):
+    """Record a failed Fight Stats publication attempt; leave handoff pending."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = FightStatsHandoffAttemptSerializer
+
+    def post(self, request, fight_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        last_error = serializer.validated_data.get("last_error") or ""
+        now = timezone.now()
+
+        with transaction.atomic():
+            handoff = (
+                LiveFightStatsHandoff.objects.select_for_update()
+                .filter(fight_id=fight_id)
+                .first()
+            )
+            if handoff is None:
+                return Response({"detail": "Handoff not found."}, status=404)
+            if handoff.status == LiveFightStatsHandoff.Status.PUBLISHED:
+                return Response(
+                    {
+                        "outcome": "already_published",
+                        "handoff": LiveFightStatsHandoffSerializer.from_instance(handoff),
+                    },
+                    status=200,
+                )
+            handoff.status = LiveFightStatsHandoff.Status.PENDING
+            handoff.attempt_count = handoff.attempt_count + 1
+            handoff.last_attempt_at = now
+            handoff.last_error = last_error
+            handoff.save(
+                update_fields=[
+                    "status",
+                    "attempt_count",
+                    "last_attempt_at",
+                    "last_error",
+                ]
+            )
+        return Response(
+            {
+                "outcome": "recorded",
+                "handoff": LiveFightStatsHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+
+
+class EnsureLiveEventRescrapeHandoff(generics.GenericAPIView):
+    """Create or reuse a durable rescrape handoff for one event card fingerprint."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = EnsureLiveEventRescrapeHandoffSerializer
+
+    def post(self, request, event_id: int):
+        get_object_or_404(Events, event_id=event_id)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        fingerprint = serializer.validated_data["card_fingerprint"]
+        reason = serializer.validated_data["reason"]
+
+        with transaction.atomic():
+            handoff = (
+                LiveEventRescrapeHandoff.objects.select_for_update()
+                .filter(event_id=event_id, card_fingerprint=fingerprint)
+                .first()
+            )
+            if handoff is None:
+                handoff = LiveEventRescrapeHandoff.objects.create(
+                    event_id=event_id,
+                    card_fingerprint=fingerprint,
+                    reason=reason,
+                    status=LiveEventRescrapeHandoff.Status.PENDING,
+                )
+                outcome = "created"
+            else:
+                handoff.reason = reason
+                if handoff.status == LiveEventRescrapeHandoff.Status.RESOLVED:
+                    handoff.status = LiveEventRescrapeHandoff.Status.PENDING
+                    handoff.publication_count = 0
+                    handoff.last_published_at = None
+                    handoff.next_eligible_at = None
+                    handoff.last_error = ""
+                elif handoff.status != LiveEventRescrapeHandoff.Status.FAILED:
+                    if handoff.status == LiveEventRescrapeHandoff.Status.PUBLISHED:
+                        # Keep published cooldown state; only refresh reason.
+                        pass
+                    else:
+                        handoff.status = LiveEventRescrapeHandoff.Status.PENDING
+                handoff.save()
+                outcome = "reused"
+
+        return Response(
+            {
+                "outcome": outcome,
+                "handoff": LiveEventRescrapeHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+
+
+class MarkLiveEventRescrapePublished(generics.GenericAPIView):
+    """Mark a rescrape handoff published and apply the cooldown window."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+
+    def post(self, request, event_id: int, handoff_id: int):
+        now = timezone.now()
+        cooldown = timedelta(seconds=_live_results_rescrape_cooldown_seconds())
+        with transaction.atomic():
+            handoff = (
+                LiveEventRescrapeHandoff.objects.select_for_update()
+                .filter(id=handoff_id, event_id=event_id)
+                .first()
+            )
+            if handoff is None:
+                return Response({"detail": "Handoff not found."}, status=404)
+            if handoff.status == LiveEventRescrapeHandoff.Status.FAILED:
+                return Response(
+                    {
+                        "outcome": "already_failed",
+                        "handoff": LiveEventRescrapeHandoffSerializer.from_instance(
+                            handoff
+                        ),
+                    },
+                    status=200,
+                )
+            if handoff.status == LiveEventRescrapeHandoff.Status.RESOLVED:
+                return Response(
+                    {
+                        "outcome": "already_resolved",
+                        "handoff": LiveEventRescrapeHandoffSerializer.from_instance(
+                            handoff
+                        ),
+                    },
+                    status=200,
+                )
+            handoff.status = LiveEventRescrapeHandoff.Status.PUBLISHED
+            handoff.publication_count = handoff.publication_count + 1
+            handoff.last_published_at = now
+            handoff.next_eligible_at = now + cooldown
+            handoff.last_error = ""
+            handoff.save(
+                update_fields=[
+                    "status",
+                    "publication_count",
+                    "last_published_at",
+                    "next_eligible_at",
+                    "last_error",
+                ]
+            )
+        return Response(
+            {
+                "outcome": "published",
+                "handoff": LiveEventRescrapeHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+
+
+class RecordLiveEventRescrapeAttempt(generics.GenericAPIView):
+    """Record a failed rescrape publication; leave handoff pending."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveEventRescrapeAttemptSerializer
+
+    def post(self, request, event_id: int, handoff_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        last_error = serializer.validated_data.get("last_error") or ""
+        with transaction.atomic():
+            handoff = (
+                LiveEventRescrapeHandoff.objects.select_for_update()
+                .filter(id=handoff_id, event_id=event_id)
+                .first()
+            )
+            if handoff is None:
+                return Response({"detail": "Handoff not found."}, status=404)
+            if handoff.status in (
+                LiveEventRescrapeHandoff.Status.RESOLVED,
+                LiveEventRescrapeHandoff.Status.FAILED,
+            ):
+                return Response(
+                    {
+                        "outcome": "unchanged",
+                        "handoff": LiveEventRescrapeHandoffSerializer.from_instance(
+                            handoff
+                        ),
+                    },
+                    status=200,
+                )
+            handoff.status = LiveEventRescrapeHandoff.Status.PENDING
+            handoff.last_error = last_error
+            handoff.save(update_fields=["status", "last_error"])
+        return Response(
+            {
+                "outcome": "recorded",
+                "handoff": LiveEventRescrapeHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+
+
+class ResolveLiveEventRescrapeHandoff(generics.GenericAPIView):
+    """Mark a rescrape handoff resolved after the card converges."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+
+    def post(self, request, event_id: int, handoff_id: int):
+        with transaction.atomic():
+            handoff = (
+                LiveEventRescrapeHandoff.objects.select_for_update()
+                .filter(id=handoff_id, event_id=event_id)
+                .first()
+            )
+            if handoff is None:
+                return Response({"detail": "Handoff not found."}, status=404)
+            if handoff.status == LiveEventRescrapeHandoff.Status.RESOLVED:
+                return Response(
+                    {
+                        "outcome": "idempotent",
+                        "handoff": LiveEventRescrapeHandoffSerializer.from_instance(
+                            handoff
+                        ),
+                    },
+                    status=200,
+                )
+            handoff.status = LiveEventRescrapeHandoff.Status.RESOLVED
+            handoff.last_error = ""
+            handoff.save(update_fields=["status", "last_error"])
+        return Response(
+            {
+                "outcome": "resolved",
+                "handoff": LiveEventRescrapeHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+
+
+class FailLiveEventRescrapeHandoff(generics.GenericAPIView):
+    """Mark a rescrape handoff failed after three unresolved publications."""
+
+    permission_classes = [HasAPIKey, IsPipelineService]
+    serializer_class = LiveEventRescrapeFailSerializer
+
+    def post(self, request, event_id: int, handoff_id: int):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        last_error = serializer.validated_data.get("last_error") or (
+            "Rescrape publications exhausted; operator action required."
+        )
+        with transaction.atomic():
+            handoff = (
+                LiveEventRescrapeHandoff.objects.select_for_update()
+                .filter(id=handoff_id, event_id=event_id)
+                .first()
+            )
+            if handoff is None:
+                return Response({"detail": "Handoff not found."}, status=404)
+            if handoff.status == LiveEventRescrapeHandoff.Status.FAILED:
+                return Response(
+                    {
+                        "outcome": "idempotent",
+                        "handoff": LiveEventRescrapeHandoffSerializer.from_instance(
+                            handoff
+                        ),
+                    },
+                    status=200,
+                )
+            handoff.status = LiveEventRescrapeHandoff.Status.FAILED
+            handoff.last_error = last_error
+            handoff.save(update_fields=["status", "last_error"])
+        return Response(
+            {
+                "outcome": "failed",
+                "handoff": LiveEventRescrapeHandoffSerializer.from_instance(handoff),
+            },
+            status=200,
+        )
+

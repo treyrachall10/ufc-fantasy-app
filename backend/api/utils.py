@@ -6,7 +6,18 @@ from PIL import Image, UnidentifiedImageError
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_image_file_extension
 from django.utils import timezone
-from fantasy.models import Draft, Fighters, RoundScore, FightScore, Roster, Team, DraftOrder, DraftPick, LeagueMember
+from fantasy.models import (
+    Draft,
+    FightScore,
+    FightStats,
+    Fighters,
+    LeagueMember,
+    Roster,
+    RoundScore,
+    Team,
+    DraftOrder,
+    DraftPick,
+)
 from accounts.models import User
 import secrets
 import string
@@ -370,3 +381,54 @@ def upload_file(uploaded_file, bucket_name, path):
         return response
     except Exception:
         raise
+
+
+CAREER_STATS_NUMERIC_FIELDS = (
+    "kd",
+    "sig_str_landed",
+    "sig_str_attempted",
+    "total_str_landed",
+    "total_str_attempted",
+    "td_landed",
+    "td_attempted",
+    "sub_att",
+    "ctrl_time",
+    "reversals",
+    "head_str_landed",
+    "head_str_attempted",
+    "body_str_landed",
+    "body_str_attempted",
+    "leg_str_landed",
+    "leg_str_attempted",
+    "distance_str_landed",
+    "distance_str_attempted",
+    "clinch_str_landed",
+    "clinch_str_attempted",
+    "ground_str_landed",
+    "ground_str_attempted",
+    "sig_str_landed_opp",
+    "sig_str_attempted_opp",
+    "td_landed_opp",
+    "td_attempted_opp",
+    "ctrl_time_opp",
+)
+
+
+def career_stats_source_stat_row(fight_stats: FightStats) -> dict:
+    """
+    Build one CareerStatsSource fight history row from a FightStats instance.
+    """
+    # Fight outcome fields come from the related Fights row (already select_related).
+    fight = fight_stats.fight
+    row = {
+        "fight_id": fight.fight_id if fight is not None else None,
+        "result": fight_stats.result,
+        "method": fight.method if fight is not None else None,
+        "winner_id": fight.winner_id if fight is not None else None,
+        "round": fight.round if fight is not None else None,
+        "time": fight.time if fight is not None else None,
+    }
+    # Copy additive FightStats numerics (including opponent fields) onto the row.
+    for field in CAREER_STATS_NUMERIC_FIELDS:
+        row[field] = getattr(fight_stats, field)
+    return row

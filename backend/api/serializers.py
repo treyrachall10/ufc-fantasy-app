@@ -105,6 +105,7 @@ class FightSerializer(serializers.ModelSerializer):
             'event',
             'bout',
             'weight_class',
+            'fight_status',
             'method',
             'round',
             'round_format',
@@ -601,3 +602,542 @@ class FighterImageCandidateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Fighters
         fields = ["fighter_id", "normalized_name"]
+
+
+class FighterProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Fighters
+        fields = [
+            "first_name",
+            "last_name",
+            "full_name",
+            "nick_name",
+            "stance",
+            "weight",
+            "height",
+            "reach",
+            "dob",
+        ]
+
+
+class FightResultMetadataUpdateSerializer(serializers.Serializer):
+    """Pipeline payload for updating completed-fight result metadata."""
+
+    method = serializers.CharField(max_length=50, required=False, allow_null=True)
+    round = serializers.IntegerField(required=False, allow_null=True)
+    time = serializers.IntegerField(required=False, allow_null=True)
+    round_format = serializers.CharField(max_length=50, required=False, allow_null=True)
+    weight_class = serializers.CharField(max_length=100, required=False, allow_null=True)
+    fight_status = serializers.ChoiceField(
+        choices=Fights.FightStatus.choices,
+        required=False,
+    )
+    winner_name = serializers.CharField(max_length=200, required=False, allow_null=True)
+    fighter_a_name = serializers.CharField(max_length=200, required=False, allow_null=True)
+    fighter_b_name = serializers.CharField(max_length=200, required=False, allow_null=True)
+
+
+class FighterFightStatsTotalsSerializer(serializers.Serializer):
+    """One fighter's fight-total stats for SetFightStatsTotals."""
+
+    fighter_name = serializers.CharField(max_length=200)
+    result = serializers.CharField(max_length=10, required=False, allow_null=True)
+    kd = serializers.IntegerField(required=False, allow_null=True)
+    sig_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    sig_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    total_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    total_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    td_landed = serializers.IntegerField(required=False, allow_null=True)
+    td_attempted = serializers.IntegerField(required=False, allow_null=True)
+    sub_att = serializers.IntegerField(required=False, allow_null=True)
+    ctrl_time = serializers.IntegerField(required=False, allow_null=True)
+    reversals = serializers.IntegerField(required=False, allow_null=True)
+    head_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    head_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    body_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    body_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    leg_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    leg_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    distance_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    distance_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    clinch_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    clinch_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    ground_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    ground_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+
+
+class FightStatsTotalsUpdateSerializer(serializers.Serializer):
+    """Pipeline payload for upserting two FightStats rows for a fight."""
+
+    fighters = FighterFightStatsTotalsSerializer(many=True)
+
+    def validate_fighters(self, value):
+        if len(value) != 2:
+            raise serializers.ValidationError("Exactly two fighter stat bundles are required.")
+        return value
+
+
+class RoundStatsRowSerializer(serializers.Serializer):
+    """One round of stats for SetRoundStats."""
+
+    round_number = serializers.IntegerField()
+    kd = serializers.IntegerField(required=False, allow_null=True)
+    sig_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    sig_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    total_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    total_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    td_landed = serializers.IntegerField(required=False, allow_null=True)
+    td_attempted = serializers.IntegerField(required=False, allow_null=True)
+    sub_att = serializers.IntegerField(required=False, allow_null=True)
+    ctrl_time = serializers.IntegerField(required=False, allow_null=True)
+    reversals = serializers.IntegerField(required=False, allow_null=True)
+    head_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    head_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    body_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    body_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    leg_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    leg_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    distance_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    distance_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    clinch_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    clinch_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+    ground_str_landed = serializers.IntegerField(required=False, allow_null=True)
+    ground_str_attempted = serializers.IntegerField(required=False, allow_null=True)
+
+
+class FighterRoundStatsSerializer(serializers.Serializer):
+    """One fighter's per-round stats for SetRoundStats."""
+
+    fighter_name = serializers.CharField(max_length=200)
+    rounds = RoundStatsRowSerializer(many=True)
+
+    def validate_rounds(self, value):
+        if not value:
+            raise serializers.ValidationError("At least one round is required.")
+        return value
+
+
+class RoundStatsUpdateSerializer(serializers.Serializer):
+    """Pipeline payload for upserting RoundStats rows for a fight."""
+
+    fighters = FighterRoundStatsSerializer(many=True)
+
+    def validate_fighters(self, value):
+        if len(value) != 2:
+            raise serializers.ValidationError("Exactly two fighter round bundles are required.")
+        return value
+
+
+class CareerStatsSourceStatRowSerializer(serializers.Serializer):
+    """One completed FightStats row plus fight outcome fields for counters."""
+
+    fight_id = serializers.IntegerField()
+    result = serializers.CharField(allow_null=True)
+    method = serializers.CharField(allow_null=True)
+    winner_id = serializers.IntegerField(allow_null=True)
+    round = serializers.IntegerField(allow_null=True)
+    time = serializers.IntegerField(allow_null=True)
+    kd = serializers.IntegerField(allow_null=True)
+    sig_str_landed = serializers.IntegerField(allow_null=True)
+    sig_str_attempted = serializers.IntegerField(allow_null=True)
+    total_str_landed = serializers.IntegerField(allow_null=True)
+    total_str_attempted = serializers.IntegerField(allow_null=True)
+    td_landed = serializers.IntegerField(allow_null=True)
+    td_attempted = serializers.IntegerField(allow_null=True)
+    sub_att = serializers.IntegerField(allow_null=True)
+    ctrl_time = serializers.IntegerField(allow_null=True)
+    reversals = serializers.IntegerField(allow_null=True)
+    head_str_landed = serializers.IntegerField(allow_null=True)
+    head_str_attempted = serializers.IntegerField(allow_null=True)
+    body_str_landed = serializers.IntegerField(allow_null=True)
+    body_str_attempted = serializers.IntegerField(allow_null=True)
+    leg_str_landed = serializers.IntegerField(allow_null=True)
+    leg_str_attempted = serializers.IntegerField(allow_null=True)
+    distance_str_landed = serializers.IntegerField(allow_null=True)
+    distance_str_attempted = serializers.IntegerField(allow_null=True)
+    clinch_str_landed = serializers.IntegerField(allow_null=True)
+    clinch_str_attempted = serializers.IntegerField(allow_null=True)
+    ground_str_landed = serializers.IntegerField(allow_null=True)
+    ground_str_attempted = serializers.IntegerField(allow_null=True)
+    sig_str_landed_opp = serializers.IntegerField(allow_null=True)
+    sig_str_attempted_opp = serializers.IntegerField(allow_null=True)
+    td_landed_opp = serializers.IntegerField(allow_null=True)
+    td_attempted_opp = serializers.IntegerField(allow_null=True)
+    ctrl_time_opp = serializers.IntegerField(allow_null=True)
+
+
+class CareerStatsSourceFighterSerializer(serializers.Serializer):
+    """One fighter and their completed FightStats history for career recalc."""
+
+    fighter_id = serializers.IntegerField()
+    fights = CareerStatsSourceStatRowSerializer(many=True)
+
+
+class CareerStatsSourceSerializer(serializers.Serializer):
+    """Career-stats source payload: both fighters' completed FightStats histories."""
+
+    fighters = CareerStatsSourceFighterSerializer(many=True)
+
+
+class EventDiscoveryIdentitySerializer(serializers.Serializer):
+    """One stored event identity used by the Event Watcher for comparison."""
+
+    event_id = serializers.IntegerField()
+    event = serializers.CharField(allow_null=True)
+    date = serializers.DateField(allow_null=True)
+    url = serializers.CharField(allow_null=True, allow_blank=True)
+
+
+class EventDiscoverySourceSerializer(serializers.Serializer):
+    """Discovery snapshot: latest event plus full stored identity set."""
+
+    latest_event = EventDiscoveryIdentitySerializer(allow_null=True)
+    events = EventDiscoveryIdentitySerializer(many=True)
+
+
+class EventUpsertSerializer(serializers.Serializer):
+    """Payload for creating or updating one Events row from the pipeline."""
+
+    event = serializers.CharField(max_length=100)
+    date = serializers.DateField()
+    location = serializers.CharField(max_length=50, allow_blank=True, required=False, default="")
+    url = serializers.CharField(max_length=256)
+
+
+class LiveResultsEventSerializer(serializers.Serializer):
+    """Event identity returned by LiveResultsSource."""
+
+    event_id = serializers.IntegerField()
+    event = serializers.CharField(allow_null=True)
+    date = serializers.DateField(allow_null=True)
+    url = serializers.CharField(allow_null=True, allow_blank=True)
+
+
+class LiveResultsFightSerializer(serializers.Serializer):
+    """One stored fight identity for live results reconciliation."""
+
+    fight_id = serializers.IntegerField()
+    url = serializers.CharField(allow_null=True, allow_blank=True)
+    bout = serializers.CharField(allow_null=True, allow_blank=True)
+    fight_status = serializers.CharField()
+
+
+class LiveResultsWatcherStateSerializer(serializers.Serializer):
+    """Durable lease/run state for one event."""
+
+    status = serializers.CharField()
+    owner_token = serializers.UUIDField(allow_null=True)
+    locked_until = serializers.DateTimeField(allow_null=True)
+    last_started_at = serializers.DateTimeField(allow_null=True)
+    last_completed_at = serializers.DateTimeField(allow_null=True)
+    warnings = serializers.CharField(allow_blank=True)
+    last_error = serializers.CharField(allow_blank=True)
+
+
+class LiveResultsSourceSerializer(serializers.Serializer):
+    """Event-level snapshot for the Live Event Results Watcher."""
+
+    event = LiveResultsEventSerializer()
+    fights = LiveResultsFightSerializer(many=True)
+    watcher_state = LiveResultsWatcherStateSerializer(allow_null=True)
+    fight_stats_handoffs = serializers.ListField(child=serializers.DictField(), required=False)
+    rescrape_handoffs = serializers.ListField(child=serializers.DictField(), required=False)
+
+
+class LiveResultsLeaseOwnerSerializer(serializers.Serializer):
+    """Owner token payload for lease claim/renew/complete/fail."""
+
+    owner_token = serializers.UUIDField()
+
+
+class LiveResultsLeaseFailSerializer(serializers.Serializer):
+    """Owner token plus optional error text for lease fail/release."""
+
+    owner_token = serializers.UUIDField()
+    last_error = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class LiveResultsLeaseCompleteSerializer(serializers.Serializer):
+    """Owner token plus optional durable warning summary for lease complete."""
+
+    owner_token = serializers.UUIDField()
+    warnings = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class LiveFightStatsHandoffSerializer(serializers.Serializer):
+    """One durable Fight Stats handoff row in LiveResultsSource."""
+
+    fight_id = serializers.IntegerField()
+    event_id = serializers.IntegerField()
+    fight_url = serializers.CharField()
+    status = serializers.CharField()
+    attempt_count = serializers.IntegerField()
+    last_attempt_at = serializers.DateTimeField(allow_null=True)
+    published_at = serializers.DateTimeField(allow_null=True)
+    last_error = serializers.CharField(allow_blank=True)
+
+    @classmethod
+    def from_instance(cls, handoff) -> dict:
+        """Serialize a ``LiveFightStatsHandoff`` model row to response data."""
+        return {
+            "fight_id": handoff.fight_id,
+            "event_id": handoff.event_id,
+            "fight_url": handoff.fight_url,
+            "status": handoff.status,
+            "attempt_count": handoff.attempt_count,
+            "last_attempt_at": handoff.last_attempt_at,
+            "published_at": handoff.published_at,
+            "last_error": handoff.last_error,
+        }
+
+
+class LiveEventRescrapeHandoffSerializer(serializers.Serializer):
+    """One durable event-rescrape handoff row in LiveResultsSource."""
+
+    id = serializers.IntegerField()
+    event_id = serializers.IntegerField()
+    card_fingerprint = serializers.CharField()
+    status = serializers.CharField()
+    reason = serializers.CharField()
+    publication_count = serializers.IntegerField()
+    last_published_at = serializers.DateTimeField(allow_null=True)
+    next_eligible_at = serializers.DateTimeField(allow_null=True)
+    last_error = serializers.CharField(allow_blank=True)
+
+    @classmethod
+    def from_instance(cls, handoff) -> dict:
+        """Serialize a ``LiveEventRescrapeHandoff`` model row to response data."""
+        return {
+            "id": handoff.id,
+            "event_id": handoff.event_id,
+            "card_fingerprint": handoff.card_fingerprint,
+            "status": handoff.status,
+            "reason": handoff.reason,
+            "publication_count": handoff.publication_count,
+            "last_published_at": handoff.last_published_at,
+            "next_eligible_at": handoff.next_eligible_at,
+            "last_error": handoff.last_error,
+        }
+
+
+class EnsureLiveEventRescrapeHandoffSerializer(serializers.Serializer):
+    """Create or reuse a pending rescrape handoff for one card fingerprint."""
+
+    card_fingerprint = serializers.CharField(max_length=64)
+    reason = serializers.ChoiceField(
+        choices=[
+            ("CARD_CHANGED", "CARD_CHANGED"),
+            ("MISSING_FIGHT", "MISSING_FIGHT"),
+            ("MALFORMED_IDENTITY", "MALFORMED_IDENTITY"),
+        ]
+    )
+
+
+class LiveEventRescrapeAttemptSerializer(serializers.Serializer):
+    """Record a failed rescrape publication attempt while leaving handoff pending."""
+
+    last_error = serializers.CharField(allow_blank=True, default="")
+
+
+class LiveEventRescrapeFailSerializer(serializers.Serializer):
+    """Mark a rescrape handoff failed after exhausted publications."""
+
+    last_error = serializers.CharField(allow_blank=True, default="")
+
+
+class CompleteLiveFightTransitionSerializer(serializers.Serializer):
+    """Payload for atomic UPCOMING/CANCELLED→COMPLETED live-result transition."""
+
+    event_id = serializers.IntegerField()
+    fight_url = serializers.CharField(max_length=512)
+    expected_status = serializers.ChoiceField(choices=Fights.FightStatus.choices)
+    winner_name = serializers.CharField(
+        max_length=200, required=False, allow_null=True, allow_blank=True
+    )
+    winner_url = serializers.CharField(
+        max_length=512, required=False, allow_null=True, allow_blank=True
+    )
+    method = serializers.CharField(
+        max_length=50, required=False, allow_null=True, allow_blank=True
+    )
+    round = serializers.IntegerField(required=False, allow_null=True)
+    time = serializers.IntegerField(required=False, allow_null=True)
+    round_format = serializers.CharField(
+        max_length=50, required=False, allow_null=True, allow_blank=True
+    )
+    weight_class = serializers.CharField(
+        max_length=100, required=False, allow_null=True, allow_blank=True
+    )
+
+
+class CancelLiveFightTransitionSerializer(serializers.Serializer):
+    """Payload for atomic UPCOMING→CANCELLED live-result transition."""
+
+    event_id = serializers.IntegerField()
+    fight_url = serializers.CharField(max_length=512)
+    expected_status = serializers.ChoiceField(choices=Fights.FightStatus.choices)
+
+
+class RestoreLiveFightUpcomingSerializer(serializers.Serializer):
+    """Payload for atomic CANCELLED→UPCOMING live-result restoration."""
+
+    event_id = serializers.IntegerField()
+    fight_url = serializers.CharField(max_length=512)
+    expected_status = serializers.ChoiceField(choices=Fights.FightStatus.choices)
+
+
+class FightStatsHandoffAttemptSerializer(serializers.Serializer):
+    """Record a failed Fight Stats publication attempt while leaving handoff pending."""
+
+    last_error = serializers.CharField(allow_blank=True, default="")
+
+
+class ScoringSourceRoundSerializer(serializers.Serializer):
+    """One round of stats required by the pure round scorer."""
+
+    round_number = serializers.IntegerField()
+    kd = serializers.IntegerField()
+    sig_str_landed = serializers.IntegerField()
+    td_landed = serializers.IntegerField()
+    sub_att = serializers.IntegerField()
+    ctrl_time = serializers.IntegerField()
+    reversals = serializers.IntegerField()
+
+
+class ScoringSourceFighterSerializer(serializers.Serializer):
+    """One fighter and their per-round scoring inputs."""
+
+    fighter_id = serializers.IntegerField()
+    rounds = ScoringSourceRoundSerializer(many=True)
+
+
+class ScoringSourceFightSerializer(serializers.Serializer):
+    """Fight metadata required to score fight-level bonuses."""
+
+    fight_id = serializers.IntegerField()
+    fight_status = serializers.CharField()
+    method = serializers.CharField(allow_null=True)
+    round = serializers.IntegerField(allow_null=True)
+    time = serializers.IntegerField(allow_null=True)
+    winner_id = serializers.IntegerField(allow_null=True)
+
+
+class ScoringSourceSerializer(serializers.Serializer):
+    """Complete scoreable snapshot for the score-fight worker."""
+
+    fight = ScoringSourceFightSerializer()
+    fighters = ScoringSourceFighterSerializer(many=True)
+
+
+class FightScoringResultSerializer(serializers.Serializer):
+    """One fighter's calculated FightScore values."""
+
+    fighter_id = serializers.IntegerField(min_value=1)
+    points_win = serializers.FloatField()
+    points_round = serializers.FloatField()
+    points_time = serializers.FloatField()
+    fight_total_points = serializers.FloatField()
+
+
+class RoundScoringResultSerializer(serializers.Serializer):
+    """One calculated RoundScore identified by fighter and round."""
+
+    fighter_id = serializers.IntegerField(min_value=1)
+    round_number = serializers.IntegerField(min_value=1)
+    points_knockdowns = serializers.FloatField()
+    points_sig_str_landed = serializers.FloatField()
+    points_td_landed = serializers.FloatField()
+    points_sub_att = serializers.FloatField()
+    points_ctrl_time = serializers.FloatField()
+    points_reversals = serializers.FloatField()
+    round_total_points = serializers.FloatField()
+
+
+class FightScoringUpdateSerializer(serializers.Serializer):
+    """Complete calculated score state for one fight."""
+
+    fight_scores = FightScoringResultSerializer(many=True)
+    round_scores = RoundScoringResultSerializer(many=True)
+
+    def validate(self, attrs):
+        fight_scores = attrs["fight_scores"]
+        round_scores = attrs["round_scores"]
+        fighter_ids = [row["fighter_id"] for row in fight_scores]
+
+        if len(fight_scores) != 2 or len(set(fighter_ids)) != 2:
+            raise serializers.ValidationError(
+                "Exactly two unique fight_scores are required."
+            )
+        if not round_scores:
+            raise serializers.ValidationError(
+                "At least one round_score is required for each fighter."
+            )
+
+        round_keys = [
+            (row["fighter_id"], row["round_number"]) for row in round_scores
+        ]
+        if len(round_keys) != len(set(round_keys)):
+            raise serializers.ValidationError(
+                "Duplicate fighter_id and round_number score rows are not allowed."
+            )
+        if {fighter_id for fighter_id, _round in round_keys} != set(fighter_ids):
+            raise serializers.ValidationError(
+                "round_scores must contain the same fighters as fight_scores."
+            )
+        return attrs
+
+
+class FighterCareerStatsUpdateSerializer(serializers.ModelSerializer):
+    """Full-replace payload for SetFighterCareerStats cumulative fields."""
+
+    class Meta:
+        model = FighterCareerStats
+        fields = [
+            "total_fights",
+            "wins",
+            "losses",
+            "draws",
+            "ko_tko_wins",
+            "tko_doctor_stoppage_wins",
+            "submission_wins",
+            "unanimous_decision_wins",
+            "split_decision_wins",
+            "majority_decision_wins",
+            "dq_wins",
+            "ko_tko_losses",
+            "tko_doctor_stoppage_losses",
+            "submission_losses",
+            "unanimous_decision_losses",
+            "split_decision_losses",
+            "majority_decision_losses",
+            "dq_losses",
+            "sig_str_landed",
+            "sig_str_attempted",
+            "total_str_landed",
+            "total_str_attempted",
+            "td_landed",
+            "td_attempted",
+            "sub_att",
+            "ctrl_time",
+            "reversals",
+            "total_fight_time",
+            "head_str_landed",
+            "head_str_attempted",
+            "body_str_landed",
+            "body_str_attempted",
+            "leg_str_landed",
+            "leg_str_attempted",
+            "distance_str_landed",
+            "distance_str_attempted",
+            "clinch_str_landed",
+            "clinch_str_attempted",
+            "ground_str_landed",
+            "ground_str_attempted",
+            "sig_str_landed_opp",
+            "sig_str_attempted_opp",
+            "td_landed_opp",
+            "td_attempted_opp",
+            "ctrl_time_opp",
+        ]
+        extra_kwargs = {field: {"required": True} for field in fields}
+

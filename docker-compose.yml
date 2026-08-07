@@ -8,6 +8,14 @@ services:
       - ./backend:/app
     env_file:
       - .env
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+      PIPELINE_API_BASE_URL: http://web:8000
+      BASE_API_URL: http://web:8000
+      WORKER_IDLE_SHUTDOWN_ENABLED: "false"
+    depends_on:
+      pubsub-init:
+        condition: service_completed_successfully
 
   scraper-job:
     build:
@@ -15,9 +23,14 @@ services:
       dockerfile: athlete_image_service/Dockerfile
     env_file:
       - .env
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+      BASE_API_URL: http://web:8000
     depends_on:
-      - web
-      - pubsub
+      pubsub-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
 
   image-worker-job:
     build:
@@ -25,10 +38,106 @@ services:
       dockerfile: image_worker_service/Dockerfile
     env_file:
       - .env
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+      BASE_API_URL: http://web:8000
+      WORKER_IDLE_SHUTDOWN_ENABLED: "false"
     depends_on:
-      - web
-      - pubsub
-  
+      pubsub-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
+
+  fighter-profile-worker:
+    build: ./backend
+    command: python -m ufc_data_pipeline.fighters.fighter_profile.fighter_profile_worker
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+      PIPELINE_API_BASE_URL: http://web:8000
+      WORKER_IDLE_SHUTDOWN_ENABLED: "false"
+    depends_on:
+      pubsub-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
+
+  fights-in-event-worker:
+    build: ./backend
+    command: python -m ufc_data_pipeline.fights.fights_in_event.fights_in_event_worker
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+      PIPELINE_API_BASE_URL: http://web:8000
+      WORKER_IDLE_SHUTDOWN_ENABLED: "false"
+    depends_on:
+      pubsub-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
+
+  fight-stats-worker:
+    build: ./backend
+    command: python -m ufc_data_pipeline.fights.fight_stats.fight_stats_worker
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+      PIPELINE_API_BASE_URL: http://web:8000
+      WORKER_IDLE_SHUTDOWN_ENABLED: "false"
+      WORKER_MAX_MESSAGES: "3"
+    depends_on:
+      pubsub-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
+
+  career-stats-worker:
+    build: ./backend
+    command: python -m ufc_data_pipeline.fighters.career_stats.career_stats_worker
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+      GOOGLE_CLOUD_PROJECT: local-project
+      PIPELINE_API_BASE_URL: http://web:8000
+      WORKER_IDLE_SHUTDOWN_ENABLED: "false"
+      WORKER_MAX_MESSAGES: "3"
+    depends_on:
+      pubsub-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
+
+  score-fight-worker:
+    build: ./backend
+    command: python -m ufc_data_pipeline.fantasy.score_fight.score_fight_worker
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+      GOOGLE_CLOUD_PROJECT: local-project
+      PIPELINE_API_BASE_URL: http://web:8000
+      WORKER_IDLE_SHUTDOWN_ENABLED: "false"
+      WORKER_MAX_MESSAGES: "3"
+    depends_on:
+      pubsub-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
+
   pubsub:
     image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
     command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8085
@@ -36,20 +145,43 @@ services:
       - "8085:8085"
     environment:
       - PUBSUB_PROJECT_ID=local-project
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8085 || exit 1"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 2s
 
   pubsub-init:
     image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
     depends_on:
-      - pubsub
+      pubsub:
+        condition: service_healthy
     environment:
       - PUBSUB_EMULATOR_HOST=pubsub:8085
       - GOOGLE_CLOUD_PROJECT=local-project
       - CLOUDSDK_API_ENDPOINT_OVERRIDES_PUBSUB=http://pubsub:8085/
     command: >
       sh -c "
-      sleep 5 &&
       gcloud config set auth/disable_credentials true &&
       gcloud config set project local-project &&
-      gcloud pubsub topics create image-jobs --project=local-project &&
-      gcloud pubsub subscriptions create image-worker-sub --topic=image-jobs --project=local-project
+      ACK_DEADLINE=120 &&
+      (gcloud pubsub topics create image-jobs --project=local-project || true) &&
+      (gcloud pubsub subscriptions create image-worker-sub --topic=image-jobs --ack-deadline=$$ACK_DEADLINE --project=local-project || true) &&
+      (gcloud pubsub subscriptions update image-worker-sub --ack-deadline=$$ACK_DEADLINE --project=local-project || true) &&
+      (gcloud pubsub topics create fights-in-event --project=local-project || true) &&
+      (gcloud pubsub subscriptions create fights-in-event-sub --topic=fights-in-event --ack-deadline=$$ACK_DEADLINE --project=local-project || true) &&
+      (gcloud pubsub subscriptions update fights-in-event-sub --ack-deadline=$$ACK_DEADLINE --project=local-project || true) &&
+      (gcloud pubsub topics create fighter-profile-jobs --project=local-project || true) &&
+      (gcloud pubsub subscriptions create fighter-profile-jobs-sub --topic=fighter-profile-jobs --ack-deadline=$$ACK_DEADLINE --project=local-project || true) &&
+      (gcloud pubsub subscriptions update fighter-profile-jobs-sub --ack-deadline=$$ACK_DEADLINE --project=local-project || true) &&
+      (gcloud pubsub topics create fight-stats-jobs --project=local-project || true) &&
+      (gcloud pubsub subscriptions create fight-stats-jobs-sub --topic=fight-stats-jobs --ack-deadline=$$ACK_DEADLINE --project=local-project || true) &&
+      (gcloud pubsub subscriptions update fight-stats-jobs-sub --ack-deadline=$$ACK_DEADLINE --project=local-project || true) &&
+      (gcloud pubsub topics create career-stats-jobs --project=local-project || true) &&
+      (gcloud pubsub subscriptions create career-stats-jobs-sub --topic=career-stats-jobs --ack-deadline=$$ACK_DEADLINE --project=local-project || true) &&
+      (gcloud pubsub subscriptions update career-stats-jobs-sub --ack-deadline=$$ACK_DEADLINE --project=local-project || true) &&
+      (gcloud pubsub topics create score-fight-jobs --project=local-project || true) &&
+      (gcloud pubsub subscriptions create score-fight-jobs-sub --topic=score-fight-jobs --ack-deadline=$$ACK_DEADLINE --project=local-project || true) &&
+      (gcloud pubsub subscriptions update score-fight-jobs-sub --ack-deadline=$$ACK_DEADLINE --project=local-project || true)
       "

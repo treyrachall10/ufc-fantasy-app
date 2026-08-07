@@ -36,5 +36,72 @@ urlpatterns = [
     path('api/previewLeague', views.PreviewLeagueByJoinKey),
     path('api/<int:team_id>/SetTeamImage', views.SetTeamImage.as_view()),
     path('api/fighters/ImageCandidates', views.GetFighterImageCandidates.as_view()),
-    path('api/fighters/<int:fighter_id>/SetFighterImage', views.AddFighterImageURL.as_view())
+    path('api/fighters/<int:fighter_id>/SetFighterImage', views.AddFighterImageURL.as_view()),
+    path('api/fighters/<int:fighter_id>/SetFighterProfile', views.SetFighterProfile.as_view()),
+    path('api/fighters/<int:fighter_id>/SetFighterCareerStats', views.SetFighterCareerStats.as_view()),
+    path('api/events/DiscoverySource', views.EventDiscoverySource.as_view()),
+    path('api/events/SetEvent', views.SetEvent.as_view()),
+    path('api/events/<int:event_id>/LiveResultsSource', views.LiveResultsSource.as_view()),
+    path(
+        'api/events/<int:event_id>/EnsureLiveEventRescrapeHandoff',
+        views.EnsureLiveEventRescrapeHandoff.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveEventRescrapeHandoffs/<int:handoff_id>/MarkPublished',
+        views.MarkLiveEventRescrapePublished.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveEventRescrapeHandoffs/<int:handoff_id>/RecordAttempt',
+        views.RecordLiveEventRescrapeAttempt.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveEventRescrapeHandoffs/<int:handoff_id>/Resolve',
+        views.ResolveLiveEventRescrapeHandoff.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveEventRescrapeHandoffs/<int:handoff_id>/Fail',
+        views.FailLiveEventRescrapeHandoff.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveResultsLease/Claim',
+        views.LiveResultsLeaseClaim.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveResultsLease/Renew',
+        views.LiveResultsLeaseRenew.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveResultsLease/Complete',
+        views.LiveResultsLeaseComplete.as_view(),
+    ),
+    path(
+        'api/events/<int:event_id>/LiveResultsLease/Fail',
+        views.LiveResultsLeaseFail.as_view(),
+    ),
+    path('api/fights/<int:fight_id>/SetFightResultMetadata', views.SetFightResultMetadata.as_view()),
+    path(
+        'api/fights/<int:fight_id>/CompleteLiveFightTransition',
+        views.CompleteLiveFightTransition.as_view(),
+    ),
+    path(
+        'api/fights/<int:fight_id>/CancelLiveFightTransition',
+        views.CancelLiveFightTransition.as_view(),
+    ),
+    path(
+        'api/fights/<int:fight_id>/RestoreLiveFightUpcoming',
+        views.RestoreLiveFightUpcoming.as_view(),
+    ),
+    path(
+        'api/fights/<int:fight_id>/MarkFightStatsHandoffPublished',
+        views.MarkFightStatsHandoffPublished.as_view(),
+    ),
+    path(
+        'api/fights/<int:fight_id>/RecordFightStatsHandoffAttempt',
+        views.RecordFightStatsHandoffAttempt.as_view(),
+    ),
+    path('api/fights/<int:fight_id>/SetFightStatsTotals', views.SetFightStatsTotals.as_view()),
+    path('api/fights/<int:fight_id>/SetRoundStats', views.SetRoundStats.as_view()),
+    path('api/fights/<int:fight_id>/CareerStatsSource', views.CareerStatsSource.as_view()),
+    path('api/fights/<int:fight_id>/ScoringSource', views.ScoringSource.as_view()),
+    path('api/fights/<int:fight_id>/SetFightScoring', views.SetFightScoring.as_view()),
 ]

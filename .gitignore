@@ -35,3 +35,6 @@ build/
 .vscode/
 .idea/
 .DS_Store
+
+# Issues
+issues/

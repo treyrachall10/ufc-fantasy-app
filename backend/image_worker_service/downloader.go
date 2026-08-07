@@ -95,18 +95,26 @@ func ConsumeJobs(
 		- subscriptionID: Subscription ID
 	*/
 
-	timeSinceLastMessage := time.Now()                // Track time since last message was received
-	timeSinceLastMessageThreshold := 60 * time.Second // Threshold for how long to wait before shutting down consumer
+	timeSinceLastMessage := time.Now()
+	idleShutdownEnabled := envBool("WORKER_IDLE_SHUTDOWN_ENABLED", true)
+	idleTimeout := envDurationSeconds("WORKER_IDLE_TIMEOUT_SECONDS", 60*time.Second)
+	idleCheckInterval := envDurationSeconds("WORKER_IDLE_CHECK_INTERVAL_SECONDS", 10*time.Second)
 
-	// Start a goroutine to check for inactivity and shut down the consumer if no messages are received in the last 60 seconds
+	// Optionally shut down after an idle period with no messages.
 	go func() {
+		if !idleShutdownEnabled {
+			return
+		}
 		for {
-			if time.Since(timeSinceLastMessage) > timeSinceLastMessageThreshold {
-				fmt.Println("No messages received in the last 60 seconds. Shutting down consumer.")
+			if time.Since(timeSinceLastMessage) > idleTimeout {
+				fmt.Printf(
+					"No messages received in the last %s. Shutting down consumer.\n",
+					idleTimeout,
+				)
 				cancel()
 				return
 			}
-			time.Sleep(10 * time.Second)
+			time.Sleep(idleCheckInterval)
 		}
 	}()
 
@@ -234,4 +242,33 @@ func downloadImage(job Job, supabaseClient *storage_go.Client, successChannel ch
 	successChannel <- job // Send the job to the successChannel
 
 	return nil
+}
+
+func envBool(name string, defaultValue bool) bool {
+	raw := strings.TrimSpace(os.Getenv(name))
+	if raw == "" {
+		return defaultValue
+	}
+	switch strings.ToLower(raw) {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	default:
+		log.Printf("Invalid %s=%q; using default %v", name, raw, defaultValue)
+		return defaultValue
+	}
+}
+
+func envDurationSeconds(name string, defaultValue time.Duration) time.Duration {
+	raw := strings.TrimSpace(os.Getenv(name))
+	if raw == "" {
+		return defaultValue
+	}
+	seconds, err := time.ParseDuration(raw + "s")
+	if err != nil || seconds <= 0 {
+		log.Printf("Invalid %s=%q; using default %s", name, raw, defaultValue)
+		return defaultValue
+	}
+	return seconds
 }
