@@ -92,6 +92,7 @@ if loaded:
 """
         env = os.environ.copy()
         env["SERVICE_TYPE"] = "no_service"
+        env["DJANGO_SETTINGS_MODULE"] = "ufc_fantasy.test_settings"
         pythonpath = env.get("PYTHONPATH", "")
         env["PYTHONPATH"] = (
             str(BACKEND_DIR)
