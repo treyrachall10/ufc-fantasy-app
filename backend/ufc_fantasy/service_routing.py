@@ -1,7 +1,9 @@
 """
 Map ``SERVICE_TYPE`` to Django ``ROOT_URLCONF`` modules.
 
-Each non-api role exposes only that worker's Pub/Sub push endpoint.
+Each non-api worker role exposes only that worker's Pub/Sub push endpoint.
+``no_service`` is a no-op URLConf for one-shot management commands that do
+not serve HTTP (for example ``watch_events`` and ``watch_live_event_results``).
 """
 
 from __future__ import annotations
@@ -14,6 +16,7 @@ SERVICE_TYPE_URLCONFS: dict[str, str] = {
     "fight_stats": "ufc_fantasy.fight_stats_urls",
     "career_stats": "ufc_fantasy.career_stats_urls",
     "score_fight": "ufc_fantasy.score_fight_urls",
+    "no_service": "ufc_fantasy.no_service_urls",
 }
 
 
