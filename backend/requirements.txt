@@ -25,3 +25,4 @@ djangorestframework-api-key==2.*
 pytest
 google-cloud-pubsub
 playwright
+tenacity==9.1.4
