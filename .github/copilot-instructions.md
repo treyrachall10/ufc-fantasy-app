@@ -34,8 +34,10 @@ docker compose up                  # Subsequent runs
 ### Frontend Development
 ```bash
 cd frontend/ufc-fantasy-frontend
-npm start                          # Runs React dev server at http://localhost:3000
-npm run build                      # Production build
+npm start                          # CRA at http://localhost:3000 → local API (start:dev-local)
+npm run start:dev-cloud            # same CRA dev server → cloud main API
+npm run build:dev-cloud            # production build configured for the cloud API
+npm run build                      # plain CRA production build (no cloud env file)
 npm test                           # Run tests
 ```
 - Built with **React 18** + **TypeScript** + **TailwindCSS** + **MUI v7** (Material-UI)

@@ -39,7 +39,9 @@
   "scripts": {
     "start": "env-cmd -f .env.dev-local react-scripts start",
     "start:dev-local": "env-cmd -f .env.dev-local react-scripts start",
+    "start:dev-cloud": "env-cmd -f .env.dev-cloud react-scripts start",
     "build": "react-scripts build",
+    "build:dev-cloud": "env-cmd -f .env.dev-cloud react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx"
