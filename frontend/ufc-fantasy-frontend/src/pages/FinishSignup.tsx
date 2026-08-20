@@ -14,6 +14,7 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuthFetch } from '../auth/authFetch';
+import { getApiBaseUrl } from '../config/api';
 
 type SetUsernamePayload = {
 	username: string;
@@ -29,7 +30,7 @@ export default function FinishSignup() {
 
 	const setUsernameMutation = useMutation({
 		mutationFn: async (payload: SetUsernamePayload) => {
-			const response = await authFetch('http://localhost:8000/api/setUserName', {
+			const response = await authFetch(`${getApiBaseUrl()}/api/setUserName`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

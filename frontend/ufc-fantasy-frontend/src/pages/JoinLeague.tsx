@@ -10,6 +10,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthFetch } from '../auth/authFetch';
 import InfoConfirmDialog from '../components/ui/InfoConfirmDialog';
+import { getApiBaseUrl } from '../config/api';
 
 type JoinPayload = {
     join_key: string,
@@ -39,7 +40,7 @@ export default function JoinLeague(){
         retry: false,
         queryFn: async ({ queryKey }) => {
             const [, joinKey] = queryKey as [string, string]
-            const response = await authFetch('http://localhost:8000/api/previewLeague', {
+            const response = await authFetch(`${getApiBaseUrl()}/api/previewLeague`, {
                 method: 'POST',
                 body: JSON.stringify({ join_key: joinKey }),
             })
@@ -78,7 +79,7 @@ export default function JoinLeague(){
     // POST request to login a user
       const createLeagueMutation = useMutation({
         mutationFn: async (payload: JoinPayload) => {
-          const response = await authFetch('http://localhost:8000/league/join', {
+          const response = await authFetch(`${getApiBaseUrl()}/league/join`, {
             method: 'POST',
             body: JSON.stringify(payload),
           })

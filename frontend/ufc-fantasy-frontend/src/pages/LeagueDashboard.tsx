@@ -8,6 +8,7 @@ import LeagueStandingBarChartLabel from "../components/badges/LeagueStandingBarC
 import { DataGrid } from '@mui/x-data-grid';
 import { useQuery } from "@tanstack/react-query";
 import { useAuthFetch } from "../auth/authFetch";
+import { getApiBaseUrl } from "../config/api";
 import { useParams } from 'react-router-dom';
 import Popover from '@mui/material/Popover';
 import IconButton from '@mui/material/IconButton';
@@ -47,12 +48,12 @@ export default function LeagueDashboard() {
 
     const { data, isPending, error} = useQuery<LeagueInfo>({
         queryKey: ['League', params.leagueId],
-        queryFn: () => authFetch(`http://localhost:8000/league/${params.leagueId}`).then(r => r.json()),
+        queryFn: () => authFetch(`${getApiBaseUrl()}/league/${params.leagueId}`).then(r => r.json()),
     })
 
     const scheduleDraftMutation = useMutation({
         mutationFn: async (payload: SetDraftSatePayload) => {
-        const response = await authFetch(`http://localhost:8000/league/${params.leagueId}/draft/schedule`, {
+        const response = await authFetch(`${getApiBaseUrl()}/league/${params.leagueId}/draft/schedule`, {
             method: 'POST',
             body: JSON.stringify(payload),
         })
