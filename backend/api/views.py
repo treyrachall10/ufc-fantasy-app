@@ -3,7 +3,7 @@
 '''
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, BasePermission
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import IntegrityError
@@ -1050,7 +1050,7 @@ def PreviewLeagueByJoinKey(request):
     '''
         Endpoint to preview league details before joining.
     '''
-    user = get_or_create_user_from_token(request=request)
+    get_or_create_user_from_token(request=request)
     league = get_object_or_404(
         League.objects.select_related('creator').prefetch_related('leaguemember_set'),
         join_key=request.data['join_key']

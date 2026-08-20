@@ -1,7 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
 import json
-import pandas as pd
 import yaml
 import os
 from .parser import parse_html
@@ -82,7 +81,6 @@ def scrape_fighter_images_df():
         first_view = next(iter(ajax_views.values()))
         url_params["view_dom_id"] = first_view["view_dom_id"]
 
-        response_list = []
         page = 0
         
         # Loop through pages until no more fighters are found

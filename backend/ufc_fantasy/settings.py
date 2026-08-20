@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 
+from ufc_fantasy.service_routing import resolve_root_urlconf
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -76,8 +78,6 @@ MIDDLEWARE = [
     # Account middleware
     'allauth.account.middleware.AccountMiddleware',
 ]
-
-from ufc_fantasy.service_routing import resolve_root_urlconf
 
 ROOT_URLCONF = resolve_root_urlconf(os.environ.get("SERVICE_TYPE"))
 
