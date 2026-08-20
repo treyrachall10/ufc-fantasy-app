@@ -18,7 +18,7 @@ dj-rest-auth
 djangorestframework-simplejwt
 authlib==1.3.0
 django-filter
-ruff
+ruff=0.15.15
 Pillow
 supabase
 djangorestframework-api-key==2.*
