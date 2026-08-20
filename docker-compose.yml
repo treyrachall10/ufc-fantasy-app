@@ -185,3 +185,18 @@ services:
       (gcloud pubsub subscriptions create score-fight-jobs-sub --topic=score-fight-jobs --ack-deadline=$$ACK_DEADLINE --project=local-project || true) &&
       (gcloud pubsub subscriptions update score-fight-jobs-sub --ack-deadline=$$ACK_DEADLINE --project=local-project || true)
       "
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: ./backend
+    command: celery -A ufc_fantasy worker --loglevel=info
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
