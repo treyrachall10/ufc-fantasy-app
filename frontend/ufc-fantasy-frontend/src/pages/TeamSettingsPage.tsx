@@ -28,7 +28,6 @@ export default function TeamSettingsPage() {
     const { data: currentUser, isPending: isCurrentUserPending, error: currentUserError } = useCurrentUser();
     const [currentTeamName, setCurrentTeamName] = useState('');
     const [teamName, setTeamName] = useState('');
-    const [teamPhotoFile, setTeamPhotoFile] = useState<File | null>(null);
     const [teamPhotoError, setTeamPhotoError] = useState('');
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [teamNameError, setTeamNameError] = useState('');
@@ -129,12 +128,10 @@ export default function TeamSettingsPage() {
 
     const handleChangeTeamPhoto = (event: ChangeEvent<HTMLInputElement>) => {
         if (!event.target.files?.length) {
-            setTeamPhotoFile(null);
             return;
         }
 
         const selectedFile = event.target.files[0];
-        setTeamPhotoFile(selectedFile);
         setTeamPhotoError('');
         changeTeamPictureMutation.mutate(selectedFile);
     };
