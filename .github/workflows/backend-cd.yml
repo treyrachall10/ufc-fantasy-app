@@ -1,0 +1,397 @@
+name: 'Backend CD'
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+env:
+  PROJECT_ID: 'ufc-fantasy-504720'
+  GAR_LOCATION: 'us-central1'
+  ARTIFACT_REPOSITORY: 'ufc-fantasy'
+  IMAGE_NAME: 'backend'
+  WORKLOAD_IDENTITY_PROVIDER: 'projects/171920464753/locations/global/workloadIdentityPools/github-actions-pool/providers/github'
+
+jobs:
+
+  # =======================================================
+  # Detect what changed
+  # =======================================================
+  changes:
+    runs-on: ubuntu-latest
+
+    outputs:
+      shared: ${{ steps.filter.outputs.shared }}
+      api: ${{ steps.filter.outputs.api }}
+      fights_in_event: ${{ steps.filter.outputs.fights_in_event }}
+      fighter_profile: ${{ steps.filter.outputs.fighter_profile }}
+      fight_stats: ${{ steps.filter.outputs.fight_stats }}
+      career_stats: ${{ steps.filter.outputs.career_stats }}
+      score_fight: ${{ steps.filter.outputs.score_fight }}
+      live_results: ${{ steps.filter.outputs.live_results }}
+      event_watcher: ${{ steps.filter.outputs.event_watcher }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changed backend areas
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shared:
+              - 'backend/Dockerfile'
+              - 'backend/requirements.txt'
+              - 'backend/manage.py'
+              - 'backend/ufc_fantasy/**'
+
+            api:
+              - 'backend/api/**'
+              - 'backend/fantasy/**'
+              - 'backend/accounts/**'
+
+            fights_in_event:
+              - 'backend/ufc_data_pipeline/fights/fights_in_event/**'
+
+            fighter_profile:
+              - 'backend/ufc_data_pipeline/fighters/fighter_profile/**'
+
+            fight_stats:
+              - 'backend/ufc_data_pipeline/fights/fight_stats/**'
+
+            career_stats:
+              - 'backend/ufc_data_pipeline/fighters/career_stats/**'
+
+            score_fight:
+              - 'backend/ufc_data_pipeline/fantasy/score_fight/**'
+
+            live_results:
+              - 'backend/ufc_data_pipeline/fights/live_event_results/**'
+
+            event_watcher:
+              - 'backend/ufc_data_pipeline/events/event_watcher/**'
+
+
+  # =======================================================
+  # Build shared backend Docker image once
+  # =======================================================
+  build-backend:
+    needs: changes
+
+    if: |
+      needs.changes.outputs.shared == 'true' ||
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.fights_in_event == 'true' ||
+      needs.changes.outputs.fighter_profile == 'true' ||
+      needs.changes.outputs.fight_stats == 'true' ||
+      needs.changes.outputs.career_stats == 'true' ||
+      needs.changes.outputs.score_fight == 'true' ||
+      needs.changes.outputs.live_results == 'true' ||
+      needs.changes.outputs.event_watcher == 'true'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: '${{ env.PROJECT_ID }}'
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Authenticate Docker
+        run: |
+          gcloud auth configure-docker \
+            ${{ env.GAR_LOCATION }}-docker.pkg.dev \
+            --quiet
+
+      - name: Build and Push Container
+        run: |
+          DOCKER_TAG="${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
+          docker build \
+            -f backend/Dockerfile \
+            -t "${DOCKER_TAG}" \
+            backend
+
+          docker push "${DOCKER_TAG}"
+
+
+  # =======================================================
+  # Main API
+  # =======================================================
+  deploy-api:
+    needs: [changes, build-backend]
+
+    if: |
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.shared == 'true'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: '${{ env.PROJECT_ID }}'
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+
+      - name: Deploy API
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: 'ufc-fantasy-api'
+          region: 'us-central1'
+          image: '${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
+
+
+  # =======================================================
+  # Fights In Event Worker
+  # =======================================================
+  deploy-fights-in-event:
+    needs: [changes, build-backend]
+
+    if: |
+      needs.changes.outputs.fights_in_event == 'true' ||
+      needs.changes.outputs.shared == 'true'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: '${{ env.PROJECT_ID }}'
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+
+      - name: Deploy Fights In Event Worker
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: 'fights-in-event-worker'
+          region: 'us-south1'
+          image: '${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
+
+
+  # =======================================================
+  # Fighter Profile Worker
+  # =======================================================
+  deploy-fighter-profile:
+    needs: [changes, build-backend]
+
+    if: |
+      needs.changes.outputs.fighter_profile == 'true' ||
+      needs.changes.outputs.shared == 'true'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: '${{ env.PROJECT_ID }}'
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+
+      - name: Deploy Fighter Profile Worker
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: 'fighter-profile-worker'
+          region: 'us-south1'
+          image: '${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
+
+
+  # =======================================================
+  # Fight Stats Worker
+  # =======================================================
+  deploy-fight-stats:
+    needs: [changes, build-backend]
+
+    if: |
+      needs.changes.outputs.fight_stats == 'true' ||
+      needs.changes.outputs.shared == 'true'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: '${{ env.PROJECT_ID }}'
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+
+      - name: Deploy Fight Stats Worker
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: 'fight-stats-worker'
+          region: 'us-south1'
+          image: '${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
+
+
+  # =======================================================
+  # Career Stats Worker
+  # =======================================================
+  deploy-career-stats:
+    needs: [changes, build-backend]
+
+    if: |
+      needs.changes.outputs.career_stats == 'true' ||
+      needs.changes.outputs.shared == 'true'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: '${{ env.PROJECT_ID }}'
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+
+      - name: Deploy Career Stats Worker
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: 'career-stats-worker'
+          region: 'us-south1'
+          image: '${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
+
+
+  # =======================================================
+  # Score Fight Worker
+  # =======================================================
+  deploy-score-fight:
+    needs: [changes, build-backend]
+
+    if: |
+      needs.changes.outputs.score_fight == 'true' ||
+      needs.changes.outputs.shared == 'true'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: '${{ env.PROJECT_ID }}'
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+
+      - name: Deploy Score Fight Worker
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: 'score-fight-worker'
+          region: 'us-south1'
+          image: '${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
+
+
+  # =======================================================
+  # Live Event Results Watcher Job
+  #
+  # NOTE:
+  # The actual GCP job is misspelled "wather",
+  # so we must use that exact existing resource name.
+  # =======================================================
+  deploy-live-results:
+    needs: [changes, build-backend]
+
+    if: |
+      needs.changes.outputs.live_results == 'true' ||
+      needs.changes.outputs.shared == 'true'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: '${{ env.PROJECT_ID }}'
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+
+      - name: Deploy Live Event Results Job
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          job: 'live-event-results-wather'
+          region: 'us-south1'
+          image: '${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
+
+
+  # =======================================================
+  # Event Watcher + Backfill Jobs
+  # Both use the event watcher code.
+  # =======================================================
+  deploy-event-jobs:
+    needs: [changes, build-backend]
+
+    if: |
+      needs.changes.outputs.event_watcher == 'true' ||
+      needs.changes.outputs.shared == 'true'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: '${{ env.PROJECT_ID }}'
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+
+      - name: Deploy Event Watcher
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          job: 'event-watcher-ufc-fantasy'
+          region: 'us-south1'
+          image: '${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
+
+      - name: Deploy Event Backfill
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          job: 'event-backfill'
+          region: 'us-south1'
+          image: '${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}'
