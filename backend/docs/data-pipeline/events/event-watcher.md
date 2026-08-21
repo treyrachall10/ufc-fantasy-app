@@ -13,7 +13,7 @@ Discovers new completed UFC events from the UFC Stats listing, upserts missing `
 - Shared listing parser/config: `backend/ufc_data_pipeline/events/shared/`
 - Management command: `backend/ufc_data_pipeline/management/commands/watch_events.py`
 - Job model: `backend/ufc_data_pipeline/models.py` (`EventSyncJob`)
-- Architecture: `backend/ufc_data_pipeline/instructions/ARCHITECTURE.md` (section 1. Event Watcher)
+- Architecture: `backend/docs/data-pipeline/ARCHITECTURE.md` (section 1. Event Watcher)
 
 ## Main Files
 

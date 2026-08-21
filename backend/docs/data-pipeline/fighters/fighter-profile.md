@@ -15,7 +15,7 @@ Upstream publisher: `backend/ufc_data_pipeline/fights/fights_in_event/parser.py`
 - Feature root: `backend/ufc_data_pipeline/fighters/fighter_profile/`
 - Job model: `backend/ufc_data_pipeline/models.py` (`FighterProfileScrapeJob`)
 - Upstream publisher: `backend/ufc_data_pipeline/fights/fights_in_event/parser.py`
-- Related developer doc: `backend/ufc_data_pipeline/fights/fights_in_event/docs/fights-in-event.md`
+- Related developer doc: `backend/docs/data-pipeline/fights/fights-in-event.md`
 
 ## Main Files
 

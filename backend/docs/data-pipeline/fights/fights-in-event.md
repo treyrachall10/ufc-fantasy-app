@@ -2,7 +2,7 @@
 
 This feature consumes **Pub/Sub** messages that point at a UFC Stats **event detail** page, downloads the HTML, parses fight rows and fighter links, upserts **`Fighters`** rows (by normalized name), bulk-inserts **`Fights`** rows for that event, and records each delivery in **`FightCreationJob`**. It is the downstream step after the **Event Watcher** publishes new events, and also after the **Live Event Results Watcher** republishes the same `{"url", "event_id"}` contract for card-change rescrapes (optional `reason` / `fingerprint` metadata). See related docs below.
 
-When new fighters are created or an existing fighter receives a backfilled `profile_url`, it publishes `{fighter_id, fighter_url}` to the **`fighter-profile-jobs`** topic for the fighter profile worker. It does **not** create or update `FighterProfileScrapeJob` rows (see `backend/ufc_data_pipeline/fighters/fighter_profile/docs/fighter-profile.md`).
+When new fighters are created or an existing fighter receives a backfilled `profile_url`, it publishes `{fighter_id, fighter_url}` to the **`fighter-profile-jobs`** topic for the fighter profile worker. It does **not** create or update `FighterProfileScrapeJob` rows (see `backend/docs/data-pipeline/fighters/fighter-profile.md`).
 
 ## Purpose
 
@@ -14,7 +14,7 @@ When new fighters are created or an existing fighter receives a backfilled `prof
 - Feature root: `backend/ufc_data_pipeline/fights/fights_in_event/`
 - Job model: `backend/ufc_data_pipeline/models.py` (`FightCreationJob`)
 - Upstream publisher: `backend/ufc_data_pipeline/events/event_watcher/publisher.py` (new events) and `backend/ufc_data_pipeline/shared/fights_in_event_publisher.py` (Live Event Results card-change rescrapes)
-- Related developer docs: `backend/ufc_data_pipeline/events/event_watcher/docs/event-watcher.md`, `backend/ufc_data_pipeline/fights/live_event_results/docs/live-event-results.md`
+- Related developer docs: `backend/docs/data-pipeline/events/event-watcher.md`, `backend/docs/data-pipeline/fights/live-event-results.md`
 
 ## Main Files
 

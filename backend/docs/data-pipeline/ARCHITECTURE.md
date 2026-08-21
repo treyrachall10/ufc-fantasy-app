@@ -71,7 +71,7 @@ The Event Watcher discovers new completed UFC events from the listing page, pers
 
 ### Production scheduling
 
-Package as Cloud Scheduler → Cloud Run Job → existing backend image → `python manage.py watch_events` → exit (one-shot; empty work exits successfully). Operator checklist (command override, env vars, IAM, Chromium, timeouts, URL normalization, live listing selector verification) lives in `events/event_watcher/docs/event-watcher.md`. Deployment Terraform is out of scope until a later issue expands it.
+Package as Cloud Scheduler → Cloud Run Job → existing backend image → `python manage.py watch_events` → exit (one-shot; empty work exits successfully). Operator checklist (command override, env vars, IAM, Chromium, timeouts, URL normalization, live listing selector verification) lives in `backend/docs/data-pipeline/events/event-watcher.md`. Deployment Terraform is out of scope until a later issue expands it.
 
 ## 2. Fights In Event Scraper
 
@@ -172,7 +172,7 @@ Select the newest stored event through the pipeline discovery API, apply a requi
 
 ### Production scheduling
 
-Package as Cloud Scheduler (every 10 minutes) → Cloud Run Job → existing backend image → `python manage.py watch_live_event_results` → exit. Operator checklist (command override, env vars, IAM, Chromium, timeouts, leases, rescrape exhaustion) lives in `fights/live_event_results/docs/live-event-results.md`.
+Package as Cloud Scheduler (every 10 minutes) → Cloud Run Job → existing backend image → `python manage.py watch_live_event_results` → exit. Operator checklist (command override, env vars, IAM, Chromium, timeouts, leases, rescrape exhaustion) lives in `backend/docs/data-pipeline/fights/live-event-results.md`.
 
 ## 5. Fight Stats Scraper
 
@@ -221,7 +221,7 @@ docker compose exec web python manage.py enqueue_fight_stats \
   --fight-url '<ufcstats fight-details url>'
 ```
 
-See `backend/ufc_data_pipeline/fights/fight_stats/docs/fight-stats.md`.
+See `backend/docs/data-pipeline/fights/fight-stats.md`.
 
 ## 6. Career Stats Worker
 
@@ -263,7 +263,7 @@ The worker owns only pipeline job state (`CareerStatsJob`). It does not query fa
 - Exclude NC (`Could Not Continue` / similar + null result) from tallies.
 - The Score Fight Worker (section 7) consumes `score-fight-jobs` downstream.
 
-See `backend/ufc_data_pipeline/fighters/career_stats/docs/career-stats.md`.
+See `backend/docs/data-pipeline/fighters/career-stats.md`.
 
 ## 7. Score Fight Worker
 
@@ -308,7 +308,7 @@ The worker owns only pipeline job state (`ScoreFightJob`). It does not query fan
 
 Implemented in Python/Django like the rest of the pipeline. Go can be considered later if scoring becomes performance-heavy or if this becomes a separate service.
 
-See `backend/ufc_data_pipeline/fantasy/score_fight/docs/score-fight.md`.
+See `backend/docs/data-pipeline/fantasy/score-fight.md`.
 
 ## End-to-End Success Criteria
 

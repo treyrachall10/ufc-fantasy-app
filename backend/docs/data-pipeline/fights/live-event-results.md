@@ -15,7 +15,7 @@ One-shot scheduled watcher that detects live UFC Stats event-page result changes
 - Management command: `backend/ufc_data_pipeline/management/commands/watch_live_event_results.py`
 - Shared publishers: `backend/ufc_data_pipeline/shared/fight_stats_publisher.py`, `backend/ufc_data_pipeline/shared/fights_in_event_publisher.py`
 - Shared event-row parser: `backend/ufc_data_pipeline/fights/shared/event_page_fights.py`
-- Architecture: `backend/ufc_data_pipeline/instructions/ARCHITECTURE.md` (Live Event Results Watcher)
+- Architecture: `backend/docs/data-pipeline/ARCHITECTURE.md` (Live Event Results Watcher)
 
 ## Main Files
 
