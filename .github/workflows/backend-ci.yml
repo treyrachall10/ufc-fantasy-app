@@ -48,14 +48,14 @@ jobs:
     - name: Run Tests
       working-directory: backend
       env:
-        DB_NAME: ufc_test
-        DB_USER: postgres
-        DB_PASSWORD: postgres
-        DB_HOST: localhost
-        DB_PORT: 5432
-        DB_SSLMODE: disable
+        TEST_DB_NAME: ufc_test
+        TEST_DB_USER: postgres
+        TEST_DB_PASSWORD: postgres
+        TEST_DB_HOST: localhost
+        TEST_DB_PORT: 5432
+        TEST_DB_SSLMODE: disable
       run: |
-        python manage.py test
+        python manage.py test --noinput
         pytest
     - name: Set up Go
       uses: actions/setup-go@v5

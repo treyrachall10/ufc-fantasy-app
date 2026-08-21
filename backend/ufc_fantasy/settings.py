@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 
 from ufc_fantasy.service_routing import resolve_root_urlconf
 
@@ -103,19 +104,38 @@ WSGI_APPLICATION = 'ufc_fantasy.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT'),
-        "OPTIONS": {
-            "sslmode": os.environ.get("DB_SSLMODE", "require")
-        },
+# `manage.py test` must use a direct Postgres connection (TEST_DB_*), never the
+# Supabase/Supavisor pooled DB_* host used at runtime.
+IS_TESTING = "test" in sys.argv
+
+if IS_TESTING:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("TEST_DB_NAME"),
+            "USER": os.environ.get("TEST_DB_USER"),
+            "PASSWORD": os.environ.get("TEST_DB_PASSWORD"),
+            "HOST": os.environ.get("TEST_DB_HOST"),
+            "PORT": os.environ.get("TEST_DB_PORT"),
+            "OPTIONS": {
+                "sslmode": os.environ.get("TEST_DB_SSLMODE", "disable"),
+            },
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME"),
+            "USER": os.environ.get("DB_USER"),
+            "PASSWORD": os.environ.get("DB_PASSWORD"),
+            "HOST": os.environ.get("DB_HOST"),
+            "PORT": os.environ.get("DB_PORT"),
+            "OPTIONS": {
+                "sslmode": os.environ.get("DB_SSLMODE", "require"),
+            },
+        }
+    }
 
 
 # Password validation
