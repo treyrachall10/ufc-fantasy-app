@@ -1,6 +1,5 @@
 import * as React from 'react';
 import ListPageLayout from "../components/layout/ListPageLayout";
-import Avatar from '@mui/material/Avatar';
 import { Box, Typography, Stack, Grid, Tooltip, ClickAwayListener, Button } from '@mui/material';
 import Link from '@mui/material/Link';
 import LeagueStandingsBarChart from "../components/charts/LeagueStandingsBarChart";
