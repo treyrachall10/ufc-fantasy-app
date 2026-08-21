@@ -8,7 +8,7 @@ Upstream is the Career Stats Worker (`publish_score_fight_job` after its job is 
 
 - Score every round and the full fight for both fighters on a completed fight (full replace, not incremental).
 - Persist via pipeline-authenticated API endpoints (no fantasy ORM from the worker).
-- Track job status in `score_fight_job` (`RUNNING`, `COMPLETED`, `RETRYING`, `FAILED`).
+- Track job status in `score_fight_job` (`RUNNING`, `COMPLETED`, `RETRYING`, `FAILED`) and ownership via nullable `lease_expires_at` (5-minute claim lease).
 - Distinguish retryable incomplete inputs from permanently unscoreable outcomes (e.g. No Contest).
 
 ## Where This Lives
@@ -22,7 +22,8 @@ Upstream is the Career Stats Worker (`publish_score_fight_job` after its job is 
 ## Main Files
 
 - `score_fight_worker.py` — process entry point; signal handling and consumer bootstrap.
-- `consumer.py` — Pub/Sub subscriber, `_get_or_create_job` lifecycle, ack/nack rules, idle shutdown.
+- `consumer.py` — Pub/Sub subscriber, ack/nack rules, idle shutdown.
+- `message_processor.py` — transport-agnostic claim + scoring + job status.
 - `service.py` — orchestration: ScoringSource GET → pure scoring → SetFightScoring PATCH.
 - `scoring.py` — pure calculation (no HTTP/ORM/Pub/Sub); also used by the legacy batch scripts.
 - `api_client.py` — authenticated HTTP GET/PATCH to the main API; maps error codes to typed exceptions.
@@ -37,10 +38,12 @@ Upstream is the Career Stats Worker (`publish_score_fight_job` after its job is 
 - **Idle shutdown:** Controlled by `WORKER_IDLE_SHUTDOWN_ENABLED` / `WORKER_IDLE_TIMEOUT_SECONDS` (via `worker_settings`). Compose sets shutdown **disabled** for local development.
 - **Per-message `callback`:**
   - Parses JSON → `fight_id` (positive int). Bad payloads are **acked** (dropped).
-  - `_get_or_create_job(fight_id)` inside `transaction.atomic()` + `select_for_update()` (plus a Postgres advisory lock keyed on `fight_id`):
-    - If a **`RUNNING`** job already exists for the fight → return `None`, **ack** (skip duplicate in-flight work).
-    - If a **`RETRYING`** job exists → promote it to `RUNNING`, return that row.
-    - Otherwise (including when a prior **`COMPLETED`** or **`FAILED`** job exists) → create a **new** `RUNNING` job row.
+  - `claim_pubsub_job()` (shared helper) claims or creates `ScoreFightJob`:
+    - New `RUNNING` rows set `lease_expires_at = now + 5 minutes`.
+    - Unexpired `RUNNING` (another worker presumed to still own the job) → return `None`, **ack**.
+    - Expired or null `RUNNING` is stale: reclaim **that same row**, refresh the 5-minute lease, bind the current `pubsub_message_id`, and **continue this Pub/Sub message**. A worker can crash after setting `RUNNING`; without a lease, later redelivery would skip and orphan the job.
+    - `RETRYING` → reclaim the same row to `RUNNING` with a fresh lease.
+    - Prior `COMPLETED` or `FAILED` (new message id) → create a **new** `RUNNING` job row.
   - `process_score_fight` → ScoringSource → `calculate_fight_scoring` → SetFightScoring.
   - Success → job `COMPLETED` (atomic) → **ack**.
   - **Unscoreable** failure (`ScoringSourceUnscoreableError` / `UnscoreableFightError`) → job `FAILED` immediately → **ack** (permanent; never redelivered).
@@ -202,8 +205,8 @@ docker compose exec web python manage.py test ufc_data_pipeline.fantasy.score_fi
 - **Missing `PIPELINE_SERVICE_API_KEY`:** `api_client` raises `PIPELINE_SERVICE_API_KEY is not configured`.
 - **Incomplete source data:** A 409 `SCORING_SOURCE_INCOMPLETE` from ScoringSource is retryable — the consumer nacks and Pub/Sub redelivers until `MAX_RETRY_COUNT` (3) is exhausted, then the job is `FAILED`.
 - **Unscoreable outcomes (No Contest etc.):** A 422 `SCORING_SOURCE_UNSCOREABLE` (or `UnscoreableFightError` from the pure module) is permanent — job `FAILED` on the first attempt and the message is acked, never redelivered.
-- **Duplicate in-flight jobs:** Same-`fight_id` concurrency is blocked by the local claim lock + Postgres advisory lock + `select_for_update`; different fights can run up to `WORKER_MAX_MESSAGES` at once.
-- **Reprocessing completed fights:** A prior `COMPLETED` job does **not** block a new run; a new job row is created and SetFightScoring overwrites idempotently (stale `RoundScore` rows are deleted).
+- **Duplicate in-flight jobs:** Same-`fight_id` concurrency is blocked by `select_for_update` in `claim_pubsub_job()` plus an unexpired `lease_expires_at`; different fights can run up to `WORKER_MAX_MESSAGES` at once.
+- **Reprocessing completed fights:** A prior `COMPLETED` job does **not** block a new run; a new job row is created and SetFightScoring overwrites idempotently (stale `RoundScore` rows are deleted). An expired or null `RUNNING` lease is reclaimed on the same row by the current message.
 - **Invalid JSON or non-positive `fight_id`:** Payload errors are **acked**; the message is dropped.
 
 ## Notes for Future Developers

@@ -400,17 +400,15 @@ If processing fails:
 
 Before creating a new job, check whether one already exists.
 
-If a job already exists with one of these statuses:
+If a Pub/Sub job already exists as `PENDING`, skip it.
 
-```txt
-PENDING
-RUNNING
-COMPLETED
-```
+If it is `RUNNING` with an unexpired `lease_expires_at`, skip it (another worker is presumed to still own it).
 
-do not create a duplicate job.
+If it is `RUNNING` with an expired or null lease, reclaim **that same row** for the current Pub/Sub message (worker-crash recovery). Do not insert a second active job.
 
-If the previous job is `FAILED`, the code may create a new job only if the current phase explicitly allows retrying failed jobs by creating a fresh job.
+If it is `RETRYING`, reclaim the same row.
+
+If the previous job is `COMPLETED` or `FAILED`, the current phase may create a new job for a new message id when intentional reprocessing is allowed.
 
 ---
 

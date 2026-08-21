@@ -8,7 +8,7 @@ Upstream producers publish only to `fight-stats-jobs` (Live Event Results Watche
 
 - Scrape completed-fight detail pages (method, round, time, W/L, strike/grappling totals, per-round stats).
 - Persist updates through three API endpoints (metadata, FightStats totals, RoundStats).
-- Track job status in `fight_stats_scrape_job` (`RUNNING`, `COMPLETED`, `RETRYING`, `FAILED`).
+- Track job status in `fight_stats_scrape_job` (`RUNNING`, `COMPLETED`, `RETRYING`, `FAILED`) and ownership via nullable `lease_expires_at` (5-minute claim lease).
 - Hand off to career stats via Pub/Sub after a successful scrape.
 
 ## Where This Lives
@@ -22,7 +22,8 @@ Upstream producers publish only to `fight-stats-jobs` (Live Event Results Watche
 ## Main Files
 
 - `fight_stats_worker.py` — process entry point; signal handling and consumer bootstrap.
-- `consumer.py` — Pub/Sub subscriber, `_get_or_create_job` lifecycle, ack/nack rules, idle shutdown, career-stats publish after COMPLETED.
+- `consumer.py` — Pub/Sub subscriber, ack/nack mapping, idle shutdown, career-stats publish after COMPLETED.
+- `message_processor.py` — transport-agnostic claim + scrape + job status.
 - `service.py` — Playwright fetch, parser invocation, API client calls, `publish_career_stats_job`.
 - `parser.py` — BeautifulSoup parsing for UFC Stats fight detail pages (pure; no I/O).
 - `api_client.py` — authenticated HTTP PATCH calls to the main API service.
@@ -37,10 +38,13 @@ Upstream producers publish only to `fight-stats-jobs` (Live Event Results Watche
 - **Idle shutdown:** Controlled by `WORKER_IDLE_SHUTDOWN_ENABLED` / `WORKER_IDLE_TIMEOUT_SECONDS` (via `worker_settings`). Compose sets shutdown **disabled** for local development.
 - **Per-message `callback`:**
   - Parses JSON → `fight_id` (int) and `fight_url` (non-empty string). Bad payloads are **acked** (dropped).
-  - `_get_or_create_job(fight_id, fight_url)` inside `transaction.atomic()` + `select_for_update()`:
-    - If a **`RUNNING`** job already exists for the fight → return `None`, **ack** (skip duplicate in-flight work).
-    - If a **`RETRYING`** job exists → promote it to `RUNNING`, update `fight_url`, return that row.
-    - Otherwise (including when a prior **`COMPLETED`** or **`FAILED`** job exists) → create a **new** `RUNNING` job row.
+  - `claim_pubsub_job()` (shared helper) claims or creates `FightStatsScrapeJob`:
+    - New `RUNNING` rows set `lease_expires_at = now + 5 minutes`.
+    - Unexpired `RUNNING` (another worker presumed to still own the job) → return `None`, **ack**.
+    - Expired or null `RUNNING` is stale: reclaim **that same row**, refresh the 5-minute lease, bind the current `pubsub_message_id`, and **continue this Pub/Sub message** through scrape/status updates. A worker can crash after setting `RUNNING`; without a lease, later redelivery would skip and orphan the job.
+    - `RETRYING` → reclaim the same row to `RUNNING` with a fresh lease; update `fight_url`.
+    - `PENDING` → skip/ack.
+    - Prior `COMPLETED` or `FAILED` (new message id) → create a **new** `RUNNING` row.
   - `process_fight_stats` → Playwright page load → `parse_fight_page` → three API PATCHes.
   - Success → job `COMPLETED` (atomic) → `publish_career_stats_job(fight_id)` **after** that commit → **ack**.
   - Failure → increment `retry_count`; if `retry_count >= MAX_RETRY_COUNT` (3) → `FAILED` and **ack**; else `RETRYING` and **nack**.
@@ -167,7 +171,7 @@ docker compose exec web python manage.py enqueue_fight_stats \
 - **Missing `PIPELINE_SERVICE_API_KEY`:** `api_client` raises `PIPELINE_SERVICE_API_KEY is not configured`.
 - **Playwright browser missing:** Rebuild the backend image so Chromium is installed.
 - **Duplicate in-flight scrapes:** Same-`fight_id` concurrency is blocked by `select_for_update` job claims; different fights can run up to `WORKER_MAX_MESSAGES` at once.
-- **Re-scraping completed fights:** A prior `COMPLETED` job does **not** block a new scrape; a new job row is created. Only an in-flight `RUNNING` job causes a skip.
+- **Re-scraping completed fights:** A prior `COMPLETED` job does **not** block a new scrape; a new job row is created. An in-flight `RUNNING` job with an unexpired lease is skipped; an expired or null `RUNNING` lease is reclaimed on the same row by the current message.
 - **Invalid JSON or empty `fight_url`:** Payload errors are **acked**; the message is dropped.
 - **Career-stats publish timing:** Publish runs **after** the job `COMPLETED` commit, not inside that atomic block.
 
