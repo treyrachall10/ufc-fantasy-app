@@ -2,7 +2,7 @@
     Contains serializers for django views
 '''
 from rest_framework import serializers
-from services.supabase import supabase
+from services.supabase import get_supabase_client
 from django.conf import settings
 from fantasy.models import DraftOrder, DraftPick, Fighters, FighterCareerStats, Events, Fights, FightScore, RoundScore, Team, League, Draft
 
@@ -63,6 +63,7 @@ class FighterSerializer(serializers.HyperlinkedModelSerializer):
             -   Returns public url for fighter image if it exists in Supabase storage, otherwise returns None
         '''
         if obj.fighter.img_url:
+            supabase = get_supabase_client()
             return supabase.storage.from_(settings.SUPABASE_FIGHTER_IMAGE_BUCKET).get_public_url(obj.fighter.img_url)
         return None
 
@@ -502,6 +503,7 @@ class TeamSerializer(serializers.ModelSerializer):
             -   Returns public url for team image if it exists in Supabase storage, otherwise returns None
         '''
         if obj.img_url:
+            supabase = get_supabase_client()
             return supabase.storage.from_(settings.SUPABASE_TEAM_IMAGE_BUCKET).get_public_url(obj.img_url)
         return None
     class Meta:
@@ -545,6 +547,7 @@ class TeamListFighterSerializer(serializers.ModelSerializer):
             -   Returns public url for fighter image if it exists in Supabase storage, otherwise returns None
         '''
         if obj.img_url:
+            supabase = get_supabase_client()
             return supabase.storage.from_(settings.SUPABASE_FIGHTER_IMAGE_BUCKET).get_public_url(obj.img_url)
         return None
     

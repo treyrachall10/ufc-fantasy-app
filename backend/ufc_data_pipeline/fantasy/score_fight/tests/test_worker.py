@@ -10,7 +10,7 @@ from ufc_data_pipeline.fantasy.score_fight import score_fight_worker
 
 class ScoreFightWorkerTests(SimpleTestCase):
     @patch(
-        "ufc_data_pipeline.fantasy.score_fight.score_fight_worker.run_subscriber"
+        "ufc_data_pipeline.fantasy.score_fight.consumer.run_subscriber"
     )
     @patch("ufc_data_pipeline.fantasy.score_fight.score_fight_worker.signal.signal")
     def test_main_registers_shutdown_signals_and_runs_subscriber(

@@ -23,7 +23,7 @@ import secrets
 import string
 import random
 from django.db.models import Prefetch
-from services.supabase import supabase
+from services.supabase import get_supabase_client
 
 def create_fantasy_for_fighter(fight, fighter,  round_stats):
     """
@@ -366,6 +366,7 @@ def upload_file(uploaded_file, bucket_name, path):
     try:
         uploaded_file.seek(0)
         file_bytes = uploaded_file.read()
+        supabase = get_supabase_client()
         response = (
             supabase.storage
             .from_(bucket_name)

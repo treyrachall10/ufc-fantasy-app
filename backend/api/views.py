@@ -25,7 +25,7 @@ from datetime import timedelta
 from pathlib import Path
 import os
 
-from services.supabase import supabase
+from services.supabase import get_supabase_client
 
 from api.pagination_classes import FighterListPagination, UserLeaguesPagination
 
@@ -744,6 +744,7 @@ def GetTeamListData(request, team_id):
         )
     )
     if team.img_url:
+        supabase = get_supabase_client()
         img_url = supabase.storage.from_(settings.SUPABASE_TEAM_IMAGE_BUCKET).get_public_url(team.img_url)
     else:
         img_url = None
