@@ -2,6 +2,7 @@
 Tests for fight stats message processor behavior.
 """
 
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
@@ -95,6 +96,7 @@ class FightStatsMessageProcessorTests(TestCase):
             ran_at=timezone.now(),
             status=FightStatsScrapeJob.Status.RUNNING,
             pubsub_message_id="msg-a",
+            lease_expires_at=timezone.now() + timedelta(minutes=5),
         )
 
         result = message_processor.process_fight_stats_message(
@@ -105,6 +107,34 @@ class FightStatsMessageProcessorTests(TestCase):
         process_mock.assert_not_called()
         publish_mock.assert_not_called()
         assert FightStatsScrapeJob.objects.filter(fight_id=6).count() == 1
+
+    @patch("ufc_data_pipeline.fights.fight_stats.message_processor.publish_career_stats_job")
+    @patch("ufc_data_pipeline.fights.fight_stats.message_processor.process_fight_stats")
+    def test_expired_running_job_is_reclaimed_and_processed(
+        self, process_mock: MagicMock, publish_mock: MagicMock
+    ) -> None:
+        fight_url = "http://ufcstats.com/fight-details/stale"
+        original = FightStatsScrapeJob.objects.create(
+            fight_id=6,
+            fight_url=fight_url,
+            ran_at=timezone.now(),
+            status=FightStatsScrapeJob.Status.RUNNING,
+            pubsub_message_id="msg-a",
+            lease_expires_at=timezone.now() - timedelta(seconds=1),
+        )
+
+        result = message_processor.process_fight_stats_message(
+            "msg-b", 6, fight_url
+        )
+
+        job = FightStatsScrapeJob.objects.get(pk=original.pk)
+        assert result is DeliveryResult.ACKNOWLEDGE
+        assert job.pk == original.pk
+        assert job.pubsub_message_id == "msg-b"
+        assert job.status == FightStatsScrapeJob.Status.COMPLETED
+        assert FightStatsScrapeJob.objects.filter(fight_id=6).count() == 1
+        process_mock.assert_called_once_with(6, fight_url)
+        publish_mock.assert_called_once_with(6)
 
     @patch("ufc_data_pipeline.fights.fight_stats.message_processor.publish_career_stats_job")
     @patch("ufc_data_pipeline.fights.fight_stats.message_processor.process_fight_stats")

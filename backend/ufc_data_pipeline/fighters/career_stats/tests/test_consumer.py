@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import base64
 import json
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from django.test import Client, TestCase, override_settings
@@ -91,6 +92,7 @@ class CareerStatsMessageProcessorTests(TestCase):
             ran_at=timezone.now(),
             status=CareerStatsJob.Status.RUNNING,
             pubsub_message_id="msg-a",
+            lease_expires_at=timezone.now() + timedelta(minutes=5),
         )
 
         result = process_career_stats_message("msg-b", 6)
