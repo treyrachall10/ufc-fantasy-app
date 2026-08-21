@@ -17,6 +17,7 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup, {
 } from '@mui/material/ToggleButtonGroup';
 import { useAuthFetch } from '../auth/authFetch';
+import { getApiBaseUrl } from '../config/api';
 
 type LeaguePayload = {
     leagueName: string,
@@ -41,7 +42,7 @@ export default function LeagueCreation(){
     // POST request to login a user
       const createLeagueMutation = useMutation({
         mutationFn: async (payload: LeaguePayload) => {
-          const response = await authFetch('http://localhost:8000/create-league', {
+          const response = await authFetch(`${getApiBaseUrl()}/create-league`, {
             method: 'POST',
             body: JSON.stringify(payload),
           })

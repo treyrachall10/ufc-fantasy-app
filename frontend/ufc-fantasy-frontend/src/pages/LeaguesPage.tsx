@@ -6,6 +6,7 @@ import { Link as RouterLink} from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthFetch } from "../auth/authFetch";
 import { PaginatedResponse } from "../types/types";
+import { getApiBaseUrl } from "../config/api";
 
 interface UserLeaguesAndTeams {
     league_id: number,
@@ -21,7 +22,7 @@ export default function LeaguesPage() {
 
     const { data, isPending, error} = useQuery<PaginatedResponse<UserLeaguesAndTeams>>({
         queryKey: ['userLeaguesAndTeams'],
-        queryFn: () => authFetch(`http://localhost:8000/leagues`).then(r => r.json()),
+        queryFn: () => authFetch(`${getApiBaseUrl()}/leagues`).then(r => r.json()),
     })
 
     if (isPending) return <span>Loading...</span>

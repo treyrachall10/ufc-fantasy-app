@@ -2,25 +2,23 @@
 
 from __future__ import annotations
 
-import os
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ufc_fantasy.settings")
-
-import django
-
-django.setup()
-
 import logging
+import os
 import signal
 import sys
 
-from ufc_data_pipeline.fantasy.score_fight.consumer import run_subscriber
+import django
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ufc_fantasy.settings")
+django.setup()
 
 logger = logging.getLogger(__name__)
 
 
 def main() -> None:
     """Configure process lifecycle and start the score-fight subscriber."""
+    from ufc_data_pipeline.fantasy.score_fight.consumer import run_subscriber
+
     logging.basicConfig(level=logging.INFO)
 
     def _handle_shutdown(signum, frame) -> None:

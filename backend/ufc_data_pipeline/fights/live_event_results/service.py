@@ -382,6 +382,7 @@ def publish_and_mark_handoff(handoff: dict) -> str | None:
             lambda: publish_fight_stats_job(fight_id, fight_url),
         )
     except Exception as exc:
+        error_message = str(exc)
         logger.warning(
             "live_event_results publish failed fight_id=%s error=%s",
             fight_id,
@@ -392,7 +393,7 @@ def publish_and_mark_handoff(handoff: dict) -> str | None:
                 f"record_fight_stats_attempt fight_id={fight_id}",
                 lambda: api_client.record_fight_stats_handoff_attempt(
                     fight_id,
-                    last_error=str(exc),
+                    last_error=error_message,
                 ),
             )
         except Exception:
@@ -414,6 +415,7 @@ def publish_and_mark_handoff(handoff: dict) -> str | None:
         return None
     except Exception as exc:
         # Publish succeeded; leave pending so a later run may republish.
+        error_message = f"mark_published_failed: {exc}"
         logger.warning(
             "live_event_results mark_published_failed fight_id=%s error=%s",
             fight_id,
@@ -424,7 +426,7 @@ def publish_and_mark_handoff(handoff: dict) -> str | None:
                 f"record_fight_stats_attempt fight_id={fight_id}",
                 lambda: api_client.record_fight_stats_handoff_attempt(
                     fight_id,
-                    last_error=f"mark_published_failed: {exc}",
+                    last_error=error_message,
                 ),
             )
         except Exception:
@@ -496,12 +498,13 @@ def publish_and_mark_rescrape(
             ),
         )
     except Exception as exc:
+        error_message = str(exc)
         logger.warning(
             "live_event_results rescrape_publish failed event_id=%s "
             "handoff_id=%s error=%s",
             event_id,
             handoff_id,
-            exc,
+            error_message,
         )
         try:
             call_with_retries(
@@ -509,7 +512,7 @@ def publish_and_mark_rescrape(
                 lambda: api_client.record_live_event_rescrape_attempt(
                     event_id,
                     handoff_id,
-                    last_error=str(exc),
+                    last_error=error_message,
                 ),
             )
         except Exception:
@@ -521,7 +524,7 @@ def publish_and_mark_rescrape(
             )
         return (
             f"event_id={event_id} handoff_id={handoff_id} "
-            f"rescrape publish failed: {exc}"
+            f"rescrape publish failed: {error_message}"
         )
 
     try:
@@ -541,6 +544,7 @@ def publish_and_mark_rescrape(
         )
         return None
     except Exception as exc:
+        error_message = f"mark_published_failed: {exc}"
         logger.warning(
             "live_event_results rescrape_mark_published_failed "
             "event_id=%s handoff_id=%s error=%s",
@@ -554,7 +558,7 @@ def publish_and_mark_rescrape(
                 lambda: api_client.record_live_event_rescrape_attempt(
                     event_id,
                     handoff_id,
-                    last_error=f"mark_published_failed: {exc}",
+                    last_error=error_message,
                 ),
             )
         except Exception:

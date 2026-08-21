@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.test import TestCase
 from django.utils import timezone
 
@@ -35,26 +33,26 @@ def _mock_playwright(html: str = "<html></html>") -> MagicMock:
 
 class ResolveFightsInEventMessageTests(TestCase):
     def test_missing_url_raises_payload_validation_error(self) -> None:
-        with pytest.raises(PayloadValidationError, match="url is required"):
+        with self.assertRaisesRegex(PayloadValidationError, "url is required"):
             resolve_fights_in_event_message("msg-1", {"event_id": 1})
 
     def test_empty_url_raises_payload_validation_error(self) -> None:
-        with pytest.raises(PayloadValidationError, match="url is empty"):
+        with self.assertRaisesRegex(PayloadValidationError, "url is empty"):
             resolve_fights_in_event_message("msg-1", {"url": "  ", "event_id": 1})
 
     def test_non_string_url_raises_payload_validation_error(self) -> None:
-        with pytest.raises(PayloadValidationError, match="url must be a string"):
+        with self.assertRaisesRegex(PayloadValidationError, "url must be a string"):
             resolve_fights_in_event_message("msg-1", {"url": 123, "event_id": 1})
 
     def test_missing_event_id_raises_payload_validation_error(self) -> None:
-        with pytest.raises(PayloadValidationError, match="event_id is required"):
+        with self.assertRaisesRegex(PayloadValidationError, "event_id is required"):
             resolve_fights_in_event_message(
                 "msg-1",
                 {"url": "http://ufcstats.com/event-details/abc"},
             )
 
     def test_non_integer_event_id_raises_payload_validation_error(self) -> None:
-        with pytest.raises(PayloadValidationError, match="event_id must be an integer"):
+        with self.assertRaisesRegex(PayloadValidationError, "event_id must be an integer"):
             resolve_fights_in_event_message(
                 "msg-1",
                 {"url": "http://ufcstats.com/event-details/abc", "event_id": "nope"},
@@ -161,7 +159,7 @@ class ProcessFightsInEventMessageTests(TestCase):
         sync_playwright_mock: MagicMock,
         process_mock: MagicMock,
     ) -> None:
-        with pytest.raises(PayloadValidationError):
+        with self.assertRaises(PayloadValidationError):
             resolve_fights_in_event_message("msg-bad", {"url": "", "event_id": self.event.event_id})
 
         process_mock.assert_not_called()

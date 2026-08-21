@@ -10,6 +10,22 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ufc_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     strategy:
       max-parallel: 4
       matrix:
@@ -31,9 +47,15 @@ jobs:
         ruff check backend
     - name: Run Tests
       working-directory: backend
+      env:
+        TEST_DB_NAME: ufc_test
+        TEST_DB_USER: postgres
+        TEST_DB_PASSWORD: postgres
+        TEST_DB_HOST: localhost
+        TEST_DB_PORT: 5432
+        TEST_DB_SSLMODE: disable
       run: |
-        python manage.py test
-        pytest
+        python manage.py test --noinput
     - name: Set up Go
       uses: actions/setup-go@v5
       with:

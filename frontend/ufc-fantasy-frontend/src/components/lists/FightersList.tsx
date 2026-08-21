@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query'
 import { Fighter, PaginatedResponse } from '../../types/types';
 import { Avatar, Box } from '@mui/material';
+import { getApiBaseUrl } from '../../config/api';
 
 interface FightersListProps {
     searchTerm?: string;
@@ -29,7 +30,7 @@ export default function FightersList({ searchTerm = '' }: FightersListProps) {
                 params.set('search', searchTerm);
             }
 
-            return fetch(`http://localhost:8000/fighters/?${params.toString()}`).then(r => r.json());
+            return fetch(`${getApiBaseUrl()}/fighters/?${params.toString()}`).then(r => r.json());
         },
     });
     

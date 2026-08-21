@@ -13,6 +13,7 @@ import { useAuthFetch } from '../auth/authFetch';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DataGrid, GridColDef, GridPaginationModel, GridRenderCellParams } from '@mui/x-data-grid';
 import { LeagueInfo, TeamDataResponse, DraftHistoryItem, DraftOrderTeam, PaginatedResponse } from '../types/types';
+import { getApiBaseUrl } from '../config/api';
 
 // Payload type for drafting a fighter
 interface DraftFighterPayload {
@@ -141,7 +142,7 @@ export default function DraftLobbyPage() {
     // Fetch Draft State Data in rolling intervals using refetchinterval to keep the timer, current pick, and status updated in real-time
     const { data: draftStateData } = useQuery<DraftState>({
         queryKey: ['draft', params.draftId, 'state'],
-        queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/state`).then(r => r.json()),
+        queryFn: () => authFetch(`${getApiBaseUrl()}/draft/${params.draftId}/state`).then(r => r.json()),
         refetchInterval: 1000, // Refetch every 1000 milliseconds (1 second)
     })
 
@@ -184,7 +185,7 @@ export default function DraftLobbyPage() {
                 queryParams.set('search', submittedSearch);
             }
 
-            return authFetch(`http://localhost:8000/draft/${params.draftId}/draftableFighters?${queryParams.toString()}`).then(r => r.json());
+            return authFetch(`${getApiBaseUrl()}/draft/${params.draftId}/draftableFighters?${queryParams.toString()}`).then(r => r.json());
         },
         placeholderData: keepPreviousData,
     })
@@ -192,19 +193,19 @@ export default function DraftLobbyPage() {
     // Fetch League Info to get team names, league capacity, etc.
     const { data: leagueData } = useQuery<LeagueInfo>({
         queryKey: ['League', params.leagueId],
-        queryFn: () => authFetch(`http://localhost:8000/league/${params.leagueId}`).then(r => r.json()),
+        queryFn: () => authFetch(`${getApiBaseUrl()}/league/${params.leagueId}`).then(r => r.json()),
     })
 
     // Fetch Draft Order.
     const { data: draftOrderData } = useQuery<DraftOrderTeam[]>({
         queryKey: ['draft', params.draftId, 'draftOrder'],
-        queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/draftOrder`).then(r => r.json()),
+        queryFn: () => authFetch(`${getApiBaseUrl()}/draft/${params.draftId}/draftOrder`).then(r => r.json()),
     })
 
     // Fetch Past Picks to show draft history on the right column
     const { data: pastPicksData } = useQuery({
         queryKey: ['draft', params.draftId, 'pastPicks'],
-        queryFn: () => authFetch(`http://localhost:8000/draft/${params.draftId}/pastPicks`).then(r => r.json()),
+        queryFn: () => authFetch(`${getApiBaseUrl()}/draft/${params.draftId}/pastPicks`).then(r => r.json()),
     })
 
     // Calculate how many picks until user's next pick based on current pick and draft order.
@@ -242,7 +243,7 @@ export default function DraftLobbyPage() {
     // Fetch selected team's roster data to show in the left column. This query depends on 'selectedTeamId' and will only run when it's set.
     const {data: rosterData} = useQuery<TeamDataResponse>({
         queryKey: ['team', selectedTeamId],
-        queryFn: () => authFetch(`http://localhost:8000/team/${selectedTeamId}`).then(r => r.json()),
+        queryFn: () => authFetch(`${getApiBaseUrl()}/team/${selectedTeamId}`).then(r => r.json()),
         enabled: !!selectedTeamId, // Only run this query if selectedTeamId is available
     })
 
@@ -287,7 +288,7 @@ export default function DraftLobbyPage() {
 
     const draftFighterMutation = useMutation({
         mutationFn: async (payload: DraftFighterPayload) => {
-        const response = await authFetch(`http://localhost:8000/draft/${params.draftId}/pick`, {
+        const response = await authFetch(`${getApiBaseUrl()}/draft/${params.draftId}/pick`, {
             method: 'POST',
             body: JSON.stringify(payload),
         })
@@ -319,7 +320,7 @@ export default function DraftLobbyPage() {
 
     const draftFlexMutation = useMutation({
         mutationFn: async (payload: DraftFighterPayload) => {
-        const response = await authFetch(`http://localhost:8000/draft/${params.draftId}/draftFlex`, {
+        const response = await authFetch(`${getApiBaseUrl()}/draft/${params.draftId}/draftFlex`, {
             method: 'POST',
             body: JSON.stringify(payload),
         })

@@ -4,17 +4,20 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { Auth0Provider } from '@auth0/auth0-react';
+import { getAuth0Config } from './config/auth0';
+
+const auth0 = getAuth0Config();
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 root.render(
   <Auth0Provider
-    domain="dev-kxp1v6beff35mbat.us.auth0.com"
-    clientId="wAEedS77ZrwwbVvaBXsmb0DQ6cCTs9nt"
+    domain={auth0.domain}
+    clientId={auth0.clientId}
     authorizationParams={{
-      redirect_uri: "http://localhost:3000/callback",
-      audience: "https://ufc-fantasy-api",
+      redirect_uri: `${window.location.origin}/callback`,
+      audience: auth0.audience,
     }}
     useRefreshTokens={true}
     cacheLocation="localstorage"

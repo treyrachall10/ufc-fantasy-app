@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { TeamDataResponse } from "../types/types";
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import { useCurrentUser } from "../auth/useCurrentUser";
+import { getApiBaseUrl } from "../config/api";
 
 export default function UserTeamPage() {
     const authFetch = useAuthFetch();
@@ -15,7 +16,7 @@ export default function UserTeamPage() {
 
     const { data, isPending, error} = useQuery<TeamDataResponse>({
         queryKey: ['Team', params.teamid],
-        queryFn: () => authFetch(`http://localhost:8000/team/${params.teamid}`).then(r => r.json()),
+        queryFn: () => authFetch(`${getApiBaseUrl()}/team/${params.teamid}`).then(r => r.json()),
     })
 
     if (isPending) return <span>Loading...</span>

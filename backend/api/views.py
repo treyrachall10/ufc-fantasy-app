@@ -3,7 +3,7 @@
 '''
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, BasePermission
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import IntegrityError
@@ -25,7 +25,7 @@ from datetime import timedelta
 from pathlib import Path
 import os
 
-from services.supabase import supabase
+from services.supabase import get_supabase_client
 
 from api.pagination_classes import FighterListPagination, UserLeaguesPagination
 
@@ -744,6 +744,7 @@ def GetTeamListData(request, team_id):
         )
     )
     if team.img_url:
+        supabase = get_supabase_client()
         img_url = supabase.storage.from_(settings.SUPABASE_TEAM_IMAGE_BUCKET).get_public_url(team.img_url)
     else:
         img_url = None
@@ -1050,7 +1051,7 @@ def PreviewLeagueByJoinKey(request):
     '''
         Endpoint to preview league details before joining.
     '''
-    user = get_or_create_user_from_token(request=request)
+    get_or_create_user_from_token(request=request)
     league = get_object_or_404(
         League.objects.select_related('creator').prefetch_related('leaguemember_set'),
         join_key=request.data['join_key']

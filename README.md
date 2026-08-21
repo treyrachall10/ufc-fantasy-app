@@ -154,11 +154,31 @@ Install dependencies:
 npm install
 ```
 
-Start the frontend development server:
+Start the frontend against the **local** Django API (`http://localhost:8000`):
 
 ```
 npm start
 ```
+
+Or, equivalently:
+
+```
+npm run start:dev-local
+```
+
+Start the same frontend against the **cloud** main API (no source URL edits):
+
+```
+npm run start:dev-cloud
+```
+
+Produce a production bundle configured for the cloud API:
+
+```
+npm run build:dev-cloud
+```
+
+`npm run build` remains a plain Create React App build and does not load the cloud env file. Frontend CI uses `build:dev-cloud`. A later Vercel deploy should set the same `REACT_APP_*` values as `.env.dev-cloud` (or run `build:dev-cloud`); do not invent a frontend domain in source. When a hosted origin exists, add it to the Auth0 application's Allowed Callback URLs, Logout URLs, and Web Origins.
 
 ---
 
@@ -173,7 +193,9 @@ docker compose up --build
 ## Frontend
 
 ```
-npm start
+npm start                 # CRA dev server → local API (same as start:dev-local)
+npm run start:dev-cloud   # CRA dev server → cloud API
+npm run build:dev-cloud   # production bundle configured for the cloud API
 ```
 
 ---

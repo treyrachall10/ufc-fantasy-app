@@ -2,11 +2,12 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Event } from '../../types/types';
+import { getApiBaseUrl } from '../../config/api';
 
 export default function FightersList() {
     const { data, isPending, error } = useQuery<Event[]>({
             queryKey: ['eventListData'],
-            queryFn: () => fetch('http://localhost:8000/events').then(r => r.json()),
+            queryFn: () => fetch(`${getApiBaseUrl()}/events`).then(r => r.json()),
         })
     
     if (isPending) return <span>Loading...</span>

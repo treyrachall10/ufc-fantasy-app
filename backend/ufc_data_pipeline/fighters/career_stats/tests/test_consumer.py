@@ -8,7 +8,6 @@ import base64
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.test import Client, TestCase, override_settings
 from django.utils import timezone
 
@@ -229,19 +228,19 @@ class CareerStatsResolverTests(TestCase):
         assert result is DeliveryResult.ACKNOWLEDGE
 
     def test_missing_fight_id_raises(self) -> None:
-        with pytest.raises(PayloadValidationError, match="fight_id is required"):
+        with self.assertRaisesRegex(PayloadValidationError, "fight_id is required"):
             resolve_career_stats_message("msg-1", {})
 
     def test_non_positive_fight_id_raises(self) -> None:
-        with pytest.raises(PayloadValidationError, match="positive integer"):
+        with self.assertRaisesRegex(PayloadValidationError, "positive integer"):
             resolve_career_stats_message("msg-1", {"fight_id": 0})
 
     def test_bool_fight_id_raises(self) -> None:
-        with pytest.raises(PayloadValidationError, match="not bool"):
+        with self.assertRaisesRegex(PayloadValidationError, "not bool"):
             resolve_career_stats_message("msg-1", {"fight_id": True})
 
     def test_string_fight_id_raises(self) -> None:
-        with pytest.raises(PayloadValidationError, match="must be an integer"):
+        with self.assertRaisesRegex(PayloadValidationError, "must be an integer"):
             resolve_career_stats_message("msg-1", {"fight_id": "42"})
 
 

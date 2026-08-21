@@ -16,6 +16,7 @@ import { useCurrentUser } from '../auth/useCurrentUser';
 import InfoConfirmDialog from '../components/ui/InfoConfirmDialog';
 import SuccessSnackbar from '../components/ui/SuccessSnackbar';
 import { TeamDataResponse } from '../types/types';
+import { getApiBaseUrl } from '../config/api';
 
 type ChangeTeamNamePayload = {
     name: string;
@@ -27,7 +28,6 @@ export default function TeamSettingsPage() {
     const { data: currentUser, isPending: isCurrentUserPending, error: currentUserError } = useCurrentUser();
     const [currentTeamName, setCurrentTeamName] = useState('');
     const [teamName, setTeamName] = useState('');
-    const [teamPhotoFile, setTeamPhotoFile] = useState<File | null>(null);
     const [teamPhotoError, setTeamPhotoError] = useState('');
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [teamNameError, setTeamNameError] = useState('');
@@ -37,12 +37,12 @@ export default function TeamSettingsPage() {
 
     const { data, isPending, error } = useQuery<TeamDataResponse>({
         queryKey: ['TeamSettings', params.teamid],
-        queryFn: () => authFetch(`http://localhost:8000/team/${params.teamid}`).then((response) => response.json()),
+        queryFn: () => authFetch(`${getApiBaseUrl()}/team/${params.teamid}`).then((response) => response.json()),
     });
 
     const changeTeamNameMutation = useMutation({
         mutationFn: async (payload: ChangeTeamNamePayload) => {
-            const response = await authFetch(`http://localhost:8000/api/team/${params.teamid}/changeName`, {
+            const response = await authFetch(`${getApiBaseUrl()}/api/team/${params.teamid}/changeName`, {
                 method: 'POST',
                 body: JSON.stringify(payload),
             });
@@ -73,7 +73,7 @@ export default function TeamSettingsPage() {
             const formData = new FormData();
             formData.append('image', file);
 
-            const response = await authFetch(`http://localhost:8000/api/${params.teamid}/SetTeamImage`, {
+            const response = await authFetch(`${getApiBaseUrl()}/api/${params.teamid}/SetTeamImage`, {
                 method: 'PATCH',
                 body: formData,
             });
@@ -128,12 +128,10 @@ export default function TeamSettingsPage() {
 
     const handleChangeTeamPhoto = (event: ChangeEvent<HTMLInputElement>) => {
         if (!event.target.files?.length) {
-            setTeamPhotoFile(null);
             return;
         }
 
         const selectedFile = event.target.files[0];
-        setTeamPhotoFile(selectedFile);
         setTeamPhotoError('');
         changeTeamPictureMutation.mutate(selectedFile);
     };

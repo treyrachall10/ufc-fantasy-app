@@ -2,7 +2,6 @@
 Tests for fights-in-event HTML parsing and winner resolution.
 """
 
-from unittest.mock import patch
 
 from bs4 import BeautifulSoup
 from django.test import SimpleTestCase, TestCase

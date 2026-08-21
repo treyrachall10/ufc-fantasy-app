@@ -6,6 +6,7 @@ import FightResultBadge from "../components/badges/FightResultBadge";
 import { FantasyFightScore, FighterWithCareerStats, FightForFighter } from "../types/types";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router";
+import { getApiBaseUrl } from "../config/api";
 
 export default function AthleteStatsPage(){
     const  params = useParams()
@@ -14,21 +15,21 @@ export default function AthleteStatsPage(){
             isPending: fighterPending,
             error: fighterError } = useQuery<FighterWithCareerStats>({
             queryKey: ['fighterStatsData', id],
-            queryFn: () => fetch(`http://localhost:8000/fighter/${id}`).then(r => r.json()),
+            queryFn: () => fetch(`${getApiBaseUrl()}/fighter/${id}`).then(r => r.json()),
         })
 
     const { data: fantasyScoresData,
             isPending: fantasyPending,
             error: fantasyError } = useQuery<FantasyFightScore[]>({
             queryKey: ['fighterFantasyTrend', id],
-            queryFn: () => fetch(`http://localhost:8000/fights/${id}/fantasy-scores/recent`).then(r => r.json()),
+            queryFn: () => fetch(`${getApiBaseUrl()}/fights/${id}/fantasy-scores/recent`).then(r => r.json()),
         })
     
     const { data: fighterFightsData,
         isPending: fightsPending,
         error: fightsError } = useQuery<FightForFighter[]>({
         queryKey: ['fighterFights', id],
-        queryFn: () => fetch(`http://localhost:8000/fights/${id}`).then(r => r.json()),
+        queryFn: () => fetch(`${getApiBaseUrl()}/fights/${id}`).then(r => r.json()),
     })
 
     if (fighterPending || fantasyPending || fightsPending) return <span>Loading...</span>

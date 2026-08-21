@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
-
-import pytest
+import unittest
 
 from ufc_data_pipeline.shared.pubsub_message_decoder import (
     DecodedPubSubPushMessage,
@@ -26,70 +25,65 @@ def _envelope(*, payload: dict, message_id: str = "2070443601311540") -> dict:
     }
 
 
-def test_decode_valid_push_envelope() -> None:
-    body = _envelope(payload={"fight_id": 42})
+class PubSubMessageDecoderTests(unittest.TestCase):
+    def test_decode_valid_push_envelope(self) -> None:
+        body = _envelope(payload={"fight_id": 42})
 
-    decoded = decode_pubsub_push_request(json.dumps(body).encode("utf-8"))
+        decoded = decode_pubsub_push_request(json.dumps(body).encode("utf-8"))
 
-    assert decoded == DecodedPubSubPushMessage(
-        message_id="2070443601311540",
-        payload={"fight_id": 42},
-    )
-
-
-def test_decode_accepts_already_parsed_dict() -> None:
-    body = _envelope(payload={"url": "http://example.com", "event_id": 1})
-
-    decoded = decode_pubsub_push_request(body)
-
-    assert decoded.message_id == "2070443601311540"
-    assert decoded.payload == {"url": "http://example.com", "event_id": 1}
-
-
-def test_decode_accepts_message_id_snake_case_only() -> None:
-    data = base64.b64encode(b'{"fight_id": 1}').decode("ascii")
-    body = {"message": {"data": data, "message_id": "snake-id"}}
-
-    decoded = decode_pubsub_push_request(body)
-
-    assert decoded.message_id == "snake-id"
-
-
-def test_decode_rejects_empty_body() -> None:
-    with pytest.raises(PubSubPushDecodeError, match="empty"):
-        decode_pubsub_push_request(b"")
-
-
-def test_decode_rejects_non_json_body() -> None:
-    with pytest.raises(PubSubPushDecodeError, match="not valid JSON"):
-        decode_pubsub_push_request(b"not-json")
-
-
-def test_decode_rejects_missing_message() -> None:
-    with pytest.raises(PubSubPushDecodeError, match="message"):
-        decode_pubsub_push_request({"subscription": "projects/x/subscriptions/y"})
-
-
-def test_decode_rejects_missing_message_id() -> None:
-    data = base64.b64encode(b'{"fight_id": 1}').decode("ascii")
-    with pytest.raises(PubSubPushDecodeError, match="messageId"):
-        decode_pubsub_push_request({"message": {"data": data}})
-
-
-def test_decode_rejects_invalid_base64() -> None:
-    with pytest.raises(PubSubPushDecodeError, match="base64"):
-        decode_pubsub_push_request(
-            {"message": {"data": "!!!not-base64!!!", "messageId": "m1"}}
+        self.assertEqual(
+            decoded,
+            DecodedPubSubPushMessage(
+                message_id="2070443601311540",
+                payload={"fight_id": 42},
+            ),
         )
 
+    def test_decode_accepts_already_parsed_dict(self) -> None:
+        body = _envelope(payload={"url": "http://example.com", "event_id": 1})
 
-def test_decode_rejects_non_json_payload() -> None:
-    data = base64.b64encode(b"not-json").decode("ascii")
-    with pytest.raises(PubSubPushDecodeError, match="not valid JSON"):
-        decode_pubsub_push_request({"message": {"data": data, "messageId": "m1"}})
+        decoded = decode_pubsub_push_request(body)
 
+        self.assertEqual(decoded.message_id, "2070443601311540")
+        self.assertEqual(decoded.payload, {"url": "http://example.com", "event_id": 1})
 
-def test_decode_rejects_non_object_json_payload() -> None:
-    data = base64.b64encode(b"[1, 2, 3]").decode("ascii")
-    with pytest.raises(PubSubPushDecodeError, match="JSON object"):
-        decode_pubsub_push_request({"message": {"data": data, "messageId": "m1"}})
+    def test_decode_accepts_message_id_snake_case_only(self) -> None:
+        data = base64.b64encode(b'{"fight_id": 1}').decode("ascii")
+        body = {"message": {"data": data, "message_id": "snake-id"}}
+
+        decoded = decode_pubsub_push_request(body)
+
+        self.assertEqual(decoded.message_id, "snake-id")
+
+    def test_decode_rejects_empty_body(self) -> None:
+        with self.assertRaisesRegex(PubSubPushDecodeError, "empty"):
+            decode_pubsub_push_request(b"")
+
+    def test_decode_rejects_non_json_body(self) -> None:
+        with self.assertRaisesRegex(PubSubPushDecodeError, "not valid JSON"):
+            decode_pubsub_push_request(b"not-json")
+
+    def test_decode_rejects_missing_message(self) -> None:
+        with self.assertRaisesRegex(PubSubPushDecodeError, "message"):
+            decode_pubsub_push_request({"subscription": "projects/x/subscriptions/y"})
+
+    def test_decode_rejects_missing_message_id(self) -> None:
+        data = base64.b64encode(b'{"fight_id": 1}').decode("ascii")
+        with self.assertRaisesRegex(PubSubPushDecodeError, "messageId"):
+            decode_pubsub_push_request({"message": {"data": data}})
+
+    def test_decode_rejects_invalid_base64(self) -> None:
+        with self.assertRaisesRegex(PubSubPushDecodeError, "base64"):
+            decode_pubsub_push_request(
+                {"message": {"data": "!!!not-base64!!!", "messageId": "m1"}}
+            )
+
+    def test_decode_rejects_non_json_payload(self) -> None:
+        data = base64.b64encode(b"not-json").decode("ascii")
+        with self.assertRaisesRegex(PubSubPushDecodeError, "not valid JSON"):
+            decode_pubsub_push_request({"message": {"data": data, "messageId": "m1"}})
+
+    def test_decode_rejects_non_object_json_payload(self) -> None:
+        data = base64.b64encode(b"[1, 2, 3]").decode("ascii")
+        with self.assertRaisesRegex(PubSubPushDecodeError, "JSON object"):
+            decode_pubsub_push_request({"message": {"data": data, "messageId": "m1"}})

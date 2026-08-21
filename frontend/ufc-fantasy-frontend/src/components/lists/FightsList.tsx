@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Fight } from '../../types/types';
 import { QueryKey, useQuery } from '@tanstack/react-query';
 import { useParams, useLocation } from "react-router";
+import { getApiBaseUrl } from '../../config/api';
 
 export default function FightsList() {
     const params = useParams()
@@ -17,13 +18,13 @@ export default function FightsList() {
 
     if (isFighterPage && params.id) {
         queryKey = ['fightListDataWithId', params.id];
-        url = `http://localhost:8000/fights/${params.id}`;
+        url = `${getApiBaseUrl()}/fights/${params.id}`;
     } else if (isFightsPage) {
         queryKey = ['fightListData'];
-        url = 'http://localhost:8000/fights';
+        url = `${getApiBaseUrl()}/fights`;
     } else if (isEventPage) {
         queryKey = ['eventFightsListdata', params.id];
-        url = `http://localhost:8000/events/${params.id}`;
+        url = `${getApiBaseUrl()}/events/${params.id}`;
     } else {
         queryKey = ["/"];
         url = ""
