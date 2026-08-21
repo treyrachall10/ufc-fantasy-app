@@ -4,6 +4,7 @@ Tests for fighter profile message processor and resolver behavior.
 
 import base64
 import json
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from django.test import Client, TestCase, override_settings
@@ -51,6 +52,7 @@ class FighterProfileMessageProcessorTests(TestCase):
             ran_at=timezone.now(),
             status=FighterProfileScrapeJob.Status.RUNNING,
             pubsub_message_id="msg-a",
+            lease_expires_at=timezone.now() + timedelta(minutes=5),
         )
 
         result = process_fighter_profile_message("msg-b", 6, fighter_url)

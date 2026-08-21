@@ -2,9 +2,13 @@
 Shared Pub/Sub job claim helpers for pipeline workers.
 
 Claim rules (all Pub/Sub job tables):
-- Same ``pubsub_message_id`` already exists and is not ``RETRYING`` → skip (ack).
+- Same ``pubsub_message_id`` already exists and is not ``RETRYING`` → skip (ack),
+  unless it is stale ``RUNNING`` (expired or null lease) → reclaim that row.
 - Same ``pubsub_message_id`` in ``RETRYING`` → reclaim that row.
-- Different message id, but ``PENDING``/``RUNNING`` exists for the logical key → skip.
+- Different message id, ``PENDING`` for the logical key → skip.
+- Different message id, ``RUNNING`` with an unexpired lease → skip.
+- Different message id, ``RUNNING`` with an expired or null lease → reclaim
+  that existing row for the current Pub/Sub message.
 - ``RETRYING`` for the logical key → reclaim and bind the new message id.
 - Only ``COMPLETED``/``FAILED`` (or no rows) → create a new job (intentional rescrape).
 """
@@ -12,6 +16,7 @@ Claim rules (all Pub/Sub job tables):
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any
 
 from django.db import IntegrityError, transaction
@@ -28,6 +33,8 @@ ACTIVE_BLOCK_STATUSES = (
     BaseJobModel.Status.RUNNING,
 )
 
+JOB_LEASE_DURATION = timedelta(minutes=5)
+
 
 def claim_pubsub_job(
     *,
@@ -42,7 +49,8 @@ def claim_pubsub_job(
 
     ``logical_filters`` identify the business key (e.g. ``{"fight_id": 1}``).
     ``create_kwargs`` are model fields for a new RUNNING row (excluding status /
-    ran_at / retry_count / error_msg / pubsub_message_id, which are set here).
+    ran_at / retry_count / error_msg / pubsub_message_id / lease_expires_at,
+    which are set here).
     """
     if not message_id:
         raise ValueError("message_id is required")
@@ -55,16 +63,25 @@ def claim_pubsub_job(
             .filter(pubsub_message_id=message_id)
             .first()
         )
-        # Check if the message_id already exists and is not RETRYING
         if existing is not None:
-            # If the message_id already exists and is RETRYING, reclaim the job
             if existing.status == BaseJobModel.Status.RETRYING:
-                return _reclaim_retrying(
+                return _reclaim_job(
                     existing,
                     message_id=message_id,
                     retry_updates=retry_updates,
                 )
-            # If the message_id already exists and is not RETRYING, skip the job
+            # Same message can be redelivered after a crash left RUNNING.
+            # An unexpired lease means the owner is still presumed alive; skip.
+            # An expired or null lease lets this delivery reclaim and continue.
+            if (
+                existing.status == BaseJobModel.Status.RUNNING
+                and _running_lease_is_stale(existing)
+            ):
+                return _reclaim_job(
+                    existing,
+                    message_id=message_id,
+                    retry_updates=retry_updates,
+                )
             logger.info(
                 "Skipping %s; pubsub_message_id=%s already status=%s",
                 model.__name__,
@@ -73,12 +90,26 @@ def claim_pubsub_job(
             )
             return None
 
-        # Check if there is a PENDING/RUNNING job for the logical key
-        if (
+        blocker = (
             model.objects.select_for_update()
             .filter(**logical_filters, status__in=ACTIVE_BLOCK_STATUSES)
-            .exists()
-        ):
+            .first()
+        )
+        if blocker is not None:
+            # A worker can crash after setting RUNNING. Without a lease, later
+            # redelivery sees RUNNING, skips, and the job stays orphaned.
+            # An unexpired lease means another worker is presumed to still own
+            # the job. An expired or null lease means this callback may reclaim
+            # that row and continue the current Pub/Sub message.
+            if (
+                blocker.status == BaseJobModel.Status.RUNNING
+                and _running_lease_is_stale(blocker)
+            ):
+                return _reclaim_job(
+                    blocker,
+                    message_id=message_id,
+                    retry_updates=retry_updates,
+                )
             logger.info(
                 "Skipping %s; active PENDING/RUNNING job exists filters=%s",
                 model.__name__,
@@ -95,7 +126,7 @@ def claim_pubsub_job(
         )
         if retrying is not None:
             # If a RETRYING job exists, reclaim the job
-            return _reclaim_retrying(
+            return _reclaim_job(
                 retrying,
                 message_id=message_id,
                 retry_updates=retry_updates,
@@ -109,6 +140,7 @@ def claim_pubsub_job(
                 status=BaseJobModel.Status.RUNNING,
                 retry_count=0,
                 error_msg="",
+                lease_expires_at=timezone.now() + JOB_LEASE_DURATION,
                 **create_kwargs,
             )
         except IntegrityError:
@@ -134,7 +166,11 @@ def claim_pubsub_job(
             raise
 
 
-def _reclaim_retrying(
+def _running_lease_is_stale(job: Model) -> bool:
+    return job.lease_expires_at is None or job.lease_expires_at <= timezone.now()
+
+
+def _reclaim_job(
     job: Model,
     *,
     message_id: str,
@@ -143,7 +179,8 @@ def _reclaim_retrying(
     job.status = BaseJobModel.Status.RUNNING
     job.pubsub_message_id = message_id
     job.error_msg = ""
-    update_fields = ["status", "pubsub_message_id", "error_msg"]
+    job.lease_expires_at = timezone.now() + JOB_LEASE_DURATION
+    update_fields = ["status", "pubsub_message_id", "error_msg", "lease_expires_at"]
     for field, value in retry_updates.items():
         setattr(job, field, value)
         update_fields.append(field)

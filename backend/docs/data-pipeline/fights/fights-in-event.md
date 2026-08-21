@@ -29,7 +29,7 @@ When new fighters are created or an existing fighter receives a backfilled `prof
 - **Idle shutdown:** Controlled by `WORKER_IDLE_SHUTDOWN_ENABLED` / `WORKER_IDLE_TIMEOUT_SECONDS`. Compose disables idle shutdown for local development.
 - **Per-message `callback`:**
   - Parses JSON body → `url` (non-empty string) and `event_id` (int). Bad payloads are **acked** (dropped) after logging.
-  - Loads or creates `FightCreationJob` with `pubsub_message_id=message.message_id`, `url`, `event` FK via `event_id`, `RUNNING`, etc. DB create failure → **nack**.
+  - `claim_pubsub_job()` claims or creates `FightCreationJob` (`event_id` key, `pubsub_message_id` bound to the current delivery). New `RUNNING` rows get `lease_expires_at = now + 5 minutes`. Unexpired `RUNNING` → **ack** skip. Expired or null `RUNNING` reclaims **that same row** so this message continues processing (crash recovery; no heartbeat). `RETRYING` is reclaimed in place. `COMPLETED`/`FAILED` allow a new row. DB uniqueness races skip or nack per existing claim/`IntegrityError` handling.
   - If job already `COMPLETED` or `FAILED` → **ack** (no reprocessing).
   - Else: `fetch_soup(job.url)` → `scrape_fights_in_event(soup, job.event_id)` → in `transaction.atomic()`, optional `Fights.objects.bulk_create(fights)`, then job `COMPLETED`, `completed_at`, clear `error_msg` → **ack**.
   - On exception: increment `retry_count`, set `error_msg`; if `retry_count >= 3` → `FAILED` and **ack**; else `RETRYING` and **nack** (redelivery).
@@ -127,7 +127,7 @@ Requires Django settings, database, valid GCP credentials for the subscriber cli
 - **Relative `url`:** If upstream sends a path-only URL, `requests.get` may fail unless the URL is absolute; behavior depends on the published payload.
 - **`wc_td` indexing:** Parser uses `wc_td = wc_td[1]` after `find_all`; if fewer than two matching `td` elements exist, this can raise and drive retries/failure.
 - **Debug `print` in `parser.py`:** None in current `ensure_fighters_exist` publish path; use logging if adding diagnostics.
-- **Fighter profile downstream:** Consumer lives in `ufc_data_pipeline/fighters/fighter_profile/`; see `fighter-profile.md` for Playwright scraping, parser selectors, job dedup rules (skip only when `RUNNING`; re-scrape allowed after `COMPLETED`), and Docker Pub/Sub host configuration.
+- **Fighter profile downstream:** Consumer lives in `ufc_data_pipeline/fighters/fighter_profile/`; see `fighter-profile.md` for Playwright scraping, parser selectors, job claim leases (skip unexpired `RUNNING`; reclaim stale `RUNNING`; re-scrape allowed after `COMPLETED`), and Docker Pub/Sub host configuration.
 
 ## Notes for Future Developers
 

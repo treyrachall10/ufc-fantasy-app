@@ -8,7 +8,7 @@ Upstream is the Fight Stats Scraper (`publish_career_stats_job`). Local testing 
 
 - Recalculate career totals for both fighters on a triggering fight (full replace, not incremental).
 - Persist via pipeline-authenticated API endpoints (no fantasy ORM from the worker).
-- Track job status in `career_stats_job` (`RUNNING`, `COMPLETED`, `RETRYING`, `FAILED`).
+- Track job status in `career_stats_job` (`RUNNING`, `COMPLETED`, `RETRYING`, `FAILED`) and ownership via nullable `lease_expires_at` (5-minute claim lease).
 - Hand off to the Score Fight Worker via Pub/Sub after success.
 
 ## Where This Lives
@@ -22,7 +22,8 @@ Upstream is the Fight Stats Scraper (`publish_career_stats_job`). Local testing 
 ## Main Files
 
 - `career_stats_worker.py` — process entry point; signal handling and consumer bootstrap.
-- `consumer.py` — Pub/Sub subscriber, `_get_or_create_job` lifecycle, ack/nack rules, idle shutdown, score-fight publish after COMPLETED.
+- `consumer.py` — Pub/Sub subscriber, ack/nack rules, idle shutdown, score-fight publish after COMPLETED.
+- `message_processor.py` — transport-agnostic claim + recalc + job status.
 - `service.py` — orchestration: source GET → counters → career-stats PATCH; `publish_score_fight_job`.
 - `counters.py` — pure recalc (no HTTP/ORM/Pub/Sub).
 - `api_client.py` — authenticated HTTP GET/PATCH to the main API service.
@@ -37,10 +38,12 @@ Upstream is the Fight Stats Scraper (`publish_career_stats_job`). Local testing 
 - **Idle shutdown:** Controlled by `WORKER_IDLE_SHUTDOWN_ENABLED` / `WORKER_IDLE_TIMEOUT_SECONDS` (via `worker_settings`). Compose sets shutdown **disabled** for local development.
 - **Per-message `callback`:**
   - Parses JSON → `fight_id` (positive int). Bad payloads are **acked** (dropped).
-  - `_get_or_create_job(fight_id)` inside `transaction.atomic()` + `select_for_update()`:
-    - If a **`RUNNING`** job already exists for the fight → return `None`, **ack** (skip duplicate in-flight work).
-    - If a **`RETRYING`** job exists → promote it to `RUNNING`, return that row.
-    - Otherwise (including when a prior **`COMPLETED`** or **`FAILED`** job exists) → create a **new** `RUNNING` job row.
+  - `claim_pubsub_job()` (shared helper) claims or creates `CareerStatsJob`:
+    - New `RUNNING` rows set `lease_expires_at = now + 5 minutes`.
+    - Unexpired `RUNNING` (another worker presumed to still own the job) → return `None`, **ack**.
+    - Expired or null `RUNNING` is stale: reclaim **that same row**, refresh the 5-minute lease, bind the current `pubsub_message_id`, and **continue this Pub/Sub message**. A worker can crash after setting `RUNNING`; without a lease, later redelivery would skip and orphan the job.
+    - `RETRYING` → reclaim the same row to `RUNNING` with a fresh lease.
+    - Prior `COMPLETED` or `FAILED` (new message id) → create a **new** `RUNNING` job row.
   - `process_career_stats` → CareerStatsSource → counters per fighter → SetFighterCareerStats for each.
   - Success → job `COMPLETED` (atomic) → `publish_score_fight_job(fight_id)` **after** that commit → **ack**.
   - Failure → increment `retry_count`; if `retry_count >= MAX_RETRY_COUNT` (3) → `FAILED` and **ack**; else `RETRYING` and **nack**.
@@ -161,7 +164,7 @@ docker compose exec web python manage.py enqueue_career_stats --fight-id 1
 - **Missing `PIPELINE_SERVICE_API_KEY`:** `api_client` raises `PIPELINE_SERVICE_API_KEY is not configured`.
 - **Empty CareerStatsSource fighters:** Service raises if the source payload has no fighters (e.g. fight missing FightStats); consumer retries.
 - **Duplicate in-flight jobs:** Same-`fight_id` concurrency is blocked by `select_for_update` job claims; different fights can run up to `WORKER_MAX_MESSAGES` at once.
-- **Reprocessing completed fights:** A prior `COMPLETED` job does **not** block a new run; a new job row is created. Only an in-flight `RUNNING` job causes a skip.
+- **Reprocessing completed fights:** A prior `COMPLETED` job does **not** block a new run; a new job row is created. An in-flight `RUNNING` job with an unexpired lease is skipped; an expired or null `RUNNING` lease is reclaimed on the same row by the current message.
 - **Invalid JSON or non-positive `fight_id`:** Payload errors are **acked**; the message is dropped.
 - **Score-fight publish timing:** Publish runs **after** the job `COMPLETED` commit, not inside that atomic block.
 - **NC / draw rules:** NC methods with null result are excluded from tallies; null `winner_id` counts as a draw once NC is excluded.

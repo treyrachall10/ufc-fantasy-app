@@ -24,7 +24,7 @@ Event Watcher
 - Job records should be stored in the database.
 - Downstream work should be triggered by creating/publishing jobs.
 - Workers should be idempotent.
-- Duplicate in-flight jobs should be avoided; exact dedup rules are stage-specific (for example, the fighter profile worker skips only when a `RUNNING` job exists, but allows a new scrape after `COMPLETED`).
+- Duplicate in-flight jobs should be avoided. Pub/Sub stages that use `claim_pubsub_job()` skip when a `RUNNING` job has an **unexpired** `lease_expires_at` (another worker is presumed to still own it). An expired or null lease on `RUNNING` is stale: the current message reclaims **that same job row** and continues processing. `RETRYING` is reclaimed in place. A prior `COMPLETED` job does not block a new run. Event Watcher and Live Event Results do not use this helper (Event Sync is per-run; live results uses `locked_until`).
 - Bulk inserts should be used when creating many records.
 - Related database writes should use transactions when partial writes would corrupt the pipeline.
 - Each stage should update its job status.
@@ -86,12 +86,13 @@ The Fights In Event Scraper processes one event and discovers all fights attache
 ### Flow
 
 1. Receive event_id and event_url.
-2. Scrape all fights from that event page (bout, weight class, fight URL, and related metadata).
-3. For each fight row, detect completed vs upcoming from the event-page result banner and set `fight_status` to `COMPLETED` or `UPCOMING`.
-4. For completed fights, parse available result summary fields from the event page and resolve `winner` using batch fighter lookup after fighters are ensured to exist.
-5. For each fight, get or create both fighters.
-6. Bulk insert fight records.
-7. Publish fighter profile scrape messages to Pub/Sub for new fighters and for existing fighters whose `profile_url` was backfilled (see `fights_in_event/parser.py` → `ensure_fighters_exist`).
+2. Claim/create a `FightCreationJob` via `claim_pubsub_job()` (skip unexpired `RUNNING`; reclaim expired/null `RUNNING` or `RETRYING` on the same row; new row after `COMPLETED`/`FAILED`).
+3. Scrape all fights from that event page (bout, weight class, fight URL, and related metadata).
+4. For each fight row, detect completed vs upcoming from the event-page result banner and set `fight_status` to `COMPLETED` or `UPCOMING`.
+5. For completed fights, parse available result summary fields from the event page and resolve `winner` using batch fighter lookup after fighters are ensured to exist.
+6. For each fight, get or create both fighters.
+7. Bulk insert fight records.
+8. Publish fighter profile scrape messages to Pub/Sub for new fighters and for existing fighters whose `profile_url` was backfilled (see `fights_in_event/parser.py` → `ensure_fighters_exist`).
 
 ### Output
 
@@ -117,7 +118,7 @@ The Fighter Profile Scraper consumes Pub/Sub messages for individual fighter pro
 ### Flow
 
 1. Receive a Pub/Sub message: `{fighter_id, fighter_url}` (published by `fights_in_event`).
-2. Create or resume a `FighterProfileScrapeJob` row (`RUNNING`). Skip only if another job for the same fighter is already `RUNNING`; reuse `RETRYING`; allow new runs after `COMPLETED`.
+2. Create or resume a `FighterProfileScrapeJob` via `claim_pubsub_job()` (`RUNNING` with a 5-minute `lease_expires_at`). Skip if `RUNNING` has an unexpired lease; reclaim the same row if `RUNNING` is expired/null or if the job is `RETRYING`; allow a new row after `COMPLETED`.
 3. Load the profile page with Playwright (Chromium).
 4. Parse name from `.b-content__title-highlight` (split into first/last), nickname from `.b-content__Nickname`, and tale-of-the-tape stats from `ul.b-list__box-list`.
 5. `PATCH /api/fighters/<fighter_id>/SetFighterProfile`.
@@ -187,7 +188,7 @@ The Fight Stats Scraper consumes `fight-stats-jobs`, creates/manages `FightStats
 ### Flow
 
 1. Receive a Pub/Sub message (`fight_id`, `fight_url`).
-2. Create or resume a `FightStatsScrapeJob` (skip if `RUNNING`; reuse `RETRYING`; allow a new job after `COMPLETED` / `FAILED`).
+2. Claim/create a `FightStatsScrapeJob` via `claim_pubsub_job()` (skip unexpired `RUNNING`; reclaim expired/null `RUNNING` or `RETRYING` on the same row; new row after `COMPLETED` / `FAILED`).
 3. Scrape the fight detail page with Playwright.
 4. Parse metadata, two fighter total bundles, and per-round stats.
 5. Persist via API:
@@ -250,7 +251,7 @@ The worker owns only pipeline job state (`CareerStatsJob`). It does not query fa
 ### Flow
 
 1. Receive `fight_id` from Pub/Sub.
-2. Claim/create `CareerStatsJob` (skip if `RUNNING`; reuse `RETRYING`; new row after `COMPLETED`/`FAILED`).
+2. Claim/create `CareerStatsJob` via `claim_pubsub_job()` (skip unexpired `RUNNING`; reclaim expired/null `RUNNING` or `RETRYING` on the same row; new row after `COMPLETED`/`FAILED`).
 3. Load source rows via CareerStatsSource.
 4. Pure counters recalculate win/loss/draw, method buckets, additive sums, and `total_fight_time`.
 5. Upsert both fighters’ career stats via SetFighterCareerStats.
@@ -292,7 +293,7 @@ The worker owns only pipeline job state (`ScoreFightJob`). It does not query fan
 ### Flow
 
 1. Receive `fight_id` from Pub/Sub.
-2. Claim/create `ScoreFightJob` (skip if `RUNNING`; reuse `RETRYING`; new row after `COMPLETED`/`FAILED`; advisory lock guards cross-instance races).
+2. Claim/create `ScoreFightJob` via `claim_pubsub_job()` (skip unexpired `RUNNING`; reclaim expired/null `RUNNING` or `RETRYING` on the same row; new row after `COMPLETED`/`FAILED`).
 3. Load the scoreable snapshot via ScoringSource.
 4. Pure scoring module (`scoring.py`) calculates per-round category points and fight totals (win/round/time bonuses; draws score without winner bonuses).
 5. Persist everything via SetFightScoring.

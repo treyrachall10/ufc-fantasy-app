@@ -13,6 +13,7 @@ class BaseJobModel(models.Model):
 
     ran_at = models.DateTimeField()
     completed_at = models.DateTimeField(null=True, blank=True)
+    lease_expires_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
         max_length=16,
         choices=Status.choices,
