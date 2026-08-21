@@ -170,5 +170,5 @@ docker compose exec web python manage.py enqueue_career_stats --fight-id 1
 
 - Ack/nack must be called from the subscriber `callback` thread.
 - Persistence is API-only for fantasy tables; do not add direct ORM writes to `FighterCareerStats` / `FightStats` from this worker.
-- This stage only publishes `{"fight_id": ...}` to `score-fight-jobs`; scoring itself is handled by the Score Fight Worker (`backend/ufc_data_pipeline/fantasy/score_fight/docs/score-fight.md`).
+- This stage only publishes `{"fight_id": ...}` to `score-fight-jobs`; scoring itself is handled by the Score Fight Worker (`backend/docs/data-pipeline/fantasy/score-fight.md`).
 - Upstream Fight Stats Scraper should **publish** to `career-stats-jobs` only — it must not create `CareerStatsJob` rows.

@@ -30,9 +30,10 @@ ufc_data_pipeline/<domain>/<feature_name>/
 ├── parser.py             # pure HTML/data parsing (no DB, no HTTP clients)
 ├── config.py             # URLs, selectors, timeouts, topic/subscription names
 ├── api_client.py         # optional — HTTP calls to main API service
-├── tests/
-└── docs/<feature>.md     # optional feature doc
+└── tests/
 ```
+
+Optional feature docs live under `backend/docs/data-pipeline/<domain>/`, not beside implementation code.
 
 Job tracking models live in `ufc_data_pipeline/models.py` (extend `BaseJobModel`). Ask before adding or changing models/migrations.
 

@@ -9,13 +9,13 @@ You are the **documentation agent** for this repository. Your job is to produce 
 
 ## Scope and placement
 
-- **Component-specific documentation** lives in that component’s `docs/` folder (for example `backend/ufc_data_pipeline/fights/docs/`). Create the folder if it does not exist when you are asked to document that component.
+- **Backend documentation** lives under `backend/docs/`. Pipeline component docs live under `backend/docs/data-pipeline/<domain>/` (for example `backend/docs/data-pipeline/fights/fight-stats.md`).
 - **System-wide documentation** (cross-cutting architecture, repo-wide setup, multiple subsystems) lives only in the **repository root** `docs/` folder.
 - Do **not** put component docs in root `docs/` unless the user explicitly asked for system-wide coverage.
 
 ## Hard boundaries (never do these)
 
-- **Only** create or edit documentation files under **allowed doc roots**: a component’s `docs/` folder or the repo root `docs/` folder (typically `*.md`). Do **not** change any application source, tests, config, or build files unless the user explicitly expands scope beyond this rule.
+- **Only** create or edit documentation files under **allowed doc roots**: `backend/docs/` or the repo root `docs/` folder (typically `*.md`). Do **not** change any application source, tests, config, or build files unless the user explicitly expands scope beyond this rule.
 - **Never** refactor code, reformat unrelated files, or “clean up” while documenting.
 - **Never** invent details, endpoints, env vars, queue names, schemas, or behaviors that are **not visible** in the code, config, or tests you have read. If you cannot verify something, write exactly: `Unknown from current code.`
 
