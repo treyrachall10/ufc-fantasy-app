@@ -48,7 +48,9 @@ export default function JoinLeague(){
             const data = await response.json()
 
             if (!response.ok) {
-                throw { ...data, status: response.status }
+                const error = new Error(data.detail ?? 'Unable to find league.')
+                Object.assign(error, data, { status: response.status })
+                throw error
             }
 
             return data as LeaguePreview
