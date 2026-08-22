@@ -1,6 +1,6 @@
 # Live Event Results Watcher (`live_event_results`)
 
-One-shot scheduled watcher that detects live UFC Stats event-page result changes for the newest stored event, persists status transitions through pipeline-authenticated APIs, publishes durable Fight Stats and Fights In Event rescrape handoffs, and exits. It replaces the separate planned DB Event Watcher and Fight Results Watcher.
+One-shot scheduled watcher that detects live UFC Stats event-page result changes for a stored event in the current live-event date window, persists status transitions through pipeline-authenticated APIs, publishes durable Fight Stats and Fights In Event rescrape handoffs, and exits. It replaces the separate planned DB Event Watcher and Fight Results Watcher.
 
 ## Purpose
 
@@ -25,15 +25,16 @@ One-shot scheduled watcher that detects live UFC Stats event-page result changes
 - `matcher.py` — Pure stored-vs-scraped card comparison by normalized fight URL.
 - `fingerprint.py` — Card fingerprint and rescrape reason helpers.
 - `scraper.py` — Playwright fetch of the UFC Stats event page.
-- `date_gate.py` — Required IANA timezone + today/yesterday eligibility.
+- `date_gate.py` — Required IANA timezone, live-event date window (today/yesterday), and event selection among that window.
 - `config.py` — Env-backed API, lease, retry, and rescrape settings.
 
 ## How It Works
 
 - **Entry point:** `python manage.py watch_live_event_results` → `watch_live_event_results()` in `service.py`.
 - **Startup guards:** Missing/invalid `LIVE_EVENT_RESULTS_TIMEZONE` fails before work. Empty `PIPELINE_API_BASE_URL` / `PIPELINE_SERVICE_API_KEY` fail before discovery.
-- **Selection:** `GET` discovery → newest stored event. No event → successful `no_event`.
-- **Date gate:** Eligible when event date is local today or yesterday in the configured timezone.
+- **Selection:** `GET` discovery → choose a stored event in the **live-event date window** (not simply the newest row in the database). The window is calendar **today** and **yesterday** in `LIVE_EVENT_RESULTS_TIMEZONE`. Among window matches, pick the maximum `(date, event_id)` for deterministic ordering. Future-dated events never enter the window, so a pre-scraped upcoming card cannot shadow the active event. If no stored event falls in the window, fall back to discovery `latest_event` only so aged pending-handoff drains still have a target; otherwise → successful `no_event`.
+- **Date gate / 2:00 AM:** Eligibility uses the same today/yesterday window. Yesterday remains eligible **before and at/after 02:00** local time because UFC cards can run past midnight into the early morning (around the 2:00 AM hour). The watcher therefore keeps the previous calendar day’s event in the live window after midnight rather than treating a new calendar day as immediately ending that card.
+- **Timezone:** `today` / `yesterday` / current time for this window are evaluated in **`LIVE_EVENT_RESULTS_TIMEZONE`** (required IANA name, e.g. `America/New_York`). That is **not** Django `TIME_ZONE` (repo default `UTC`) and not the host system timezone. Instant “now” is taken as UTC and converted into that configured zone.
 - **Pending bypass:** Unresolved Fight Stats (`PENDING`) or rescrape (`PENDING` / `PUBLISHED` / `FAILED`) handoffs claim a lease and drain even when date-ineligible (`pending_without_scrape`). No UFC Stats fetch on that path.
 - **Terminal:** No upcoming fights and no unresolved handoffs → claim, complete lease, exit `terminal` without scraping.
 - **Active lease:** Another owner with an unexpired lease → successful `active_lease_skip`.
@@ -166,7 +167,7 @@ python manage.py watch_live_event_results
 | Pub/Sub publisher IAM | Job SA can **publish** to `PUBSUB_FIGHT_STATS_TOPIC` and `PUBSUB_FIGHTS_IN_EVENT_TOPIC` |
 | UFC Stats egress | Outbound HTTPS/HTTP to `ufcstats.com` event pages |
 | Chromium / runtime | Chromium baked into the image; rebuild if browsers are missing |
-| Timezone | Valid IANA `LIVE_EVENT_RESULTS_TIMEZONE` (required; no silent default) |
+| Timezone | Valid IANA `LIVE_EVENT_RESULTS_TIMEZONE` (required; no silent default). Live-window today/yesterday and the overnight 2:00 AM rationale are evaluated in this zone, not Django `TIME_ZONE`. |
 | Exit model | Exit **0** on successful outcomes including no-work / date-ineligible / active-lease skip / terminal / card-compared. Exit **non-zero** (`CommandError`) on aggregated item failures or prerequisite failures |
 | Retries | In-command: max 3 attempts, exp backoff ~1/2/4s + jitter, bounded `Retry-After`. Scheduler owns the next 10-minute attempt for durable pending work |
 | One-shot | No internal sleep/poll/subscriber loop |

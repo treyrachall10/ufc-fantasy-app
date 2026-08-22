@@ -24,6 +24,7 @@ from ufc_data_pipeline.fights.live_event_results.date_gate import (
     TimezoneConfigError,
     is_event_date_eligible,
     require_timezone,
+    select_live_window_event,
 )
 from ufc_data_pipeline.fights.live_event_results.fingerprint import (
     build_card_fingerprint,
@@ -744,9 +745,10 @@ def watch_live_event_results() -> WatchResult:
     """
     Run one Live Event Results Watcher pass.
 
-    Selects the newest stored event, applies the timezone date gate, loads the
-    fight snapshot, claims the event lease, and for eligible non-terminal events
-    applies completed transitions and drains durable Fight Stats handoffs.
+    Selects a stored event in the live-event date window when possible (not
+    newest-overall), applies the timezone date gate, loads the fight snapshot,
+    claims the event lease, and for eligible non-terminal events applies
+    completed transitions and drains durable Fight Stats handoffs.
     """
     run_started = time.monotonic()
 
@@ -765,8 +767,14 @@ def watch_live_event_results() -> WatchResult:
         "get_discovery_source",
         api_client.get_discovery_source,
     )
-    latest = discovery.get("latest_event")
-    if not latest:
+    events = discovery.get("events") or []
+    # Prefer an event in the live date window so a future stored event cannot
+    # shadow the active card. Fall back to newest-overall only when the window
+    # is empty so aged pending-handoff drains still have a target.
+    selected = select_live_window_event(events, tz)
+    if not selected:
+        selected = discovery.get("latest_event")
+    if not selected:
         logger.info(
             "live_event_results outcome=%s elapsed_ms=%s",
             WatchOutcome.NO_EVENT.value,
@@ -774,8 +782,8 @@ def watch_live_event_results() -> WatchResult:
         )
         return WatchResult(outcome=WatchOutcome.NO_EVENT)
 
-    event_id = int(latest["event_id"])
-    event_date = _parse_event_date(latest.get("date"))
+    event_id = int(selected["event_id"])
+    event_date = _parse_event_date(selected.get("date"))
     snapshot = call_with_retries(
         f"get_live_results_source event_id={event_id}",
         lambda: api_client.get_live_results_source(event_id),
