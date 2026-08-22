@@ -145,12 +145,12 @@ Scheduled one-shot job (Cloud Scheduler → Cloud Run Job → existing backend i
 
 ### Responsibility
 
-Select the newest stored event through the pipeline discovery API, apply a required IANA timezone date gate (today/yesterday), load one event fight snapshot, claim an API-owned event lease, fetch the UFC Stats event page at most once when eligible, reconcile fights by normalized URL, persist cancellations/restorations/completions through pipeline APIs, publish durable Fight Stats and Fights In Event rescrape handoffs, and exit.
+Select a stored event in the live-event date window (today/yesterday in `LIVE_EVENT_RESULTS_TIMEZONE`, not newest-overall) through the pipeline discovery API, apply the date gate, load one event fight snapshot, claim an API-owned event lease, fetch the UFC Stats event page at most once when eligible, reconcile fights by normalized URL, persist cancellations/restorations/completions through pipeline APIs, publish durable Fight Stats and Fights In Event rescrape handoffs, and exit.
 
 ### Flow
 
 1. Fail fast on missing/invalid `LIVE_EVENT_RESULTS_TIMEZONE` or missing pipeline API base URL/key.
-2. Load newest event via discovery API; no event exits successfully (`no_event`).
+2. Load discovery events; select an event in the live-event date window (today/yesterday in that timezone; deterministic `(date, event_id)` among matches). Future events cannot shadow. No in-window event falls back to newest-overall for aged pending drains only; otherwise exit successfully (`no_event`).
 3. Load LiveResultsSource snapshot (fights + handoff state).
 4. If date-ineligible and no pending handoffs → successful `date_ineligible` (no lease, no scrape).
 5. Claim event lease (active other owner → successful `active_lease_skip`).
@@ -320,7 +320,7 @@ The full pipeline is successful when:
 3. Fights are discovered and stored.
 4. Fighter profile jobs are created for new fighters.
 5. Fighter profiles are scraped.
-6. Live Event Results detects completions/cancellations/replacements for the newest eligible event.
+6. Live Event Results detects completions/cancellations/replacements for the event in the live-event date window.
 7. Fight stats and round stats are stored.
 8. Career stats are updated.
 9. Final fight scores are calculated and stored.
