@@ -5,6 +5,7 @@ Scrape and process fight stats jobs using Playwright and the main API service.
 from __future__ import annotations
 
 import logging
+import time
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
@@ -37,15 +38,27 @@ def fetch_fight_soup(fight_url: str) -> BeautifulSoup:
     ):
         # Loop through Playwright fetch attempts until the page loads or retries are exhausted.
         with attempt:
+            startup_started = time.perf_counter()
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch()
                 page = browser.new_page()
+                logger.info(
+                    "Fight stats playwright startup elapsed_s=%.3f fight_url=%s",
+                    time.perf_counter() - startup_started,
+                    fight_url,
+                )
+                load_started = time.perf_counter()
                 page.goto(fight_url, timeout=PLAYWRIGHT_TIMEOUT_S * 1000)
                 page.wait_for_selector(
                     FIGHT_PAGE_READY_SELECTOR,
                     timeout=PLAYWRIGHT_TIMEOUT_S * 1000,
                 )
                 html = page.content()
+                logger.info(
+                    "Fight stats page load elapsed_s=%.3f fight_url=%s",
+                    time.perf_counter() - load_started,
+                    fight_url,
+                )
                 browser.close()
             return BeautifulSoup(html, "html.parser")
     raise RuntimeError(f"Failed to load fight detail page: {fight_url}")
@@ -54,47 +67,68 @@ def fetch_fight_soup(fight_url: str) -> BeautifulSoup:
 # Receives fight_id and fight_url; returns nothing; raises on failure.
 # This function scrapes a fight detail page and upserts metadata, FightStats, and RoundStats via API.
 def process_fight_stats(fight_id: int, fight_url: str) -> None:
+    request_started = time.perf_counter()
     logger.info(
         "Started fight stats job fight_id=%s fight_url=%s",
         fight_id,
         fight_url,
     )
 
-    soup = fetch_fight_soup(fight_url)
-    # Try to parse the fight detail HTML into metadata, totals, and round stats.
     try:
-        parsed = parse_fight_page(soup)
-    except ValueError as exc:
-        logger.error("Fight stats parse failed fight_id=%s: %s", fight_id, exc)
-        raise RuntimeError(str(exc)) from exc
-
-    metadata_payload = metadata_to_api_payload(parsed.metadata)
-    if len(metadata_payload) <= 1:
-        raise RuntimeError("No fight metadata fields parsed from page")
-
-    if len(parsed.fighter_stats) != 2:
-        raise RuntimeError(
-            f"Expected two fighter fight-stat bundles, got {len(parsed.fighter_stats)}"
+        soup = fetch_fight_soup(fight_url)
+        # Try to parse the fight detail HTML into metadata, totals, and round stats.
+        parse_started = time.perf_counter()
+        try:
+            parsed = parse_fight_page(soup)
+        except ValueError as exc:
+            logger.error("Fight stats parse failed fight_id=%s: %s", fight_id, exc)
+            raise RuntimeError(str(exc)) from exc
+        logger.info(
+            "Fight stats parse elapsed_s=%.3f fight_id=%s",
+            time.perf_counter() - parse_started,
+            fight_id,
         )
 
-    # Loop through each fighter bundle to confirm per-round stats were parsed.
-    for stats in parsed.fighter_stats:
-        if not stats.rounds:
+        metadata_payload = metadata_to_api_payload(parsed.metadata)
+        if len(metadata_payload) <= 1:
+            raise RuntimeError("No fight metadata fields parsed from page")
+
+        if len(parsed.fighter_stats) != 2:
             raise RuntimeError(
-                f"No per-round stats found for fighter={stats.fighter_name}"
+                f"Expected two fighter fight-stat bundles, got {len(parsed.fighter_stats)}"
             )
 
-    stats_payload = fighter_stats_to_api_payload(parsed.fighter_stats)
-    rounds_payload = round_stats_to_api_payload(parsed.fighter_stats)
+        # Loop through each fighter bundle to confirm per-round stats were parsed.
+        for stats in parsed.fighter_stats:
+            if not stats.rounds:
+                raise RuntimeError(
+                    f"No per-round stats found for fighter={stats.fighter_name}"
+                )
 
-    api_client.update_fight_result_metadata(fight_id, metadata_payload)
-    api_client.upsert_fight_stats_totals(fight_id, stats_payload)
-    api_client.upsert_round_stats(fight_id, rounds_payload)
-    logger.info(
-        "Completed API updates for fight stats job fight_id=%s fight_url=%s",
-        fight_id,
-        fight_url,
-    )
+        stats_payload = fighter_stats_to_api_payload(parsed.fighter_stats)
+        rounds_payload = round_stats_to_api_payload(parsed.fighter_stats)
+
+        api_started = time.perf_counter()
+        api_client.update_fight_result_metadata(fight_id, metadata_payload)
+        api_client.upsert_fight_stats_totals(fight_id, stats_payload)
+        api_client.upsert_round_stats(fight_id, rounds_payload)
+        logger.info(
+            "Fight stats API persistence elapsed_s=%.3f fight_id=%s",
+            time.perf_counter() - api_started,
+            fight_id,
+        )
+        logger.info(
+            "Completed API updates for fight stats job fight_id=%s fight_url=%s",
+            fight_id,
+            fight_url,
+        )
+    finally:
+        logger.info(
+            "Fight stats total elapsed_s=%.3f fight_id=%s fight_url=%s",
+            time.perf_counter() - request_started,
+            fight_id,
+            fight_url,
+        )
 
 
 # Receives a fight_id and returns the Pub/Sub message id.
