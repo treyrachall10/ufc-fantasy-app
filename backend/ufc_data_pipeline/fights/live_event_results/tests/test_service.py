@@ -4,6 +4,7 @@ Tests for Live Event Results Watcher service no-work paths.
 
 from __future__ import annotations
 
+from datetime import date
 from io import StringIO
 from unittest.mock import patch
 
@@ -180,6 +181,69 @@ class WatchLiveEventResultsServiceTests(SimpleTestCase):
         result = watch_live_event_results()
         assert result.outcome == WatchOutcome.NO_EVENT
         assert result.event_id is None
+
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.LIVE_EVENT_RESULTS_TIMEZONE",
+        "America/New_York",
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client.complete_lease"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client.claim_lease"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client.get_live_results_source"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.api_client.get_discovery_source"
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.date_gate.eligible_live_event_dates",
+        return_value=frozenset({date(2026, 7, 19)}),
+    )
+    @patch(
+        "ufc_data_pipeline.fights.live_event_results.service.is_event_date_eligible",
+        return_value=True,
+    )
+    def test_live_window_event_preferred_over_newer_future(
+        self,
+        _eligible,
+        _window_dates,
+        discovery,
+        snapshot,
+        claim,
+        complete,
+    ) -> None:
+        """Newest overall (future) must not shadow an in-window live card."""
+        today_event = {
+            "event_id": 7,
+            "event": "UFC Live",
+            "date": "2026-07-19",
+            "url": "http://ufcstats.com/event-details/live",
+        }
+        future_event = {
+            "event_id": 99,
+            "event": "UFC Future",
+            "date": "2026-08-01",
+            "url": "http://ufcstats.com/event-details/future",
+        }
+        discovery.return_value = {
+            "latest_event": future_event,
+            "events": [future_event, today_event],
+        }
+        snapshot.return_value = _snapshot(event_id=7)
+        claim.return_value = {
+            "outcome": "skipped",
+            "skip_reason": "ACTIVE_LEASE",
+        }
+
+        result = watch_live_event_results()
+
+        assert result.outcome == WatchOutcome.ACTIVE_LEASE_SKIP
+        assert result.event_id == 7
+        snapshot.assert_called_once_with(7)
+        complete.assert_not_called()
 
     @patch(
         "ufc_data_pipeline.fights.live_event_results.service.LIVE_EVENT_RESULTS_TIMEZONE",
