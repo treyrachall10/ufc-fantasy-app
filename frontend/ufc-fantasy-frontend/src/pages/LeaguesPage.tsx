@@ -1,5 +1,5 @@
 import ListPageLayout from "../components/layout/ListPageLayout";
-import { DataGrid } from '@mui/x-data-grid';
+import { DataGrid, GridPaginationModel } from '@mui/x-data-grid';
 import { Box, Typography, Stack } from '@mui/material';
 import { Link, Button } from '@mui/material';
 import { Link as RouterLink} from "react-router-dom";
@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuthFetch } from "../auth/authFetch";
 import { PaginatedResponse } from "../types/types";
 import { getApiBaseUrl } from "../config/api";
+import { useState } from "react";
 
 interface UserLeaguesAndTeams {
     league_id: number,
@@ -19,10 +20,18 @@ interface UserLeaguesAndTeams {
 
 export default function LeaguesPage() {
     const authFetch = useAuthFetch();
+    const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({ page: 0, pageSize: 10 });
+    const { page, pageSize } = paginationModel;
 
     const { data, isPending, error} = useQuery<PaginatedResponse<UserLeaguesAndTeams>>({
-        queryKey: ['userLeaguesAndTeams'],
-        queryFn: () => authFetch(`${getApiBaseUrl()}/leagues`).then(r => r.json()),
+        queryKey: ['userLeaguesAndTeams', page, pageSize],
+        queryFn: () => {
+            const params = new URLSearchParams({
+                page: String(page + 1),
+                page_size: String(pageSize),
+            });
+            return authFetch(`${getApiBaseUrl()}/leagues?${params.toString()}`).then(r => r.json());
+        },
     })
 
     if (isPending) return <span>Loading...</span>
@@ -123,12 +132,15 @@ export default function LeaguesPage() {
             <Box sx={{ width: '100%', overflow: "hidden" }}>
                 <DataGrid //displays the table 
                     rows= {rows} 
-                    columns= {columns} 
-                    hideFooter 
+                    columns= {columns}  
                     disableRowSelectionOnClick // removes checkboxes
                     disableVirtualization // renders all rows on a page, prevents scrolling the grid to see rows
                     disableColumnSorting // removes sorting. (if adding filtering remove this)
-                    
+                    rowCount={data.count}
+                    paginationMode="server"
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
+                    pageSizeOptions={[10, 20, 50, 100]}
                     //Allows alternating colored rows
                     getRowClassName={(params) =>
                         params.indexRelativeToCurrentPage % 2 === 0 ? "even-row" : "odd-row"
