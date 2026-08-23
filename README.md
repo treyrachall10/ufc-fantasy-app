@@ -1,3 +1,39 @@
+## Lessons Learned, Improvements & Future Features
+
+UFC Fantasy is my first fully deployed application. I began building it before taking advanced software engineering courses or completing a software engineering internship, so several architectural decisions reflect what I knew at the time. The project has been valuable for learning where stronger architecture, testing, observability, and separation of concerns matter in a real system.
+
+### Architectural Lessons Learned
+
+* **Backend Application Structure** — Most backend functionality currently lives inside one large Django application. A better approach would have been a modular monolith organized around domains such as `fighters`, `events`, `users`, and `fantasy`.
+* **Domain Boundaries** — Clear domain boundaries would improve separation of concerns and make individual components easier to extract into separate services if scaling requirements ever justified it.
+* **Dependency Rules** — Circular imports and dependency direction were not considered early enough. A stronger architecture would explicitly define which modules can depend on and communicate with one another.
+* **Dependency Injection** — External clients such as the Supabase client are imported directly in several places. Injecting these dependencies would improve testing, configuration, and replacement of external services.
+* **Internal Architecture** — Each domain could use a consistent feature-based or clean-architecture structure with clear dependency rules rather than mixing business logic, persistence, and API concerns.
+* **API Layer Separation** — The API could have been designed as a thin layer over domain/application logic. This would allow the application to expose one unified API while keeping internal domains independently maintainable and easier to separate later.
+* **Views Contain Too Much Logic** — Django views should primarily handle HTTP concerns and orchestration. More implementation details could have been moved into application/service functions, following a flow closer to `URL → View → Service/Resolver → Serializer → Client/Repository`.
+* **Database Design** — Some tables could have clearer schemas and additional metadata such as `created_at` timestamps for readability, debugging, and auditing.
+* **Worker Consistency** — Data-pipeline workers evolved over time and do not all follow the same leasing, retry, and lifecycle conventions. A shared worker execution model would reduce complexity.
+* **Service Boundaries** — Some workers currently call the application's API to update database state. This was intentionally introduced to practice service boundaries similar to a microservice architecture, but direct persistence or a better-defined messaging/application boundary would be more appropriate for this system.
+* **Design for Modularity First** — The largest architectural lesson from the project is that a well-structured modular monolith would have provided most of the desired separation without introducing unnecessary distributed-system complexity.
+
+### Areas to Improve
+
+* **UI/UX Redesign** — The current interface is functional but visually limited and could benefit from a broader design overhaul.
+* **Career Statistics Accuracy** — Some fighter career statistics are currently outdated because earlier database and business-logic changes affected historical data. These statistics are corrected automatically the next time the fighter competes. A full historical rebuild is possible but is intentionally deferred to avoid unnecessary cloud-processing costs.
+* **Caching** — Frequently accessed data such as user information, teams, and league information could be cached more effectively.
+* **Observability** — The application does not yet have a complete observability stack. Distributed tracing, metrics, and centralized monitoring through tools such as OpenTelemetry and Datadog would improve debugging and operational visibility.
+* **Testing** — Test coverage and test isolation could be improved, particularly around external clients, workers, and integration boundaries.
+* **Environment Separation** — The current cloud development environment also serves as the production environment due to cost constraints. A dedicated staging/load-testing environment would be preferable for a larger production system.
+* **Code Consistency** — More consistent conventions around comments, function structure, naming, and general code organization should have been established earlier.
+
+### Planned Features
+
+* **Draft Lobby Animations** — Add animations and transitions to improve the live draft experience.
+* **League Season Management** — Add a scheduled service/worker that detects when a league's season has ended and either notifies owners or cleans up expired leagues.
+* **Team Notifications** — Notify team owners when one of their drafted fighters competes.
+* **Weekly Fight Card Summary** — Generate a summary showing which fighters on a user's team competed during the week and their results.
+* **Improved Mobile Support** — Improve responsive layouts and the overall mobile experience.
+
 # UFC Fantasy App
 
 Containerized **Django backend** with a **React frontend** for a UFC fantasy sports application.
