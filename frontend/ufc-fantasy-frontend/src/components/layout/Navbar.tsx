@@ -121,8 +121,10 @@ export default function Navbar(){
                         sx={{ display: { xs: 'block', md: 'none' } }}
                         >
                         {pages.map((page) => (
-                            <MenuItem 
-                                key={page.title} 
+                            <MenuItem
+                                key={page.title}
+                                component={Link}
+                                to={page.route}
                                 onClick={handleCloseNavMenu}
                                 sx={{
                                     '&:hover': {
@@ -130,9 +132,9 @@ export default function Navbar(){
                                     }
                                 }}
                                 >
-                                <Typography 
-                                    sx={{ 
-                                        textAlign: 'center' 
+                                <Typography
+                                    sx={{
+                                        textAlign: 'center'
                                     }}
                                     >
                                         {page.title}
@@ -235,8 +237,13 @@ export default function Navbar(){
                                     onClose={handleCloseUserMenu}
                                 >
                                     {settings.map((setting) => (
-                                        <MenuItem key={setting.label} onClick={() => {
-                                            setting.action?.(); // Will only run if setting.action exist in list
+                                        <MenuItem
+                                            key={setting.label}
+                                            {...(setting.to
+                                                ? { component: Link, to: setting.to }
+                                                : {})}
+                                            onClick={() => {
+                                            setting.action?.();
                                             handleCloseUserMenu();
                                         }}>
                                             <Typography sx={{ textAlign: 'center' }}>{setting.label}</Typography>
