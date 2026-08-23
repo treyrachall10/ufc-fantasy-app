@@ -278,7 +278,7 @@ const NonCreatorDraftNotScheduled = () => {
 
     const rowData = data.teams.map((team) => ({
         team: team.name,
-        pts: 184,
+        pts: parseFloat(team.score?.toFixed(2) ?? '0'),
         standing: 0,
         id: team.id,
         img_url: team.img_url ?? null,
