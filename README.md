@@ -34,6 +34,31 @@ UFC Fantasy is my first fully deployed application. I began building it before t
 * **Weekly Fight Card Summary** — Generate a summary showing which fighters on a user's team competed during the week and their results.
 * **Improved Mobile Support** — Improve responsive layouts and the overall mobile experience.
 
+## Where Does It Break?
+
+### Fight Statistics Pipeline
+
+The fight-stats worker is the most resource-intensive part of the data pipeline because each event typically contains **10–13 fights**, with each fight requiring its own scrape.
+
+This has been partially addressed by allowing fights to be **processed in parallel across multiple workers**. At higher scale, the main constraints would be scrape CPU/memory usage, database capacity, external source limits, and worker concurrency.
+
+### Live Drafting
+
+Drafting is the main application-level scaling concern.
+
+Clients currently poll the backend for league, draft, roster, and draft-order updates. With many simultaneous users, this creates unnecessary API and database traffic. Completing the **real-time WebSocket layer** is the next major improvement.
+
+The draft-pick endpoint can also be optimized by:
+
+* Reducing database round trips with `select_related()`, `prefetch_related()`, and combined queries.
+* Adding indexes for frequently queried draft and roster fields.
+* Caching stable data such as **draft order, league settings, fighter metadata, and team metadata**.
+* Keeping rapidly changing state such as **current pick, drafted fighters, and roster/FLEX availability** authoritative in the database unless profiling later justifies additional caching.
+
+The scaling path is:
+
+`Real-time updates → Query optimization → Measure → Cache where needed`
+
 # UFC Fantasy App
 
 Containerized **Django backend** with a **React frontend** for a UFC fantasy sports application.
